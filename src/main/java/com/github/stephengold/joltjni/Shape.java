@@ -129,6 +129,9 @@ abstract public class Shape extends NonCopyable
             case Triangle:
                 result = new TriangleShape(shapeVa);
                 break;
+            case User1:
+                result = new RegionShape(shapeVa);
+                break;
             default:
                 throw new IllegalArgumentException("subType = " + subType);
         }
