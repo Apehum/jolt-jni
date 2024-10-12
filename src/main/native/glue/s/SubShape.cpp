@@ -31,6 +31,58 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_SubShape
+ * Method:    getShape
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SubShape_getShape
+  (JNIEnv *, jclass, jlong subShapeVa) {
+    const CompoundShape::SubShape * const pSubShape
+            = reinterpret_cast<CompoundShape::SubShape *> (subShapeVa);
+    const Shape * const pResult = pSubShape->mShape;
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SubShape
+ * Method:    getPositionX
+ * Signature: (J)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_SubShape_getPositionX
+  (JNIEnv *, jclass, jlong subShapeVa) {
+    const CompoundShape::SubShape * const pSubShape
+            = reinterpret_cast<CompoundShape::SubShape *> (subShapeVa);
+    const float result = pSubShape->GetPositionCOM().GetX();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SubShape
+ * Method:    getPositionY
+ * Signature: (J)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_SubShape_getPositionY
+  (JNIEnv *, jclass, jlong subShapeVa) {
+    const CompoundShape::SubShape * const pSubShape
+            = reinterpret_cast<CompoundShape::SubShape *> (subShapeVa);
+    const float result = pSubShape->GetPositionCOM().GetY();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SubShape
+ * Method:    getPositionZ
+ * Signature: (J)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_SubShape_getPositionZ
+  (JNIEnv *, jclass, jlong subShapeVa) {
+    const CompoundShape::SubShape * const pSubShape
+            = reinterpret_cast<CompoundShape::SubShape *> (subShapeVa);
+    const float result = pSubShape->GetPositionCOM().GetZ();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SubShape
  * Method:    getRotationW
  * Signature: (J)F
  */

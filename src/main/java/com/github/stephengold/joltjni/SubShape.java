@@ -21,6 +21,8 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.ConstShape;
+
 /**
  * An element of a compound shape. (native type:
  * {@code CompoundShape::SubShape})
@@ -45,6 +47,34 @@ public class SubShape extends JoltPhysicsObject {
     // new methods exposed
 
     /**
+     * Get the shape.
+     *
+     * @return a reference to the shape
+     */
+    public ConstShape getShape() {
+        long subShapeVa = va();
+        long shapeSettingsVa = getShape(subShapeVa);
+        ConstShape result = Shape.newShape(shapeSettingsVa);
+
+        return result;
+    }
+
+    /**
+     * Copy the center of mass position. The subshape is unaffected.
+     *
+     * @return a new position
+     */
+    public Vec3 getPositionCOM() {
+        long subShapeVa = va();
+        float x = getPositionX(subShapeVa);
+        float y = getPositionY(subShapeVa);
+        float z = getPositionZ(subShapeVa);
+        Vec3 result = new Vec3(x, y, z);
+
+        return result;
+    }
+
+    /**
      * Copy the rotation. The subshape is unaffected.
      *
      * @return a new quaternion
@@ -61,6 +91,14 @@ public class SubShape extends JoltPhysicsObject {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long getShape(long subShapeVa);
+
+    native private static float getPositionX(long subShapeVa);
+
+    native private static float getPositionY(long subShapeVa);
+
+    native private static float getPositionZ(long subShapeVa);
 
     native private static float getRotationW(long subShapeVa);
 

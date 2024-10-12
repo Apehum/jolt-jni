@@ -99,6 +99,7 @@ model {
                 srcDir 'src/main/native/Jolt'
                 srcDir 'src/main/native/TestFramework/Math'
                 srcDir 'src/main/native/glue'
+                srcDir 'src/main/native/custom'
                 include '**/*.cpp'
             }
 
@@ -157,6 +158,8 @@ model {
                     if (isDebug) {
                         cppCompiler.define 'JPH_FLOATING_POINT_EXCEPTIONS_ENABLED'
                         cppCompiler.args '/MTd' // to use LIBCMTD
+                        cppCompiler.args '/Zi'
+                        cppCompiler.args '/FS'
                         linker.args '/DEBUG'
                     } else { // buildType == Release
                         cppCompiler.args '/O2'
