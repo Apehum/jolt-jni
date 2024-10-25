@@ -25,6 +25,7 @@ import com.github.stephengold.joltjni.BodyCreationSettings;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RMat44;
 import com.github.stephengold.joltjni.RVec3;
+import com.github.stephengold.joltjni.SubShapeId;
 import com.github.stephengold.joltjni.Vec3;
 import com.github.stephengold.joltjni.enumerate.EBodyType;
 import com.github.stephengold.joltjni.enumerate.EMotionType;
@@ -173,6 +174,13 @@ public interface ConstBody extends ConstJoltPhysicsObject {
      * @return the value (typically &ge;0 and &le;1)
      */
     float getRestitution();
+
+    /**
+     * Return the surface normal of a particular sub shape and its world space surface position on this body.
+     *
+     * @return a new surface normal
+     */
+    Vec3 getWorldSpaceSurfaceNormal(SubShapeId subShapeId, RVec3Arg position);
 
     /**
      * Return the body's orientation. The body is unaffected.

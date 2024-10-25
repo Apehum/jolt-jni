@@ -562,6 +562,25 @@ inline static const Quat getRotation(jlong bodyVa) {
 
 /*
  * Class:     com_github_stephengold_joltjni_Body
+ * Method:    getWorldSpaceSurfaceNormal
+ * Signature: (JJDDD)Lcom/github/stephengold/joltjni/Vec3;
+ */
+JNIEXPORT jobject JNICALL Java_com_github_stephengold_joltjni_Body_getWorldSpaceSurfaceNormal
+  (JNIEnv *pEnv, jclass, jlong bodyVa, jlong shapeIdVa, jdouble xx, jdouble yy, jdouble zz) {
+    const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
+    SubShapeID * const pShapeId = reinterpret_cast<SubShapeID *> (shapeIdVa);
+    const RVec3 position(xx, yy, zz);
+    const Vec3 result = pBody->GetWorldSpaceSurfaceNormal(*pShapeId, position);
+
+    jclass cls = pEnv->FindClass("com/github/stephengold/joltjni/Vec3");
+    jmethodID constructor = pEnv->GetMethodID(cls, "<init>", "(FFF)V");
+    jobject resultVector = pEnv->NewObject(cls, constructor, result.GetX(), result.GetY(), result.GetZ());
+
+    return resultVector;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Body
  * Method:    getRotationX
  * Signature: (J)F
  */
