@@ -76,6 +76,8 @@ public:
 
 	virtual bool				CastRay(const RayCast& inRay, IndexedShape* ioShape) = 0;
 
+	virtual void				CollectCastRay(const RayCast& inRay, IndexedShapes* ioShapes) = 0;
+
 	virtual void				GetShapeAt(uint32 inShapeIndex, IndexedShape* ioShape) = 0;
 };
 

@@ -122,6 +122,7 @@ class CustomIndexedShapeCollector : IndexedShapeCollector {
     JavaVM *mpVM;
     jmethodID mCollectAtMethodId;
     jmethodID mCastRayMethodId;
+    jmethodID mCollectCastRayMethodId;
     jmethodID mGetShapeAtMethodId;
     jobject mJavaObject;
 
@@ -138,6 +139,7 @@ public:
 
         mCollectAtMethodId = pEnv->GetMethodID(clss, "collectAt", "(JJ)V");
         mCastRayMethodId = pEnv->GetMethodID(clss, "castRay", "(JJ)Z");
+        mCollectCastRayMethodId = pEnv->GetMethodID(clss, "collectCastRay", "(JJ)V");
         mGetShapeAtMethodId = pEnv->GetMethodID(clss, "getShapeAt", "(IJ)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
     }
@@ -165,6 +167,18 @@ public:
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
         mpVM->DetachCurrentThread();
         return result;
+    }
+
+    void CollectCastRay(const RayCast& inRay, IndexedShapes* ioShapes) {
+        JNIEnv *pAttachEnv;
+        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        JPH_ASSERT(retCode == JNI_OK);
+
+        const jlong rayVa = reinterpret_cast<jlong> (&inRay);
+        const jlong shapesVa = reinterpret_cast<jlong> (ioShapes);
+        pAttachEnv->CallVoidMethod(mJavaObject, mCollectCastRayMethodId, rayVa, shapesVa);
+        JPH_ASSERT(!pAttachEnv->ExceptionCheck());
+        mpVM->DetachCurrentThread();
     }
 
     void GetShapeAt(uint32 inShapeIndex, IndexedShape* ioShape) {

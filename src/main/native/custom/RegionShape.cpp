@@ -119,9 +119,19 @@ bool RegionShape::CastRay(const RayCast& inRay, const SubShapeIDCreator& inSubSh
 }
 
 void RegionShape::CastRay(const RayCast &inRay, const RayCastSettings &inRayCastSettings, const SubShapeIDCreator &inSubShapeIDCreator, CastRayCollector &ioCollector, const ShapeFilter &inShapeFilter) const {
-	// todo: this is broken
-	// CastRayVisitorCollector visitor(inRay, inRayCastSettings, this, inSubShapeIDCreator, ioCollector, inShapeFilter);
-	// WalkSubShapes(visitor);
+    IndexedShapes shapes;
+    mShapeCollector->CollectCastRay(inRay, &shapes);
+    uint shapes_size = shapes.size();
+
+    for (uint index = 0; index < shapes_size; index++)
+    {
+        const IndexedShape &sub_shape = shapes[index];
+        SubShapeIDCreator shape2_sub_shape_id = inSubShapeIDCreator.PushID(sub_shape.mShapeIndex, GetSubShapeIDBits());
+
+        Mat44 transform = Mat44::sInverseRotationTranslation(sub_shape.GetRotation(), sub_shape.GetPositionCOM());
+        RayCast ray = inRay.Transformed(transform);
+        sub_shape.mShape->CastRay(ray, inRayCastSettings, shape2_sub_shape_id, ioCollector, inShapeFilter);
+    }
 }
 
 
