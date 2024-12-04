@@ -15,10 +15,10 @@ plugins {
 
 ext {
     downloadZip = 'downloads/JoltPhysics-sg241107.zip'
-    group = 'com.github.stephengold'
+    group = 'dev.apehum'
     version = '0.9.4-SNAPSHOT'
     baseName = "${artifact}-${version}" // for artifacts
-    websiteUrl = 'https://github.com/stephengold/jolt-jni'
+    websiteUrl = 'https://github.com/Apehum/jolt-jni'
 }
 
 // Regenerate all JNI header files and unpack Jolt before compiling any C++ code.
@@ -138,6 +138,15 @@ model {
                 } else {
                     cppCompiler.define 'JPH_NO_DEBUG'
                 }
+
+//                cppCompiler.define 'JPH_USE_SSE4_1'
+//                cppCompiler.define 'JPH_USE_SSE4_2'
+//                cppCompiler.define 'JPH_USE_AVX'
+//                cppCompiler.define 'JPH_USE_AVX2'
+//                cppCompiler.define 'JPH_USE_LZCNT'
+//                cppCompiler.define 'JPH_USE_TZCNT'
+//                cppCompiler.define 'JPH_USE_F16C'
+//                cppCompiler.define 'JPH_USE_FMADD'
 
                 // flavor-specific CPP defines:
                 Boolean isDp = (flavor == flavors.Dp)
@@ -330,6 +339,10 @@ tasks.register('release') {
     dependsOn 'publishMavenPublicationToOSSRHRepository'
     description 'Stages Maven artifacts to Sonatype OSSRH.'
 }
+tasks.register('publishSnapshot') {
+    dependsOn 'publishMavenPublicationToSnapshotsRepository'
+    description 'Stages Maven artifacts to Shapshots Repository.'
+}
 
 jar {
     archiveBaseName = project.ext.baseName
@@ -378,8 +391,8 @@ publishing {
                 }
                 name = project.ext.group + ':' + artifact
                 scm {
-                    connection = 'scm:git:git://github.com/stephengold/jolt-jni.git'
-                    developerConnection = 'scm:git:ssh://github.com:stephengold/jolt-jni.git'
+                    connection = 'scm:git:git://github.com/Apehum/jolt-jni.git'
+                    developerConnection = 'scm:git:ssh://github.com:Apehum/jolt-jni.git'
                     url = project.ext.websiteUrl + '/tree/master'
                 }
                 url = project.ext.websiteUrl
@@ -401,6 +414,15 @@ publishing {
             }
             name = 'OSSRH'
             url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2'
+        }
+
+        maven {
+            credentials {
+                username = project.hasProperty('snapshotsUsername') ? snapshotsUsername : 'Unknown user'
+                password = project.hasProperty('snapshotsPassword') ? snapshotsPassword : 'Unknown password'
+            }
+            name = 'snapshots'
+            url = 'https://repo.plasmoverse.com/snapshots'
         }
     }
 }
