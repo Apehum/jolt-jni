@@ -17,7 +17,7 @@ public final class IndexedShape extends JoltPhysicsObject
     // new methods exposed
 
     public void loadShape(ConstShape shape, int shapeIndex, Vec3 positionCom) {
-        loadShape(va(), shape.va(), shapeIndex, positionCom.getX(), positionCom.getY(), positionCom.getZ());
+        loadShape(va(), shape.targetVa(), shapeIndex, positionCom.getX(), positionCom.getY(), positionCom.getZ());
     }
 
     public void loadShape(ShapeRefC shape, int shapeIndex, Vec3 positionCom) {
