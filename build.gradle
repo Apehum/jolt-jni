@@ -17,6 +17,7 @@ plugins {
 // or by -P options on the Gradle command line.
 
 ext {
+<<<<<<< HEAD
     joltTag = 'sg251012'
     downloadedJoltZip = "downloads/JoltPhysics-${joltTag}.zip"
     downloadedVhacdZip = 'downloads/v-hacd-4.1.0.zip'
@@ -24,6 +25,13 @@ ext {
     baseName = "${artifact}-${jjVersion}" // for artifacts
     groupID = 'com.github.stephengold'
     websiteUrl = 'https://github.com/stephengold/jolt-jni'
+=======
+    downloadZip = 'downloads/JoltPhysics-sg241107.zip'
+    group = 'dev.apehum'
+    version = '0.9.4-SNAPSHOT'
+    baseName = "${artifact}-${version}" // for artifacts
+    websiteUrl = 'https://github.com/Apehum/jolt-jni'
+>>>>>>> 4f9bb11f (Add snapshots repository and publish snapshot on any push)
 }
 
 // Generate all JNI header files and unpack Jolt and V-HACD
@@ -198,7 +206,21 @@ model {
                     cppCompiler.define 'JPH_NO_DEBUG'
                 }
 
+<<<<<<< HEAD
                 // flavor-specific preprocessor defines:
+=======
+//                cppCompiler.define 'JPH_USE_SSE4_1'
+//                cppCompiler.define 'JPH_USE_SSE4_2'
+//                cppCompiler.define 'JPH_USE_AVX'
+//                cppCompiler.define 'JPH_USE_AVX2'
+//                cppCompiler.define 'JPH_USE_LZCNT'
+//                cppCompiler.define 'JPH_USE_TZCNT'
+//                cppCompiler.define 'JPH_USE_F16C'
+//                cppCompiler.define 'JPH_USE_FMADD'
+
+                // flavor-specific CPP defines:
+                Boolean isDp = (flavor == flavors.Dp)
+>>>>>>> 4f9bb11f (Add snapshots repository and publish snapshot on any push)
                 if (isDp) {
                     cppCompiler.define 'JPH_DOUBLE_PRECISION'
                 }
@@ -455,6 +477,10 @@ tasks.register('release') {
     dependsOn 'publishMavenPublicationToCentralRepository'
     description = 'Stages the Maven artifacts to the Central Publisher Portal.'
 }
+tasks.register('publishSnapshot') {
+    dependsOn 'publishMavenPublicationToSnapshotsRepository'
+    description 'Stages Maven artifacts to Shapshots Repository.'
+}
 
 jar {
     archiveBaseName = baseName
@@ -503,9 +529,15 @@ publishing {
                 }
                 name = groupID + ':' + artifact
                 scm {
+<<<<<<< HEAD
                     connection = 'scm:git:git://github.com/stephengold/jolt-jni.git'
                     developerConnection = 'scm:git:ssh://github.com:stephengold/jolt-jni.git'
                     url = websiteUrl + '/tree/master'
+=======
+                    connection = 'scm:git:git://github.com/Apehum/jolt-jni.git'
+                    developerConnection = 'scm:git:ssh://github.com:Apehum/jolt-jni.git'
+                    url = project.ext.websiteUrl + '/tree/master'
+>>>>>>> 4f9bb11f (Add snapshots repository and publish snapshot on any push)
                 }
                 url = websiteUrl
             }
@@ -527,6 +559,15 @@ publishing {
             }
             name = 'Central'
             url = 'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/'
+        }
+
+        maven {
+            credentials {
+                username = project.hasProperty('snapshotsUsername') ? snapshotsUsername : 'Unknown user'
+                password = project.hasProperty('snapshotsPassword') ? snapshotsPassword : 'Unknown password'
+            }
+            name = 'snapshots'
+            url = 'https://repo.plasmoverse.com/snapshots'
         }
     }
 }
