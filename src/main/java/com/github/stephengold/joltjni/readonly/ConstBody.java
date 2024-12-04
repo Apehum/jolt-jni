@@ -176,7 +176,11 @@ public interface ConstBody extends ConstJoltPhysicsObject {
     float getRestitution();
 
     /**
-     * Return the surface normal of a particular sub shape and its world space surface position on this body.
+     * Return the surface normal of a particular sub shape and its world space
+     * surface position on this body.
+     *
+     * @param subShapeId the sub shape
+     * @param position the world position on the surface
      *
      * @return a new surface normal
      */

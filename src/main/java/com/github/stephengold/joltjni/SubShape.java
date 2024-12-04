@@ -60,11 +60,11 @@ public class SubShape extends JoltPhysicsObject {
     }
 
     /**
-     * Copy the center of mass position. The subshape is unaffected.
+     * Copy the center of mass position. The sub shape is unaffected.
      *
      * @return a new position
      */
-    public Vec3 getPositionCOM() {
+    public Vec3 getPositionCenterOfMass() {
         long subShapeVa = va();
         float x = getPositionX(subShapeVa);
         float y = getPositionY(subShapeVa);

@@ -222,9 +222,9 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CustomIndexedShapeCo
  * Signature: (JFFF)J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RegionShapeSettings_createRegionShapeSettings
-  (JNIEnv *, jobject, jlong indexedShapeCollectorVa, jfloat hx, jfloat hy, jfloat hz) {
+  (JNIEnv *, jobject, jlong shapeCollectorVa, jfloat hx, jfloat hy, jfloat hz) {
     IndexedShapeCollector * const pIndexedShapeCollector
-            = reinterpret_cast<IndexedShapeCollector *> (indexedShapeCollectorVa);
+            = reinterpret_cast<IndexedShapeCollector *> (shapeCollectorVa);
     const Vec3 halfExtents(hx, hy, hz);
 
     RegionShapeSettings * const pResult
@@ -235,10 +235,10 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RegionShapeSettings_
 
 /*
  * Class:     com_github_stephengold_joltjni_RegionShape
- * Method:    _sRegister
+ * Method:    registerShape
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RegionShape__1sRegister
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RegionShape_registerShape
   (JNIEnv *, jclass) {
     RegionShape::sRegister();
 }

@@ -732,16 +732,22 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Return the surface normal of a particular sub shape and its world space surface position on this body.
+     * Return the surface normal of a particular sub shape and its world space
+     * surface position on this body.
+     *
+     * @param subShapeId the sub shape
+     * @param position the world position on the surface
      *
      * @return a new surface normal
      */
     @Override
-    public Vec3 getWorldSpaceSurfaceNormal(SubShapeId subShapeId, RVec3Arg position) {
+    public Vec3 getWorldSpaceSurfaceNormal(
+            SubShapeId subShapeId, RVec3Arg position) {
         long bodyVa = va();
         long subShapeIdVa = subShapeId.va();
 
-        return getWorldSpaceSurfaceNormal(bodyVa, subShapeIdVa, position.xx(), position.yy(), position.zz());
+        return getWorldSpaceSurfaceNormal(bodyVa, subShapeIdVa,
+                position.xx(), position.yy(), position.zz());
     }
 
     /**
@@ -1002,7 +1008,9 @@ public class Body extends NonCopyable implements ConstBody {
 
     native private static float getRestitution(long bodyVa);
 
-    native private static Vec3 getWorldSpaceSurfaceNormal(long bodyVa, long shapeIdVa, double xx, double yy, double zz);
+    native private static Vec3 getWorldSpaceSurfaceNormal(
+            long bodyVa, long shapeIdVa,
+            double xx, double yy, double zz);
 
     native private static float getRotationX(long bodyVa);
 
