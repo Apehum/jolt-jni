@@ -19,9 +19,7 @@ jobs:
       - name: gradlew -Pbt=Debug -Pflavor=Sp -Ptarget=Linux64 build install
         run: |
           ./gradlew -Pbt=Debug -Pflavor=Sp -Ptarget=Linux64 build install \
-            --console=plain \
-            -PsigningKeyEncoded='${{ secrets.SIGNING_KEY_ENCODED }}' \
-            -PsigningPassword='${{ secrets.SIGNING_PASSWORD }}'
+            --console=plain
 
   Java21-Linux:
     if: contains(toJson(github.event.commits), '[ci skip] ') == false
@@ -38,9 +36,7 @@ jobs:
       - name: gradlew -Ptarget=Linux64 runSmokeTestAll build install
         run: |
           ./gradlew -Ptarget=Linux64 runSmokeTestAll build install \
-            --console=plain \
-            -PsigningKeyEncoded='${{ secrets.SIGNING_KEY_ENCODED }}' \
-            -PsigningPassword='${{ secrets.SIGNING_PASSWORD }}'
+            --console=plain
       - name: gradlew -Partifact=jolt-jni-Linux64 -Ptarget=Linux64 clean publishSnapshot
         run: |
           ./gradlew -Partifact=jolt-jni-Linux64 -Ptarget=Linux64 clean publishSnapshot \
@@ -62,9 +58,7 @@ jobs:
       - name: gradlew -Ptarget=MacOSX64 run runSmokeTestAll build install
         run: |
           ./gradlew -Ptarget=MacOSX64 run runSmokeTestAll build install \
-            --console=plain \
-            -PsigningKeyEncoded='${{ secrets.SIGNING_KEY_ENCODED }}' \
-            -PsigningPassword='${{ secrets.SIGNING_PASSWORD }}'
+            --console=plain
       - name: gradlew -Partifact=jolt-jni-MacOSX64 -Ptarget=MacOSX64 clean publishSnapshot
         run: |
           ./gradlew -Partifact=jolt-jni-MacOSX64 -Ptarget=MacOSX64 clean publishSnapshot \
@@ -86,9 +80,7 @@ jobs:
       - name: gradlew -Ptarget=MacOSX_ARM64 runSmokeTestAll build install
         run: |
           ./gradlew -Ptarget=MacOSX_ARM64 runSmokeTestAll build install \
-            --console=plain \
-            -PsigningKeyEncoded='${{ secrets.SIGNING_KEY_ENCODED }}' \
-            -PsigningPassword='${{ secrets.SIGNING_PASSWORD }}'
+            --console=plain
       - name: gradlew -Partifact=jolt-jni-MacOSX_ARM64 -Ptarget=MacOSX_ARM64 clean publishSnapshot
         run: |
           ./gradlew -Partifact=jolt-jni-MacOSX_ARM64 -Ptarget=MacOSX_ARM64 clean publishSnapshot \
@@ -110,9 +102,7 @@ jobs:
       - name: gradlew -Ptarget=Windows64 runSmokeTestAll build install
         run: |
           ./gradlew -Ptarget=Windows64 runSmokeTestAll build install \
-             --console=plain \
-            -PsigningKeyEncoded='${{ secrets.SIGNING_KEY_ENCODED }}' \
-            -PsigningPassword='${{ secrets.SIGNING_PASSWORD }}'
+             --console=plain
         shell: bash
       - name: gradlew -Partifact=jolt-jni-Windows64 -Ptarget=Windows64 clean publishSnapshot
         run: |
@@ -138,9 +128,7 @@ jobs:
       - name: gradlew -Ptarget=Linux_ARM32hf assemble
         run: |
           ./gradlew -Ptarget=Linux_ARM32hf assemble \
-            --console=plain \
-            -PsigningKeyEncoded='${{ secrets.SIGNING_KEY_ENCODED }}' \
-            -PsigningPassword='${{ secrets.SIGNING_PASSWORD }}'
+            --console=plain
       - name: gradlew -Partifact=jolt-jni-Linux_ARM32hf -Ptarget=Linux_ARM32hf clean publishSnapshot
         run: |
           ./gradlew -Partifact=jolt-jni-Linux_ARM32hf -Ptarget=Linux_ARM32hf clean publishSnapshot \
@@ -164,9 +152,7 @@ jobs:
       - name: gradlew -Ptarget=Linux_ARM64 assemble
         run: |
           ./gradlew -Ptarget=Linux_ARM64 assemble \
-            --console=plain \
-            -PsigningKeyEncoded='${{ secrets.SIGNING_KEY_ENCODED }}' \
-            -PsigningPassword='${{ secrets.SIGNING_PASSWORD }}'
+            --console=plain
       - name: gradlew -Partifact=jolt-jni-Linux_ARM64 -Ptarget=Linux_ARM64 clean publishSnapshot
         run: |
           ./gradlew -Partifact=jolt-jni-Linux_ARM64 -Ptarget=Linux_ARM64 clean publishSnapshot \
@@ -191,6 +177,4 @@ jobs:
       - name: gradlew -Pbt=Release -Pflavor=Sp -Ptarget=Linux64 build install
         run: |
           ./gradlew -Pbt=Release -Pflavor=Sp -Ptarget=Linux64 build install \
-            --console=plain \
-            -PsigningKeyEncoded='${{ secrets.SIGNING_KEY_ENCODED }}' \
-            -PsigningPassword='${{ secrets.SIGNING_PASSWORD }}'
+            --console=plain
