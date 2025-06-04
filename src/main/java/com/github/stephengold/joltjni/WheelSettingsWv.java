@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,17 @@ public class WheelSettingsWv extends WheelSettings {
      */
     WheelSettingsWv(long settingsVa) {
         setVirtualAddress(settingsVa); // not owner due to ref counting
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public WheelSettingsWv(WheelSettingsWv original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
     }
     // *************************************************************************
     // new methods exposed
@@ -139,7 +150,7 @@ public class WheelSettingsWv extends WheelSettings {
     }
 
     /**
-     * Mark the native {@code WheelSettingsWv} as embedded.
+     * Mark the native {@code WheelSettingsWV} as embedded.
      */
     @Override
     public void setEmbedded() {
@@ -148,7 +159,7 @@ public class WheelSettingsWv extends WheelSettings {
     }
 
     /**
-     * Create a counted reference to the native {@code WheelSettingsWv}.
+     * Create a counted reference to the native {@code WheelSettingsWV}.
      *
      * @return a new JVM object with a new native object assigned
      */
@@ -162,6 +173,8 @@ public class WheelSettingsWv extends WheelSettings {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
 
     native private static long createDefault();
 

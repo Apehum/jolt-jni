@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,12 +37,20 @@ import com.github.stephengold.joltjni.template.Ref;
  */
 final public class CharacterRef extends Ref implements ConstCharacter {
     // *************************************************************************
+    // fields
+
+    /**
+     * where to add the body (may be {@code null})
+     */
+    final private PhysicsSystem system;
+    // *************************************************************************
     // constructors
 
     /**
      * Instantiate an empty reference.
      */
     public CharacterRef() {
+        this.system = null;
         long refVa = createEmpty();
         setVirtualAddress(refVa, () -> free(refVa));
     }
@@ -52,11 +60,15 @@ final public class CharacterRef extends Ref implements ConstCharacter {
      *
      * @param refVa the virtual address of the native object to assign (not
      * zero)
-     * @param owner {@code true} &rarr; make the JVM object the owner,
-     * {@code false} &rarr; it isn't the owner
+     * @param physicsSystem where to add the body
      */
-    CharacterRef(long refVa, boolean owner) {
-        Runnable freeingAction = owner ? () -> free(refVa) : null;
+    CharacterRef(long refVa, PhysicsSystem physicsSystem) {
+        this.system = physicsSystem;
+        /*
+         * Passing physicsSystem to the Runnable ensures that the underlying
+         * system won't get cleaned before the character.
+         */
+        Runnable freeingAction = () -> freeWithSystem(refVa, physicsSystem);
         setVirtualAddress(refVa, freeingAction);
     }
     // *************************************************************************
@@ -217,23 +229,22 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     // ConstCharacter methods
 
     /**
-     * Return the ID of the body associated with this character. The character
-     * is unaffected.
+     * Return the ID of the body associated with the character. The character is
+     * unaffected. (native method: GetBodyID)
      *
-     * @return a new ID
+     * @return the {@code BodyID} value
      */
     @Override
-    public BodyId getBodyId() {
+    public int getBodyId() {
         long characterVa = targetVa();
-        long idVa = com.github.stephengold.joltjni.Character.getBodyId(
+        int result = com.github.stephengold.joltjni.Character.getBodyId(
                 characterVa);
-        BodyId result = new BodyId(idVa, true);
 
         return result;
     }
 
     /**
-     * Return the location of the rigid body's center of mass using the locking
+     * Copy the location of the rigid body's center of mass using the locking
      * body interface. The character is unaffected.
      *
      * @return a new location vector (in system coordinates)
@@ -245,7 +256,7 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     }
 
     /**
-     * Return the location of the rigid body's center of mass. The character is
+     * Copy the location of the rigid body's center of mass. The character is
      * unaffected.
      *
      * @param lockBodies {@code true} &rarr; use the locking body interface,
@@ -258,8 +269,36 @@ final public class CharacterRef extends Ref implements ConstCharacter {
         double[] storeDoubles = new double[3];
         com.github.stephengold.joltjni.Character.getCenterOfMassPosition(
                 characterVa, storeDoubles, lockBodies);
-        RVec3 result
-                = new RVec3(storeDoubles[0], storeDoubles[1], storeDoubles[2]);
+        RVec3 result = new RVec3(storeDoubles);
+
+        return result;
+    }
+
+    /**
+     * Generate settings to reconstruct the character, using the locking body
+     * interface. The character is unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public CharacterSettings getCharacterSettings() {
+        CharacterSettings result = getCharacterSettings(true);
+        return result;
+    }
+
+    /**
+     * Generate settings to reconstruct the character. The character is
+     * unaffected.
+     *
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * @return a new object
+     */
+    @Override
+    public CharacterSettings getCharacterSettings(boolean lockBodies) {
+        long characterVa = targetVa();
+        long settingsVa
+                = Character.getCharacterSettings(characterVa, lockBodies);
+        CharacterSettings result = new CharacterSettings(settingsVa);
 
         return result;
     }
@@ -282,13 +321,12 @@ final public class CharacterRef extends Ref implements ConstCharacter {
      * Return the body ID of the supporting surface. The character is
      * unaffected.
      *
-     * @return a new ID
+     * @return the {@code BodyID} value
      */
     @Override
-    public BodyId getGroundBodyId() {
+    public int getGroundBodyId() {
         long characterVa = targetVa();
-        long idVa = CharacterBase.getGroundBodyId(characterVa);
-        BodyId result = new BodyId(idVa, true);
+        int result = CharacterBase.getGroundBodyId(characterVa);
 
         return result;
     }
@@ -315,7 +353,7 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     }
 
     /**
-     * Return the normal direction at the point of contact with the supporting
+     * Copy the normal direction at the point of contact with the supporting
      * surface. The character is unaffected.
      *
      * @return a new direction vector (in system coordinates)
@@ -332,7 +370,7 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     }
 
     /**
-     * Return the location of the point of contact with the supporting surface.
+     * Copy the location of the point of contact with the supporting surface.
      * The character is unaffected.
      *
      * @return a new location vector (in system coordinates)
@@ -367,13 +405,12 @@ final public class CharacterRef extends Ref implements ConstCharacter {
      * Identify the face on the supporting surface where contact is occurring.
      * The character is unaffected.
      *
-     * @return a new ID
+     * @return a {@code SubShapeId} value
      */
     @Override
-    public SubShapeId getGroundSubShapeId() {
+    public int getGroundSubShapeId() {
         long characterVa = targetVa();
-        long idVa = CharacterBase.getGroundSubShapeId(characterVa);
-        SubShapeId result = new SubShapeId(idVa, true);
+        int result = CharacterBase.getGroundSubShapeId(characterVa);
 
         return result;
     }
@@ -393,8 +430,8 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     }
 
     /**
-     * Return the world-space velocity of the supporting surface. The character
-     * is unaffected.
+     * Copy the world-space velocity of the supporting surface. The character is
+     * unaffected.
      *
      * @return a new velocity vector (meters per second in system coordinates)
      */
@@ -462,7 +499,7 @@ final public class CharacterRef extends Ref implements ConstCharacter {
         float[] storeFloats = new float[3];
         com.github.stephengold.joltjni.Character.getLinearVelocity(
                 characterVa, storeFloats, lockBodies);
-        Vec3 result = new Vec3(storeFloats[0], storeFloats[1], storeFloats[2]);
+        Vec3 result = new Vec3(storeFloats);
 
         return result;
     }
@@ -492,8 +529,7 @@ final public class CharacterRef extends Ref implements ConstCharacter {
         double[] storeDoubles = new double[3];
         com.github.stephengold.joltjni.Character.getPosition(
                 characterVa, storeDoubles, lockBodies);
-        RVec3 result
-                = new RVec3(storeDoubles[0], storeDoubles[1], storeDoubles[2]);
+        RVec3 result = new RVec3(storeDoubles);
 
         return result;
     }
@@ -502,10 +538,10 @@ final public class CharacterRef extends Ref implements ConstCharacter {
      * Copy the position of the associated body using the locking body
      * interface. The character is unaffected.
      *
-     * @param storeLocation the desired location (in system coordinates, not
-     * null, unaffected)
-     * @param storeOrientation the desired orientation (in system coordinates,
-     * not null, unaffected)
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
      */
     @Override
     public void getPositionAndRotation(
@@ -516,10 +552,10 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     /**
      * Copy the position of the associated body. The character is unaffected.
      *
-     * @param storeLocation the desired location (in system coordinates, not
-     * null, unaffected)
-     * @param storeOrientation the desired orientation (in system coordinates,
-     * not null, unaffected)
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
      * @param lockBodies {@code true} &rarr; use the locking body interface,
      * {@code false} &rarr; use the non-locking body interface (default=true)
      */
@@ -531,9 +567,8 @@ final public class CharacterRef extends Ref implements ConstCharacter {
         float[] storeFloats = new float[4];
         com.github.stephengold.joltjni.Character.getPositionAndRotation(
                 characterVa, storeDoubles, storeFloats, lockBodies);
-        storeLocation.set(storeDoubles[0], storeDoubles[1], storeDoubles[2]);
-        storeOrientation.set(
-                storeFloats[0], storeFloats[1], storeFloats[2], storeFloats[3]);
+        storeLocation.set(storeDoubles);
+        storeOrientation.set(storeFloats);
     }
 
     /**
@@ -561,8 +596,7 @@ final public class CharacterRef extends Ref implements ConstCharacter {
         float[] storeFloats = new float[4];
         com.github.stephengold.joltjni.Character.getRotation(
                 characterVa, storeFloats, lockBodies);
-        Quat result = new Quat(
-                storeFloats[0], storeFloats[1], storeFloats[2], storeFloats[3]);
+        Quat result = new Quat(storeFloats);
 
         return result;
     }
@@ -583,7 +617,36 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     }
 
     /**
-     * Return the character's "up" direction. The character is unaffected.
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character, using the locking body interface. The character is unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public TransformedShape getTransformedShape() {
+        TransformedShape result = getTransformedShape(true);
+        return result;
+    }
+
+    /**
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character. The character is unaffected.
+     *
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * {@code false} &rarr; use the non-locking body interface (default=true)
+     * @return a new object
+     */
+    @Override
+    public TransformedShape getTransformedShape(boolean lockBodies) {
+        long characterVa = targetVa();
+        long resultVa = Character.getTransformedShape(characterVa, lockBodies);
+        TransformedShape result = new TransformedShape(resultVa, true);
+
+        return result;
+    }
+
+    /**
+     * Copy the character's "up" direction. The character is unaffected.
      *
      * @return a new direction vector
      */
@@ -661,7 +724,8 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     }
 
     /**
-     * Save the character's state to the specified recorder.
+     * Save the character's state to the specified recorder. The character is
+     * unaffected.
      *
      * @param recorder the recorder to save to (not null)
      */
@@ -670,6 +734,20 @@ final public class CharacterRef extends Ref implements ConstCharacter {
         long characterVa = targetVa();
         long recorderVa = recorder.va();
         CharacterBase.saveState(characterVa, recorderVa);
+    }
+
+    /**
+     * Create another counted reference to the native {@code Character}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
+    @Override
+    public CharacterRefC toRefC() {
+        long refVa = va();
+        long copyVa = toRefC(refVa);
+        CharacterRefC result = new CharacterRefC(copyVa, system);
+
+        return result;
     }
     // *************************************************************************
     // Ref methods
@@ -681,9 +759,10 @@ final public class CharacterRef extends Ref implements ConstCharacter {
      */
     @Override
     public com.github.stephengold.joltjni.Character getPtr() {
-        long settingsVa = targetVa();
+        long characterVa = targetVa();
         com.github.stephengold.joltjni.Character result
-                = new com.github.stephengold.joltjni.Character(settingsVa);
+                = new com.github.stephengold.joltjni.Character(
+                        characterVa, system);
 
         return result;
     }
@@ -711,7 +790,7 @@ final public class CharacterRef extends Ref implements ConstCharacter {
     public CharacterRef toRef() {
         long refVa = va();
         long copyVa = copy(refVa);
-        CharacterRef result = new CharacterRef(copyVa, true);
+        CharacterRef result = new CharacterRef(copyVa, system);
 
         return result;
     }
@@ -724,5 +803,9 @@ final public class CharacterRef extends Ref implements ConstCharacter {
 
     native private static void free(long refVa);
 
+    native private static void freeWithSystem(long refVa, PhysicsSystem unused);
+
     native private static long getPtr(long refVa);
+
+    native private static long toRefC(long refVa);
 }

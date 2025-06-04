@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ import com.github.stephengold.joltjni.readonly.Vec3Arg;
 
 /**
  * Interface for crude collision detection against the bounding boxes in a
- * {@code PhysicsSpace}.
+ * {@code PhysicsSystem}.
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -164,12 +164,40 @@ public class BroadPhaseQuery extends NonCopyable {
      * @param center the center of the test sphere (not null, unaffected)
      * @param radius the radius of the test sphere
      * @param collector the hit collector to use (not null)
+     */
+    public void collideSphere(
+            Vec3Arg center, float radius, CollideShapeBodyCollector collector) {
+        collideSphere(center, radius, collector, new BroadPhaseLayerFilter());
+    }
+
+    /**
+     * Collect bodies whose bounding boxes intersect the specified test sphere.
+     *
+     * @param center the center of the test sphere (not null, unaffected)
+     * @param radius the radius of the test sphere
+     * @param collector the hit collector to use (not null)
+     * @param bplFilter the broadphase-layer filter to apply (not null,
+     * unaffected)
+     */
+    public void collideSphere(
+            Vec3Arg center, float radius, CollideShapeBodyCollector collector,
+            BroadPhaseLayerFilter bplFilter) {
+        collideSphere(
+                center, radius, collector, bplFilter, new ObjectLayerFilter());
+    }
+
+    /**
+     * Collect bodies whose bounding boxes intersect the specified test sphere.
+     *
+     * @param center the center of the test sphere (not null, unaffected)
+     * @param radius the radius of the test sphere
+     * @param collector the hit collector to use (not null)
      * @param bplFilter the broadphase-layer filter to apply (not null,
      * unaffected)
      * @param olFilter the object-layer filter to apply (not null, unaffected)
      */
-    public void collideSphere(Vec3Arg center, float radius,
-            CollideShapeBodyCollector collector,
+    public void collideSphere(
+            Vec3Arg center, float radius, CollideShapeBodyCollector collector,
             BroadPhaseLayerFilter bplFilter, ObjectLayerFilter olFilter) {
         long queryVa = va();
         float centerX = center.getX();
@@ -185,7 +213,7 @@ public class BroadPhaseQuery extends NonCopyable {
     /**
      * Access the underlying {@code PhysicsSystem}.
      *
-     * @return the pre-existing instance, or null if none
+     * @return the pre-existing instance, or {@code null} if none
      */
     public PhysicsSystem getSystem() {
         return (PhysicsSystem) getContainingObject();

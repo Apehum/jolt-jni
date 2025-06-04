@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,12 +36,7 @@ using namespace JPH;
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Volume_createDefault
-  (JNIEnv *, jclass) {
-    SoftBodySharedSettings::Volume * const pResult
-            = new SoftBodySharedSettings::Volume();
-    TRACE_NEW("SoftBodySharedSettings::Volume", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(SoftBodySharedSettings::Volume)
 
 /*
  * Class:     com_github_stephengold_joltjni_Volume
@@ -49,12 +44,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Volume_createDefault
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Volume_free
-  (JNIEnv *, jclass, jlong volumeVa) {
-    SoftBodySharedSettings::Volume * const pVolume
-            = reinterpret_cast<SoftBodySharedSettings::Volume *> (volumeVa);
-    TRACE_DELETE("SoftBodySharedSettings::Volume", pVolume)
-    delete pVolume;
-}
+  BODYOF_FREE(SoftBodySharedSettings::Volume)
 
 /*
  * Class:     com_github_stephengold_joltjni_Volume

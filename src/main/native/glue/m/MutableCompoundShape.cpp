@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,16 +36,17 @@ using namespace JPH;
  * Signature: (JFFFFFFFJ)I
  */
 JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_MutableCompoundShape_addShape
-  (JNIEnv *, jclass, jlong shapeVa, jfloat offsetX, jfloat offsetY, jfloat offsetZ,
-  jfloat rotX, jfloat rotY, jfloat rotZ, jfloat rotW, jlong shapeRefVa) {
+  (JNIEnv *, jclass, jlong compoundVa, jfloat offsetX, jfloat offsetY, jfloat offsetZ,
+  jfloat rotX, jfloat rotY, jfloat rotZ, jfloat rotW, jlong subShapeVa) {
     MutableCompoundShape * const pCompound
-            = reinterpret_cast<MutableCompoundShape *> (shapeVa);
+            = reinterpret_cast<MutableCompoundShape *> (compoundVa);
     const Vec3 offset(offsetX, offsetY, offsetZ);
     const Quat rotation(rotX, rotY, rotZ, rotW);
-    const ShapeRefC * const pSubShapeRef
-            = reinterpret_cast<ShapeRefC *> (shapeRefVa);
-    const Shape * const pSubShape = pSubShapeRef->GetPtr();
+    const Shape * const pSubShape = reinterpret_cast<Shape *> (subShapeVa);
     const uint result = pCompound->AddShape(offset, rotation, pSubShape);
+    uint64 revisionCount = pCompound->GetUserData();
+    ++revisionCount;
+    pCompound->SetUserData(revisionCount);
     return result;
 }
 
@@ -59,6 +60,9 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_MutableCompoundShape_
     MutableCompoundShape * const pCompound
             = reinterpret_cast<MutableCompoundShape *> (shapeVa);
     pCompound->AdjustCenterOfMass();
+    uint64 revisionCount = pCompound->GetUserData();
+    ++revisionCount;
+    pCompound->SetUserData(revisionCount);
 }
 
 /*
@@ -85,10 +89,15 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_MutableCompoundShape_
             = reinterpret_cast<MutableCompoundShape *> (shapeVa);
     const Vec3 * const pOffsets
             = (Vec3 *) pEnv->GetDirectBufferAddress(offsets);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
     const Quat * const pRotations
             = (Quat *) pEnv->GetDirectBufferAddress(rotations);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
     pCompound->ModifyShapes(startIndex, numSubShapes, pOffsets, pRotations,
             offsetStride, rotationStride);
+    uint64 revisionCount = pCompound->GetUserData();
+    ++revisionCount;
+    pCompound->SetUserData(revisionCount);
 }
 
 /*
@@ -101,4 +110,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_MutableCompoundShape_
     MutableCompoundShape * const pCompound
             = reinterpret_cast<MutableCompoundShape *> (shapeVa);
     pCompound->RemoveShape(index);
+    uint64 revisionCount = pCompound->GetUserData();
+    ++revisionCount;
+    pCompound->SetUserData(revisionCount);
 }

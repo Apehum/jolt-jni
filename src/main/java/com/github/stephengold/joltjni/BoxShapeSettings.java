@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,51 @@ import com.github.stephengold.joltjni.readonly.Vec3Arg;
 public class BoxShapeSettings extends ConvexShapeSettings {
     // *************************************************************************
     // constructors
+
+    /**
+     * Instantiate default settings.
+     */
+    public BoxShapeSettings() {
+        long settingsVa = createDefault();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Box);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public BoxShapeSettings(BoxShapeSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Box);
+    }
+
+    /**
+     * Instantiate a shape with the specified half extents.
+     *
+     * @param xHalfExtent the desired half extents on the local X axis
+     * (&ge;0.05)
+     * @param yHalfExtent the desired half extents on the local Y axis
+     * (&ge;0.05)
+     * @param zHalfExtent the desired half extents on the local Z axis
+     * (&ge;0.05)
+     */
+    public BoxShapeSettings(
+            float xHalfExtent, float yHalfExtent, float zHalfExtent) {
+        float convexRadius = Jolt.cDefaultConvexRadius;
+        assert xHalfExtent >= convexRadius : xHalfExtent;
+        assert yHalfExtent >= convexRadius : yHalfExtent;
+        assert zHalfExtent >= convexRadius : zHalfExtent;
+
+        long materialVa = 0L;
+        long settingsVa = createBoxShapeSettings(xHalfExtent, yHalfExtent,
+                zHalfExtent, convexRadius, materialVa);
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Box);
+    }
 
     /**
      * Instantiate with the specified native object assigned but not owned.
@@ -84,7 +129,7 @@ public class BoxShapeSettings extends ConvexShapeSettings {
         long materialVa = (material == null) ? 0L : material.targetVa();
         long settingsVa = createBoxShapeSettings(
                 hx, hy, hz, convexRadius, materialVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.Box);
     }
     // *************************************************************************
@@ -147,6 +192,10 @@ public class BoxShapeSettings extends ConvexShapeSettings {
 
     native private static long createBoxShapeSettings(
             float hx, float hy, float hz, float convexRadius, long materialVa);
+
+    native private static long createCopy(long originalVa);
+
+    native private static long createDefault();
 
     native private static float getConvexRadius(long settingsVa);
 

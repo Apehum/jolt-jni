@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,18 @@ IMPLEMENT_REF(Ragdoll,
   Java_com_github_stephengold_joltjni_RagdollRef_copy,
   Java_com_github_stephengold_joltjni_RagdollRef_createEmpty,
   Java_com_github_stephengold_joltjni_RagdollRef_free,
-  Java_com_github_stephengold_joltjni_RagdollRef_getPtr)
+  Java_com_github_stephengold_joltjni_RagdollRef_getPtr,
+  Java_com_github_stephengold_joltjni_RagdollRef_toRefC)
+
+/*
+ * Class:     com_github_stephengold_joltjni_RagdollRef
+ * Method:    freeWithSystem
+ * Signature: (JLcom/github/stephengold/joltjni/PhysicsSystem;)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RagdollRef_freeWithSystem
+  (JNIEnv *pEnv, jclass clazz, jlong refVa, jobject) {
+    Java_com_github_stephengold_joltjni_RagdollRef_free(pEnv, clazz, refVa);
+}
 
 /*
  * Class:     com_github_stephengold_joltjni_Ragdoll
@@ -48,6 +59,20 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Ragdoll_addToPhysicsS
     Ragdoll * const pRagdoll = reinterpret_cast<Ragdoll *> (ragdollVa);
     const EActivation activate = (EActivation) ordinal;
     pRagdoll->AddToPhysicsSystem(activate);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Ragdoll
+ * Method:    driveToPoseUsingKinematics
+ * Signature: (JJFZ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Ragdoll_driveToPoseUsingKinematics
+  (JNIEnv *, jclass, jlong ragdollVa, jlong poseVa, jfloat time,
+  jboolean lockBodies) {
+    Ragdoll * const pRagdoll = reinterpret_cast<Ragdoll *> (ragdollVa);
+    const SkeletonPose * const pPose
+            = reinterpret_cast<SkeletonPose *> (poseVa);
+    pRagdoll->DriveToPoseUsingKinematics(*pPose, time, lockBodies);
 }
 
 /*
@@ -65,6 +90,71 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Ragdoll_driveToPoseUs
 
 /*
  * Class:     com_github_stephengold_joltjni_Ragdoll
+ * Method:    getBodyCount
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Ragdoll_getBodyCount
+  (JNIEnv *, jclass, jlong ragdollVa) {
+    const Ragdoll * const pRagdoll = reinterpret_cast<Ragdoll *> (ragdollVa);
+    const size_t result = pRagdoll->GetBodyCount();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Ragdoll
+ * Method:    getBodyIds
+ * Signature: (J[I)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Ragdoll_getBodyIds
+  (JNIEnv *pEnv, jclass, jlong ragdollVa, jintArray storeIds) {
+    const Ragdoll * const pRagdoll = reinterpret_cast<Ragdoll *> (ragdollVa);
+    const jsize arrayLength = pEnv->GetArrayLength(storeIds);
+    jboolean isCopy;
+    jint * const pIds = pEnv->GetIntArrayElements(storeIds, &isCopy);
+    const Array<BodyID> idArray = pRagdoll->GetBodyIDs();
+    const size_t numBodies = idArray.size();
+    for (size_t i = 0; i < numBodies && i < arrayLength; ++i) {
+        const BodyID& id = idArray[i];
+        pIds[i] = id.GetIndexAndSequenceNumber();
+    }
+    pEnv->ReleaseIntArrayElements(storeIds, pIds, 0);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Ragdoll
+ * Method:    getConstraintCount
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Ragdoll_getConstraintCount
+  (JNIEnv *, jclass, jlong ragdollVa) {
+    const Ragdoll * const pRagdoll = reinterpret_cast<Ragdoll *> (ragdollVa);
+    const size_t result = pRagdoll->GetConstraintCount();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Ragdoll
+ * Method:    getPose
+ * Signature: (J[DJZ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Ragdoll_getPose
+  (JNIEnv *pEnv, jclass, jlong ragdollVa, jdoubleArray storeDoubles,
+  jlong storeMatsVa, jboolean lockBodies) {
+    Ragdoll * const pRagdoll = reinterpret_cast<Ragdoll *> (ragdollVa);
+    RVec3 rootOffset;
+    Mat44 * const pMatrices = reinterpret_cast<Mat44 *> (storeMatsVa);
+    pRagdoll->GetPose(rootOffset, pMatrices, lockBodies);
+    jboolean isCopy;
+    jdouble * const pStoreDoubles
+            = pEnv->GetDoubleArrayElements(storeDoubles, &isCopy);
+    pStoreDoubles[0] = rootOffset.GetX();
+    pStoreDoubles[1] = rootOffset.GetY();
+    pStoreDoubles[2] = rootOffset.GetZ();
+    pEnv->ReleaseDoubleArrayElements(storeDoubles, pStoreDoubles, 0);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Ragdoll
  * Method:    getRefCount
  * Signature: (J)I
  */
@@ -73,6 +163,34 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Ragdoll_getRefCount
     const Ragdoll * const pRagdoll = reinterpret_cast<Ragdoll *> (ragdollVa);
     const uint32 result = pRagdoll->GetRefCount();
     return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Ragdoll
+ * Method:    getRootTransform
+ * Signature: (J[D[FZ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Ragdoll_getRootTransform
+  (JNIEnv *pEnv, jclass, jlong ragdollVa, jdoubleArray storeDoubles,
+  jfloatArray storeFloats, jboolean lockBodies) {
+    const Ragdoll * const pRagdoll = reinterpret_cast<Ragdoll *> (ragdollVa);
+    RVec3 outPosition;
+    Quat outRotation;
+    pRagdoll->GetRootTransform(outPosition, outRotation, lockBodies);
+    jboolean isCopy;
+    jdouble * const pStoreDoubles
+            = pEnv->GetDoubleArrayElements(storeDoubles, &isCopy);
+    pStoreDoubles[0] = outPosition.GetX();
+    pStoreDoubles[1] = outPosition.GetY();
+    pStoreDoubles[2] = outPosition.GetZ();
+    pEnv->ReleaseDoubleArrayElements(storeDoubles, pStoreDoubles, 0);
+    jfloat * const pStoreFloats
+            = pEnv->GetFloatArrayElements(storeFloats, &isCopy);
+    pStoreFloats[0] = outRotation.GetX();
+    pStoreFloats[1] = outRotation.GetY();
+    pStoreFloats[2] = outRotation.GetZ();
+    pStoreFloats[3] = outRotation.GetW();
+    pEnv->ReleaseFloatArrayElements(storeFloats, pStoreFloats, 0);
 }
 
 /*

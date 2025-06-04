@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,15 +32,34 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_BodyCreationSettings
+ * Method:    convertShapeSettings
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_convertShapeSettings
+  (JNIEnv *, jclass, jlong bodySettingsVa) {
+    BodyCreationSettings * const pSettings
+            = reinterpret_cast<BodyCreationSettings *> (bodySettingsVa);
+    ShapeSettings::ShapeResult *pResult = new ShapeSettings::ShapeResult();
+    TRACE_NEW("ShapeResult", pResult)
+    *pResult = pSettings->ConvertShapeSettings();
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_BodyCreationSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_createCopy
+  BODYOF_CREATE_COPY(BodyCreationSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_BodyCreationSettings
  * Method:    createDefault
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_createDefault
-  (JNIEnv *, jclass) {
-    BodyCreationSettings * const pResult = new BodyCreationSettings();
-    TRACE_NEW("BodyCreationSettings", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(BodyCreationSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_BodyCreationSettings
@@ -85,12 +104,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_free
-  (JNIEnv *, jclass, jlong bodySettingsVa) {
-    BodyCreationSettings * const pSettings
-            = reinterpret_cast<BodyCreationSettings *> (bodySettingsVa);
-    TRACE_DELETE("BodyCreationSettings", pSettings)
-    delete pSettings;
-}
+  BODYOF_FREE(BodyCreationSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_BodyCreationSettings
@@ -538,6 +552,19 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings
 
 /*
  * Class:     com_github_stephengold_joltjni_BodyCreationSettings
+ * Method:    getShapeSettings
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_getShapeSettings
+  (JNIEnv *, jclass, jlong bodySettingsVa) {
+    const BodyCreationSettings * const pSettings
+            = reinterpret_cast<BodyCreationSettings *> (bodySettingsVa);
+    const ShapeSettings * const pResult = pSettings->GetShapeSettings();
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_BodyCreationSettings
  * Method:    hasMassProperties
  * Signature: (J)Z
  */
@@ -547,6 +574,52 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_BodyCreationSetti
             = reinterpret_cast<BodyCreationSettings *> (bodySettingsVa);
     const bool result = pSettings->HasMassProperties();
     return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_BodyCreationSettings
+ * Method:    restoreBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_restoreBinaryState
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong streamVa) {
+    BodyCreationSettings * const pSettings
+            = reinterpret_cast<BodyCreationSettings *> (bodySettingsVa);
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    pSettings->RestoreBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_BodyCreationSettings
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_saveBinaryState
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong streamVa) {
+    const BodyCreationSettings * const pSettings
+            = reinterpret_cast<BodyCreationSettings *> (bodySettingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pSettings->SaveBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_BodyCreationSettings
+ * Method:    saveWithChildren
+ * Signature: (JJJJJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_saveWithChildren
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong streamVa, jlong shapeMapVa,
+  jlong materialMapVa, jlong filterMapVa) {
+    const BodyCreationSettings * const pSettings
+            = reinterpret_cast<BodyCreationSettings *> (bodySettingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    BodyCreationSettings::ShapeToIDMap * const pShapeMap
+            = reinterpret_cast<BodyCreationSettings::ShapeToIDMap *> (shapeMapVa);
+    BodyCreationSettings::MaterialToIDMap * const pMaterialMap
+            = reinterpret_cast<BodyCreationSettings::MaterialToIDMap *> (materialMapVa);
+    BodyCreationSettings::GroupFilterToIDMap * const pFilterMap
+            = reinterpret_cast<BodyCreationSettings::GroupFilterToIDMap *> (filterMapVa);
+    pSettings->SaveWithChildren(*pStream, pShapeMap, pMaterialMap, pFilterMap);
 }
 
 /*
@@ -857,4 +930,27 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_
     const ShapeSettings * const pShapeSettings
             = reinterpret_cast<ShapeSettings *> (shapeSettingsVa);
     pBodySettings->SetShapeSettings(pShapeSettings);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_BodyCreationSettings
+ * Method:    sRestoreWithChildren
+ * Signature: (JJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyCreationSettings_sRestoreWithChildren
+  (JNIEnv *, jclass, jlong streamVa, jlong shapeMapVa, jlong materialMapVa,
+  jlong filterMapVa) {
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    BodyCreationSettings::IDToShapeMap * const pShapeMap
+            = reinterpret_cast<BodyCreationSettings::IDToShapeMap *> (shapeMapVa);
+    BodyCreationSettings::IDToMaterialMap * const pMaterialMap
+            = reinterpret_cast<BodyCreationSettings::IDToMaterialMap *> (materialMapVa);
+    BodyCreationSettings::IDToGroupFilterMap * const pFilterMap
+            = reinterpret_cast<BodyCreationSettings::IDToGroupFilterMap *> (filterMapVa);
+    BodyCreationSettings::BCSResult * const pResult
+            = new BodyCreationSettings::BCSResult();
+    TRACE_NEW("BodyCreationSettings::BCSResult", pResult);
+    *pResult = BodyCreationSettings::sRestoreWithChildren(
+            *pStream, *pShapeMap, *pMaterialMap, *pFilterMap);
+    return reinterpret_cast<jlong> (pResult);
 }

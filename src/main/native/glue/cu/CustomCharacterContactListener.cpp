@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,12 @@ class CustomCharacterContactListener : CharacterContactListener {
     jmethodID mAddedMethodId;
     jmethodID mAdjustMethodId;
     jmethodID mCcAddedMethodId;
+    jmethodID mCcPersistedMethodId;
+    jmethodID mCcRemovedMethodId;
     jmethodID mCcSolveMethodId;
     jmethodID mCcValidateMethodId;
+    jmethodID mPersistedMethodId;
+    jmethodID mRemovedMethodId;
     jmethodID mSolveMethodId;
     jmethodID mValidateMethodId;
     jobject mJavaObject;
@@ -53,7 +57,7 @@ public:
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
         mAddedMethodId = pEnv->GetMethodID(
-                clss, "onContactAdded", "(JJJDDDFFFJ)V");
+                clss, "onContactAdded", "(JIIDDDFFFJ)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
         mAdjustMethodId = pEnv->GetMethodID(
@@ -61,31 +65,47 @@ public:
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
         mCcAddedMethodId = pEnv->GetMethodID(
-                clss, "onCharacterContactAdded", "(JJJDDDFFFJ)V");
+                clss, "onCharacterContactAdded", "(JJIDDDFFFJ)V");
+        JPH_ASSERT(!pEnv->ExceptionCheck());
+
+        mCcPersistedMethodId = pEnv->GetMethodID(
+                clss, "onCharacterContactPersisted", "(JJIDDDFFFJ)V");
+        JPH_ASSERT(!pEnv->ExceptionCheck());
+
+        mCcRemovedMethodId = pEnv->GetMethodID(
+                clss, "onCharacterContactRemoved", "(JII)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
         mCcSolveMethodId = pEnv->GetMethodID(
-                clss, "onCharacterContactSolve", "(JJJDDDFFFFFFJFFF[F)V");
+                clss, "onCharacterContactSolve", "(JJIDDDFFFFFFJFFF[F)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
         mCcValidateMethodId = pEnv->GetMethodID(
-                clss, "onCharacterContactValidate", "(JJJ)Z");
+                clss, "onCharacterContactValidate", "(JJI)Z");
+        JPH_ASSERT(!pEnv->ExceptionCheck());
+
+        mPersistedMethodId = pEnv->GetMethodID(
+                clss, "onContactPersisted", "(JIIDDDFFFJ)V");
+        JPH_ASSERT(!pEnv->ExceptionCheck());
+
+        mRemovedMethodId = pEnv->GetMethodID(
+                clss, "onContactRemoved", "(JII)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
         mSolveMethodId = pEnv->GetMethodID(
-                clss, "onContactSolve", "(JJJDDDFFFFFFJFFF[F)V");
+                clss, "onContactSolve", "(JIIDDDFFFFFFJFFF[F)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
         mValidateMethodId = pEnv->GetMethodID(
-                clss, "onContactValidate", "(JJJ)Z");
+                clss, "onContactValidate", "(JII)Z");
         JPH_ASSERT(!pEnv->ExceptionCheck());
     }
 
     void OnAdjustBodyVelocity(const CharacterVirtual *inCharacter,
-            const Body &inBody2, Vec3 &ioLinearVelocity,
-            Vec3 &ioAngularVelocity) {
+            const Body& inBody2, Vec3& ioLinearVelocity,
+            Vec3& ioAngularVelocity) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
@@ -118,16 +138,16 @@ public:
 
     void OnCharacterContactAdded(const CharacterVirtual *inCharacter,
             const CharacterVirtual *inOtherCharacter,
-            const SubShapeID &inSubShapeID2, RVec3Arg inContactPosition,
-            Vec3Arg inContactNormal, CharacterContactSettings &ioSettings) {
+            const SubShapeID& inSubShapeID2, RVec3Arg inContactPosition,
+            Vec3Arg inContactNormal, CharacterContactSettings& ioSettings) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
         const jlong otherCharacterVa
                 = reinterpret_cast<jlong> (inOtherCharacter);
-        const jlong subShapeId2Va = reinterpret_cast<jlong> (&inSubShapeID2);
+        const jint subShapeId2 = inSubShapeID2.GetValue();
         const jdouble contactLocationX = inContactPosition.GetX();
         const jdouble contactLocationY = inContactPosition.GetY();
         const jdouble contactLocationZ = inContactPosition.GetZ();
@@ -137,7 +157,7 @@ public:
         const jlong settingsVa = reinterpret_cast<jlong> (&ioSettings);
 
         pAttachEnv->CallVoidMethod(mJavaObject, mCcAddedMethodId, characterVa,
-                otherCharacterVa, subShapeId2Va, contactLocationX,
+                otherCharacterVa, subShapeId2, contactLocationX,
                 contactLocationY, contactLocationZ, contactNormalX,
                 contactNormalY, contactNormalZ, settingsVa);
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
@@ -145,20 +165,67 @@ public:
         mpVM->DetachCurrentThread();
     }
 
-    void OnCharacterContactSolve(const CharacterVirtual *inCharacter,
+    void OnCharacterContactPersisted(const CharacterVirtual *inCharacter,
             const CharacterVirtual *inOtherCharacter,
-            const SubShapeID &inSubShapeID2, RVec3Arg inContactPosition,
-            Vec3Arg inContactNormal, Vec3Arg inContactVelocity,
-            const PhysicsMaterial *inContactMaterial,
-            Vec3Arg inCharacterVelocity, Vec3 &ioNewCharacterVelocity) {
+            const SubShapeID& inSubShapeID2, RVec3Arg inContactPosition,
+            Vec3Arg inContactNormal, CharacterContactSettings& ioSettings) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
         const jlong otherCharacterVa
                 = reinterpret_cast<jlong> (inOtherCharacter);
-        const jlong subShapeId2Va = reinterpret_cast<jlong> (&inSubShapeID2);
+        const jint subShapeId2 = inSubShapeID2.GetValue();
+        const jdouble contactLocationX = inContactPosition.GetX();
+        const jdouble contactLocationY = inContactPosition.GetY();
+        const jdouble contactLocationZ = inContactPosition.GetZ();
+        const jfloat contactNormalX = inContactNormal.GetX();
+        const jfloat contactNormalY = inContactNormal.GetY();
+        const jfloat contactNormalZ = inContactNormal.GetZ();
+        const jlong settingsVa = reinterpret_cast<jlong> (&ioSettings);
+
+        pAttachEnv->CallVoidMethod(mJavaObject, mCcPersistedMethodId,
+                characterVa, otherCharacterVa, subShapeId2, contactLocationX,
+                contactLocationY, contactLocationZ, contactNormalX,
+                contactNormalY, contactNormalZ, settingsVa);
+        JPH_ASSERT(!pAttachEnv->ExceptionCheck());
+
+        mpVM->DetachCurrentThread();
+    }
+
+    void OnCharacterContactRemoved(const CharacterVirtual *inCharacter,
+            const CharacterID& inOtherCharacterID,
+            const SubShapeID& inSubShapeID2) override {
+        JNIEnv *pAttachEnv;
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
+        JPH_ASSERT(retCode == JNI_OK);
+
+        const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
+        const jint otherCharacterId = inOtherCharacterID.GetValue();
+        const jint subShapeId2 = inSubShapeID2.GetValue();
+
+        pAttachEnv->CallVoidMethod(mJavaObject, mCcRemovedMethodId, characterVa,
+                otherCharacterId, subShapeId2);
+        JPH_ASSERT(!pAttachEnv->ExceptionCheck());
+
+        mpVM->DetachCurrentThread();
+    }
+
+    void OnCharacterContactSolve(const CharacterVirtual *inCharacter,
+            const CharacterVirtual *inOtherCharacter,
+            const SubShapeID& inSubShapeID2, RVec3Arg inContactPosition,
+            Vec3Arg inContactNormal, Vec3Arg inContactVelocity,
+            const PhysicsMaterial *inContactMaterial,
+            Vec3Arg inCharacterVelocity, Vec3& ioNewCharacterVelocity) override {
+        JNIEnv *pAttachEnv;
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
+        JPH_ASSERT(retCode == JNI_OK);
+
+        const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
+        const jlong otherCharacterVa
+                = reinterpret_cast<jlong> (inOtherCharacter);
+        const jint subShapeId2 = inSubShapeID2.GetValue();
         const jdouble contactLocationX = inContactPosition.GetX();
         const jdouble contactLocationY = inContactPosition.GetY();
         const jdouble contactLocationZ = inContactPosition.GetZ();
@@ -183,7 +250,7 @@ public:
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
 
         pAttachEnv->CallVoidMethod(mJavaObject, mCcSolveMethodId, characterVa,
-                otherCharacterVa, subShapeId2Va, contactLocationX,
+                otherCharacterVa, subShapeId2, contactLocationX,
                 contactLocationY, contactLocationZ, contactNormalX,
                 contactNormalY, contactNormalZ, contactVelocityX,
                 contactVelocityY, contactVelocityZ, materialVa,
@@ -203,34 +270,34 @@ public:
 
     bool OnCharacterContactValidate(const CharacterVirtual *inCharacter,
             const CharacterVirtual *inOtherCharacter,
-            const SubShapeID &inSubShapeID2) {
+            const SubShapeID& inSubShapeID2) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
         const jlong otherCharacterVa
                 = reinterpret_cast<jlong> (inOtherCharacter);
-        const jlong subShapeId2Va = reinterpret_cast<jlong> (&inSubShapeID2);
-        bool result = pAttachEnv->CallBooleanMethod(
+        const jint subShapeId2 = inSubShapeID2.GetValue();
+        const bool result = pAttachEnv->CallBooleanMethod(
                 mJavaObject, mCcValidateMethodId, characterVa, otherCharacterVa,
-                subShapeId2Va);
+                subShapeId2);
 
         mpVM->DetachCurrentThread();
         return result;
     }
 
     void OnContactAdded(const CharacterVirtual *inCharacter,
-            const BodyID &inBodyID2, const SubShapeID &inSubShapeID2,
+            const BodyID& inBodyID2, const SubShapeID& inSubShapeID2,
             RVec3Arg inContactPosition, Vec3Arg inContactNormal,
-            CharacterContactSettings &ioSettings) {
+            CharacterContactSettings& ioSettings) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
-        const jlong bodyId2Va = reinterpret_cast<jlong> (&inBodyID2);
-        const jlong subShapeId2Va = reinterpret_cast<jlong> (&inSubShapeID2);
+        const jint bodyId2 = inBodyID2.GetIndexAndSequenceNumber();
+        const jint subShapeId2 = inSubShapeID2.GetValue();
         const jdouble contactLocationX = inContactPosition.GetX();
         const jdouble contactLocationY = inContactPosition.GetY();
         const jdouble contactLocationZ = inContactPosition.GetZ();
@@ -240,7 +307,7 @@ public:
         const jlong settingsVa = reinterpret_cast<jlong> (&ioSettings);
 
         pAttachEnv->CallVoidMethod(mJavaObject, mAddedMethodId, characterVa,
-                bodyId2Va, subShapeId2Va, contactLocationX, contactLocationY,
+                bodyId2, subShapeId2, contactLocationX, contactLocationY,
                 contactLocationZ, contactNormalX, contactNormalY,
                 contactNormalZ, settingsVa);
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
@@ -248,18 +315,63 @@ public:
         mpVM->DetachCurrentThread();
     }
 
-    void OnContactSolve(const CharacterVirtual *inCharacter,
-            const BodyID &inBodyID2, const SubShapeID &inSubShapeID2,
+    void OnContactPersisted(const CharacterVirtual *inCharacter,
+            const BodyID& inBodyID2, const SubShapeID& inSubShapeID2,
             RVec3Arg inContactPosition, Vec3Arg inContactNormal,
-            Vec3Arg inContactVelocity, const PhysicsMaterial *inContactMaterial,
-            Vec3Arg inCharacterVelocity, Vec3 &ioNewCharacterVelocity) {
+            CharacterContactSettings& ioSettings) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
-        const jlong bodyId2Va = reinterpret_cast<jlong> (&inBodyID2);
-        const jlong subShapeId2Va = reinterpret_cast<jlong> (&inSubShapeID2);
+        const jint bodyId2 = inBodyID2.GetIndexAndSequenceNumber();
+        const jint subShapeId2 = inSubShapeID2.GetValue();
+        const jdouble contactLocationX = inContactPosition.GetX();
+        const jdouble contactLocationY = inContactPosition.GetY();
+        const jdouble contactLocationZ = inContactPosition.GetZ();
+        const jfloat contactNormalX = inContactNormal.GetX();
+        const jfloat contactNormalY = inContactNormal.GetY();
+        const jfloat contactNormalZ = inContactNormal.GetZ();
+        const jlong settingsVa = reinterpret_cast<jlong> (&ioSettings);
+
+        pAttachEnv->CallVoidMethod(mJavaObject, mPersistedMethodId, characterVa,
+                bodyId2, subShapeId2, contactLocationX, contactLocationY,
+                contactLocationZ, contactNormalX, contactNormalY,
+                contactNormalZ, settingsVa);
+        JPH_ASSERT(!pAttachEnv->ExceptionCheck());
+
+        mpVM->DetachCurrentThread();
+    }
+
+    void OnContactRemoved(const CharacterVirtual *inCharacter,
+            const BodyID& inBodyID2, const SubShapeID& inSubShapeID2) override {
+        JNIEnv *pAttachEnv;
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
+        JPH_ASSERT(retCode == JNI_OK);
+
+        const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
+        const jint bodyId2 = inBodyID2.GetIndexAndSequenceNumber();
+        const jint subShapeId2 = inSubShapeID2.GetValue();
+
+        pAttachEnv->CallVoidMethod(mJavaObject, mRemovedMethodId, characterVa,
+                bodyId2, subShapeId2);
+        JPH_ASSERT(!pAttachEnv->ExceptionCheck());
+
+        mpVM->DetachCurrentThread();
+    }
+
+    void OnContactSolve(const CharacterVirtual *inCharacter,
+            const BodyID& inBodyID2, const SubShapeID& inSubShapeID2,
+            RVec3Arg inContactPosition, Vec3Arg inContactNormal,
+            Vec3Arg inContactVelocity, const PhysicsMaterial *inContactMaterial,
+            Vec3Arg inCharacterVelocity, Vec3& ioNewCharacterVelocity) override {
+        JNIEnv *pAttachEnv;
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
+        JPH_ASSERT(retCode == JNI_OK);
+
+        const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
+        const jint bodyId2 = inBodyID2.GetIndexAndSequenceNumber();
+        const jint subShapeId2 = inSubShapeID2.GetValue();
         const jdouble contactLocationX = inContactPosition.GetX();
         const jdouble contactLocationY = inContactPosition.GetY();
         const jdouble contactLocationZ = inContactPosition.GetZ();
@@ -284,7 +396,7 @@ public:
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
 
         pAttachEnv->CallVoidMethod(mJavaObject, mSolveMethodId, characterVa,
-                bodyId2Va, subShapeId2Va, contactLocationX, contactLocationY,
+                bodyId2, subShapeId2, contactLocationX, contactLocationY,
                 contactLocationZ, contactNormalX, contactNormalY,
                 contactNormalZ, contactVelocityX, contactVelocityY,
                 contactVelocityZ, materialVa, characterVelocityX,
@@ -302,16 +414,16 @@ public:
     }
 
     bool OnContactValidate(const CharacterVirtual *inCharacter,
-            const BodyID &inBodyID2, const SubShapeID &inSubShapeID2) {
+            const BodyID& inBodyID2, const SubShapeID& inSubShapeID2) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong characterVa = reinterpret_cast<jlong> (inCharacter);
-        const jlong bodyID2Va = reinterpret_cast<jlong> (&inBodyID2);
-        const jlong subShapeId2Va = reinterpret_cast<jlong> (&inSubShapeID2);
-        bool result = pAttachEnv->CallBooleanMethod(mJavaObject,
-                mValidateMethodId, characterVa, bodyID2Va, subShapeId2Va);
+        const jint bodyId2 = inBodyID2.GetIndexAndSequenceNumber();
+        const jint subShapeId2 = inSubShapeID2.GetValue();
+        const bool result = pAttachEnv->CallBooleanMethod(mJavaObject,
+                mValidateMethodId, characterVa, bodyId2, subShapeId2);
 
         mpVM->DetachCurrentThread();
         return result;
@@ -319,7 +431,7 @@ public:
 
     ~CustomCharacterContactListener() {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         pAttachEnv->DeleteGlobalRef(mJavaObject);
@@ -347,9 +459,4 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CustomCharacterConta
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_CustomCharacterContactListener_free
-  (JNIEnv *, jobject, jlong listenerVa) {
-    CustomCharacterContactListener * const pListener
-            = reinterpret_cast<CustomCharacterContactListener *> (listenerVa);
-    TRACE_DELETE("CustomCharacterContactListener", pListener)
-    delete pListener;
-}
+  BODYOF_FREE(CustomCharacterContactListener)

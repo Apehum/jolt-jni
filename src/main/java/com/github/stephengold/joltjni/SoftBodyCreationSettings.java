@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,17 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.ConstCollisionGroup;
 import com.github.stephengold.joltjni.readonly.ConstSoftBodyCreationSettings;
 import com.github.stephengold.joltjni.readonly.ConstSoftBodySharedSettings;
 import com.github.stephengold.joltjni.readonly.QuatArg;
 import com.github.stephengold.joltjni.readonly.RVec3Arg;
+import com.github.stephengold.joltjni.streamutils.GroupFilterToIdMap;
+import com.github.stephengold.joltjni.streamutils.IdToGroupFilterMap;
+import com.github.stephengold.joltjni.streamutils.IdToMaterialMap;
+import com.github.stephengold.joltjni.streamutils.IdToSharedSettingsMap;
+import com.github.stephengold.joltjni.streamutils.MaterialToIdMap;
+import com.github.stephengold.joltjni.streamutils.SharedSettingsToIdMap;
 
 /**
  * Settings used to create a soft body.
@@ -43,6 +50,17 @@ public class SoftBodyCreationSettings
     public SoftBodyCreationSettings() {
         long bodySettingsVa = createDefault();
         setVirtualAddress(bodySettingsVa, () -> free(bodySettingsVa));
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public SoftBodyCreationSettings(ConstSoftBodyCreationSettings original) {
+        long originalVa = original.targetVa();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa, () -> free(copyVa));
     }
 
     /**
@@ -80,154 +98,308 @@ public class SoftBodyCreationSettings
     SoftBodyCreationSettings(JoltPhysicsObject container, long bodySettingsVa) {
         super(container, bodySettingsVa);
     }
+
+    /**
+     * Instantiate settings with the specified native object assigned.
+     *
+     * @param bodySettingsVa the virtual address of the native object to assign
+     * (not zero)
+     * @param owner {@code true} &rarr; make the JVM object the owner,
+     * {@code false} &rarr; it isn't the owner
+     */
+    SoftBodyCreationSettings(long bodySettingsVa, boolean owner) {
+        Runnable freeingAction = owner ? () -> free(bodySettingsVa) : null;
+        setVirtualAddress(bodySettingsVa, freeingAction);
+    }
     // *************************************************************************
     // new methods exposed
 
     /**
+     * Read the state of this object from the specified stream, excluding the
+     * shape and group filter.
+     *
+     * @param stream where to read objects from (not null)
+     */
+    public void restoreBinaryState(StreamIn stream) {
+        long bodySettingsVa = va();
+        long streamVa = stream.va();
+        restoreBinaryState(bodySettingsVa, streamVa);
+    }
+
+    /**
      * Alter whether the created body will be allowed to fall asleep. (native
-     * attribute: mAllowSleeping)
+     * member: mAllowSleeping)
      *
      * @param allow {@code true} to allow, {@code false} to inhibit
      * (default=true)
+     * @return the modified settings, for chaining
      */
-    public void setAllowSleeping(boolean allow) {
+    public SoftBodyCreationSettings setAllowSleeping(boolean allow) {
         long bodySettingsVa = va();
         setAllowSleeping(bodySettingsVa, allow);
+
+        return this;
     }
 
     /**
-     * Alter the collision group to which the body will belong. (native
-     * attribute: mCollisionGroup)
+     * Alter the collision group to which the body will belong. (native member:
+     * mCollisionGroup)
      *
      * @param group the desired group (not null, unaffected)
+     * @return the modified settings, for chaining
      */
-    public void setCollisionGroup(CollisionGroup group) {
+    public SoftBodyCreationSettings setCollisionGroup(
+            ConstCollisionGroup group) {
         long bodySettingsVa = va();
-        long groupVa = group.va();
+        long groupVa = group.targetVa();
         setCollisionGroup(bodySettingsVa, groupVa);
+
+        return this;
     }
 
     /**
-     * Alter the friction ratio. (native attribute: mFriction)
+     * Alter the friction ratio. (native member: mFriction)
      *
      * @param friction the desired ratio (typically &ge;0 and &le;1,
      * default=0.2)
+     * @return the modified settings, for chaining
      */
-    public void setFriction(float friction) {
+    public SoftBodyCreationSettings setFriction(float friction) {
         long bodySettingsVa = va();
         setFriction(bodySettingsVa, friction);
+
+        return this;
     }
 
     /**
-     * Alter the gravity multiplier. (native attribute: mGravityFactor)
+     * Alter the gravity multiplier. (native member: mGravityFactor)
      *
      * @param factor the desired multiplier (default=1)
+     * @return the modified settings, for chaining
      */
-    public void setGravityFactor(float factor) {
+    public SoftBodyCreationSettings setGravityFactor(float factor) {
         long bodySettingsVa = va();
         setGravityFactor(bodySettingsVa, factor);
+
+        return this;
     }
 
     /**
-     * Alter the linear damping constant. (native attribute: mLinearDamping)
+     * Alter the linear damping constant. (native member: mLinearDamping)
      *
      * @param damping the desired value (in units of 1 per second, &ge;0, &le;1,
      * default=0.1)
+     * @return the modified settings, for chaining
      */
-    public void setLinearDamping(float damping) {
+    public SoftBodyCreationSettings setLinearDamping(float damping) {
         long bodySettingsVa = va();
         setLinearDamping(bodySettingsVa, damping);
+
+        return this;
     }
 
     /**
-     * Alter the maximum speed of vertices. (native attribute: mMaxSpeed)
+     * Alter whether to bake the specified rotation into the vertices and set
+     * the body rotation to identity. (native member: mMakeRotationIdentity)
+     *
+     * @param enable {@code true} to bake and set rotation, or {@code false} to
+     * skip that step (default=true)
+     * @return the modified settings, for chaining
+     */
+    public SoftBodyCreationSettings setMakeRotationIdentity(boolean enable) {
+        long bodySettingsVa = va();
+        setMakeRotationIdentity(bodySettingsVa, enable);
+
+        return this;
+    }
+
+    /**
+     * Alter the maximum speed of vertices. (native member: mMaxSpeed)
      *
      * @param maxSpeed the desired maximum speed (in meters per second, &ge;0,
      * default=500)
+     * @return the modified settings, for chaining
      */
-    public void setMaxLinearVelocity(float maxSpeed) {
+    public SoftBodyCreationSettings setMaxLinearVelocity(float maxSpeed) {
         long bodySettingsVa = va();
         setMaxLinearVelocity(bodySettingsVa, maxSpeed);
+
+        return this;
     }
 
     /**
-     * Alter the number of solver iterations. (native attribute: mNumIterations)
+     * Alter the number of solver iterations. (native member: mNumIterations)
      *
-     * @param numIterations the desired number of iterations
+     * @param numIterations the desired number of iterations (default=5)
+     * @return the modified settings, for chaining
      */
-    public void setNumIterations(int numIterations) {
+    public SoftBodyCreationSettings setNumIterations(int numIterations) {
         long bodySettingsVa = va();
         setNumIterations(bodySettingsVa, numIterations);
+
+        return this;
     }
 
     /**
-     * Alter the object layer. (native attribute: mObjectLayer)
+     * Alter the object layer. (native member: mObjectLayer)
      *
-     * @param objLayer the ID of the desired object layer (&ge;0,
-     * &lt;numObjectLayers, default=0)
+     * @param objLayer the index of the desired object layer (&ge;0,
+     * &lt;numObjectLayers, &lt;65536, default=0)
+     * @return the modified settings, for chaining
      */
-    public void setObjectLayer(int objLayer) {
+    public SoftBodyCreationSettings setObjectLayer(int objLayer) {
+        assert objLayer >= 0 && objLayer < 65_536 : "objLayer = " + objLayer;
+
         long bodySettingsVa = va();
         setObjectLayer(bodySettingsVa, objLayer);
+
+        return this;
     }
 
     /**
-     * Alter the (initial) location of the body's origin. (native attribute:
+     * Alter the (initial) location of the body's origin. (native member:
      * mPosition)
      *
-     * @param location the desired location (in physics-system coordinates, not
-     * null, unaffected, default=(0,0,0))
+     * @param location the desired location (in system coordinates, not null,
+     * unaffected, default=(0,0,0))
+     * @return the modified settings, for chaining
      */
-    public void setPosition(RVec3Arg location) {
+    public SoftBodyCreationSettings setPosition(RVec3Arg location) {
         long bodySettingsVa = va();
         double xx = location.xx();
         double yy = location.yy();
         double zz = location.zz();
         setPosition(bodySettingsVa, xx, yy, zz);
+
+        return this;
     }
 
     /**
-     * Alter the pressure. (native attribute: mPressure)
+     * Alter the internal pressure. (native member: mPressure)
      *
      * @param pressure the desired pressure (default=0)
+     * @return the modified settings, for chaining
      */
-    public void setPressure(float pressure) {
+    public SoftBodyCreationSettings setPressure(float pressure) {
         long bodySettingsVa = va();
         setPressure(bodySettingsVa, pressure);
+
+        return this;
     }
 
     /**
-     * Alter the restitution ratio for collisions. (native attribute:
-     * mRestitution)
+     * Alter the restitution ratio for collisions. (native member: mRestitution)
      *
      * @param restitution the desired ratio (typically &ge;0 and &le;1,
      * default=0)
+     * @return the modified settings, for chaining
      */
-    public void setRestitution(float restitution) {
+    public SoftBodyCreationSettings setRestitution(float restitution) {
         long bodySettingsVa = va();
         setRestitution(bodySettingsVa, restitution);
+
+        return this;
     }
 
     /**
-     * Alter the (initial) orientation. (native attribute: mRotation)
+     * Alter the (initial) orientation. (native member: mRotation)
      *
      * @param orientation the desired location (relative to system axes, not
      * null, unaffected, default=(0,0,0,1))
+     * @return the modified settings, for chaining
      */
-    public void setRotation(QuatArg orientation) {
+    public SoftBodyCreationSettings setRotation(QuatArg orientation) {
         long bodySettingsVa = va();
         float qw = orientation.getW();
         float qx = orientation.getX();
         float qy = orientation.getY();
         float qz = orientation.getZ();
         setRotation(bodySettingsVa, qx, qy, qz, qw);
+
+        return this;
+    }
+
+    /**
+     * Replace the shared settings. (native member: mSettings)
+     *
+     * @param sharedSettings the desired settings (not null, alias created)
+     * @return the modified settings, for chaining
+     */
+    public SoftBodyCreationSettings setSettings(
+            ConstSoftBodySharedSettings sharedSettings) {
+        long bodySettingsVa = va();
+        long sharedSettingsVa = sharedSettings.targetVa();
+        setSettings(bodySettingsVa, sharedSettingsVa);
+
+        return this;
+    }
+
+    /**
+     * Alter whether to update the position of the body during simulation.
+     * (native member: mUpdatePosition)
+     *
+     * @param enable {@code true} to update the position, or {@code false} to
+     * skip updating (default=true)
+     * @return the modified settings, for chaining
+     */
+    public SoftBodyCreationSettings setUpdatePosition(boolean enable) {
+        long bodySettingsVa = va();
+        setUpdatePosition(bodySettingsVa, enable);
+
+        return this;
+    }
+
+    /**
+     * Alter the user data. (native member: mUserData)
+     *
+     * @param value the desired value (default=0)
+     * @return the modified settings, for chaining
+     */
+    public SoftBodyCreationSettings setUserData(long value) {
+        long bodySettingsVa = va();
+        setUserData(bodySettingsVa, value);
+
+        return this;
+    }
+
+    /**
+     * Alter the size of every particle.
+     *
+     * @param radius the desired radius (&ge;0, default=0)
+     */
+    public void setVertexRadius(float radius) {
+        long settingsVa = va();
+        setVertexRadius(settingsVa, radius);
+    }
+
+    /**
+     * Read a settings object from the specified binary stream.
+     *
+     * @param stream where to read objects (not null)
+     * @param settingsMap track multiple uses of shared settings (not null)
+     * @param materialMap track multiple uses of physics materials (not null)
+     * @param filterMap track multiple uses of group filters (not null)
+     * @return a new object
+     */
+    public static SbcsResult sRestoreWithChildren(
+            StreamIn stream, IdToSharedSettingsMap settingsMap,
+            IdToMaterialMap materialMap, IdToGroupFilterMap filterMap) {
+        long streamVa = stream.va();
+        long settingsMapVa = settingsMap.va();
+        long materialMapVa = materialMap.va();
+        long filterMapVa = filterMap.va();
+        long resultVa = sRestoreWithChildren(
+                streamVa, settingsMapVa, materialMapVa, filterMapVa);
+        SbcsResult result = new SbcsResult(resultVa, true);
+
+        return result;
     }
     // *************************************************************************
     // ConstSoftBodyCreationSettings methods
 
     /**
      * Test whether the created body will be allowed to fall asleep. The
-     * settings are unaffected. (native attribute: mAllowSleeping)
+     * settings are unaffected. (native member: mAllowSleeping)
      *
      * @return {@code true} if allowed, otherwise {@code false}
      */
@@ -240,8 +412,22 @@ public class SoftBodyCreationSettings
     }
 
     /**
-     * Return the friction ratio. The settings are unaffected. (native
-     * attribute: mFriction)
+     * Access the collision group. (native member: mCollisionFriction)
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    @Override
+    public CollisionGroup getCollisionGroup() {
+        long bodySettingsVa = va();
+        long resultVa = getCollisionGroup(bodySettingsVa);
+        CollisionGroup result = new CollisionGroup(this, resultVa);
+
+        return result;
+    }
+
+    /**
+     * Return the friction ratio. The settings are unaffected. (native member:
+     * mFriction)
      *
      * @return the ratio (typically &ge;0 and &le;1)
      */
@@ -254,8 +440,8 @@ public class SoftBodyCreationSettings
     }
 
     /**
-     * Return the gravity factor. The settings are unaffected. (native
-     * attribute: mGravityFactor)
+     * Return the gravity factor. The settings are unaffected. (native member:
+     * mGravityFactor)
      *
      * @return the factor
      */
@@ -269,7 +455,7 @@ public class SoftBodyCreationSettings
 
     /**
      * Return the linear damping constant. The settings are unaffected. (native
-     * attribute: mLinearDamping)
+     * member: mLinearDamping)
      *
      * @return the constant (in units of per second, &ge;0, &le;1)
      */
@@ -282,8 +468,24 @@ public class SoftBodyCreationSettings
     }
 
     /**
+     * Test whether to bake rotation into the vertices and set the body rotation
+     * to identity. The settings are unaffected. (native member:
+     * mMakeRotationIdentity)
+     *
+     * @return {@code true} if rotation will be baked in, otherwise
+     * {@code false}
+     */
+    @Override
+    public boolean getMakeRotationIdentity() {
+        long bodySettingsVa = va();
+        boolean result = getMakeRotationIdentity(bodySettingsVa);
+
+        return result;
+    }
+
+    /**
      * Return the maximum linear speed. The settings are unaffected. (native
-     * attribute: mMaxSpeed)
+     * member: mMaxSpeed)
      *
      * @return the maximum speed (in meters per second)
      */
@@ -296,8 +498,22 @@ public class SoftBodyCreationSettings
     }
 
     /**
+     * Return the number of solver iterations. The settings are unaffected.
+     * (native member: mNumIterations)
+     *
+     * @return the number of iterations
+     */
+    @Override
+    public int getNumIterations() {
+        long bodySettingsVa = va();
+        int result = getNumIterations(bodySettingsVa);
+
+        return result;
+    }
+
+    /**
      * Return the index of the object layer. The settings are unaffected.
-     * (native attribute: mObjectLayer)
+     * (native member: mObjectLayer)
      *
      * @return the layer index (&ge;0, &lt;numObjectLayers)
      */
@@ -310,11 +526,11 @@ public class SoftBodyCreationSettings
     }
 
     /**
-     * Return the (initial) location. The settings are unaffected. (native
-     * attribute: mPosition)
+     * Copy the (initial) location. The settings are unaffected. (native member:
+     * mPosition)
      *
-     * @return a new location vector (in physics-system coordinates, all
-     * components finite)
+     * @return a new location vector (in system coordinates, all components
+     * finite)
      */
     @Override
     public RVec3 getPosition() {
@@ -334,8 +550,8 @@ public class SoftBodyCreationSettings
     }
 
     /**
-     * Return the pressure. The settings are unaffected. (native attribute:
-     * mPressure)
+     * Return the internal pressure. The settings are unaffected. (native
+     * member: mPressure)
      *
      * @return the pressure
      */
@@ -349,7 +565,7 @@ public class SoftBodyCreationSettings
 
     /**
      * Return the restitution ratio. The settings are unaffected. (native
-     * attribute: mRestitution)
+     * member: mRestitution)
      *
      * @return the ratio (typically &ge;0 and &le;1)
      */
@@ -363,9 +579,9 @@ public class SoftBodyCreationSettings
 
     /**
      * Copy the (initial) orientation of the body's axes. The settings are
-     * unaffected. (native attribute: mRotation)
+     * unaffected. (native member: mRotation)
      *
-     * @return a new rotation quaternion (relative to the physics-system axes)
+     * @return a new rotation quaternion (relative to the system axes)
      */
     @Override
     public Quat getRotation() {
@@ -380,20 +596,107 @@ public class SoftBodyCreationSettings
     }
 
     /**
-     * Access the shared settings. (native attribute: mSettings)
+     * Access the shared settings. (native member: mSettings)
      *
-     * @return a new JVM object with the pre-existing native object assigned
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null} if none
      */
-    public SoftBodySharedSettings getSettings() {
+    @Override
+    public ConstSoftBodySharedSettings getSettings() {
         long bodySettingsVa = va();
         long sharedSettingsVa = getSettings(bodySettingsVa);
-        SoftBodySharedSettings result
-                = new SoftBodySharedSettings(sharedSettingsVa);
+        ConstSoftBodySharedSettings result;
+        if (sharedSettingsVa == 0L) {
+            result = null;
+        } else {
+            result = new SoftBodySharedSettings(sharedSettingsVa);
+        }
 
         return result;
     }
+
+    /**
+     * Test whether to update the position of the body during simulation. The
+     * settings are unaffected. (native member: mUpdatePosition)
+     *
+     * @return {@code true} if the position will be updated, otherwise
+     * {@code false}
+     */
+    @Override
+    public boolean getUpdatePosition() {
+        long bodySettingsVa = va();
+        boolean result = getUpdatePosition(bodySettingsVa);
+
+        return result;
+    }
+
+    /**
+     * Return the user data. The settings are unaffected. (native member:
+     * mUserData)
+     *
+     * @return the value
+     */
+    @Override
+    public long getUserData() {
+        long bodySettingsVa = va();
+        long result = getUserData(bodySettingsVa);
+
+        return result;
+    }
+
+    /**
+     * Return the radius of each particle. The settings are unaffected. (native
+     * attribute: mVertexRadius)
+     *
+     * @return the radius (in meters)
+     */
+    @Override
+    public float getVertexRadius() {
+        long bodySettingsVa = va();
+        float result = getVertexRadius(bodySettingsVa);
+
+        return result;
+    }
+
+    /**
+     * Write the state of this object to the specified stream, excluding the
+     * shared settings, materials, and group filter. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not null)
+     */
+    @Override
+    public void saveBinaryState(StreamOut stream) {
+        long bodySettingsVa = va();
+        long streamVa = stream.va();
+        saveBinaryState(bodySettingsVa, streamVa);
+    }
+
+    /**
+     * Write the state of this object to the specified stream. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not null)
+     * @param sbssMap track multiple uses of shared settings (may be null)
+     * @param materialMap track multiple uses of physics materials (may be null)
+     * @param filterMap track multiple uses of group filters (may be null)
+     */
+    @Override
+    public void saveWithChildren(
+            StreamOut stream, SharedSettingsToIdMap sbssMap,
+            MaterialToIdMap materialMap, GroupFilterToIdMap filterMap) {
+        long bodySettingsVa = va();
+        long streamVa = stream.va();
+        long sbssMapVa = (sbssMap == null) ? 0L : sbssMap.va();
+        long materialMapVa = (materialMap == null) ? 0L : materialMap.va();
+        long filterMapVa = (filterMap == null) ? 0L : filterMap.va();
+        saveWithChildren(bodySettingsVa, streamVa, sbssMapVa, materialMapVa,
+                filterMapVa);
+    }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
 
     native private static long createDefault();
 
@@ -405,13 +708,19 @@ public class SoftBodyCreationSettings
 
     native private static boolean getAllowSleeping(long bodySettingsVa);
 
+    native private static long getCollisionGroup(long bodySettingsVa);
+
     native private static float getFriction(long bodySettingsVa);
 
     native private static float getGravityFactor(long bodySettingsVa);
 
     native private static float getLinearDamping(long bodySettingsVa);
 
+    native private static boolean getMakeRotationIdentity(long bodySettingsVa);
+
     native private static float getMaxLinearVelocity(long bodySettingsVa);
+
+    native private static int getNumIterations(long bodySettingsVa);
 
     native private static int getObjectLayer(long bodySettingsVa);
 
@@ -435,6 +744,22 @@ public class SoftBodyCreationSettings
 
     native private static long getSettings(long bodySettingsVa);
 
+    native private static boolean getUpdatePosition(long bodySettingsVa);
+
+    native private static long getUserData(long bodySettingsVa);
+
+    native static float getVertexRadius(long bodySettingsVa);
+
+    native private static void restoreBinaryState(
+            long bodySettingsVa, long streamVa);
+
+    native private static void saveBinaryState(
+            long bodySettingsVa, long streamVa);
+
+    native private static void saveWithChildren(
+            long bodySettingsVa, long streamVa, long settingsMapVa,
+            long materialMapVa, long filterMapVa);
+
     native private static void setAllowSleeping(
             long bodySettingsVa, boolean allow);
 
@@ -448,6 +773,9 @@ public class SoftBodyCreationSettings
 
     native private static void setLinearDamping(
             long bodySettingsVa, float damping);
+
+    native private static void setMakeRotationIdentity(
+            long bodySettingsVa, boolean enable);
 
     native private static void setMaxLinearVelocity(
             long bodySettingsVa, float maxSpeed);
@@ -468,4 +796,17 @@ public class SoftBodyCreationSettings
 
     native private static void setRotation(
             long bodySettingsVa, float qx, float qy, float qz, float qw);
+
+    native private static void setSettings(
+            long bodySettingsVa, long sharedSettingsVa);
+
+    native private static void setUpdatePosition(
+            long bodySettingsVa, boolean enable);
+
+    native private static void setUserData(long bodySettingsVa, long value);
+
+    native static void setVertexRadius(long settingsVa, float radius);
+
+    native private static long sRestoreWithChildren(long streamVa,
+            long settingsMapVa, long materialMapVa, long filterMapVa);
 }

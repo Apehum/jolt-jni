@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,11 +36,7 @@ using namespace JPH;
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RayCastSettings_createDefaultSettings
-  (JNIEnv *, jclass) {
-    RayCastSettings * const pResult = new RayCastSettings();
-    TRACE_NEW("RayCastSettings", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(RayCastSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_RayCastSettings
@@ -48,12 +44,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RayCastSettings_crea
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RayCastSettings_free
-  (JNIEnv *, jclass, jlong settingsVa) {
-    RayCastSettings * const pSettings
-            = reinterpret_cast<RayCastSettings *> (settingsVa);
-    TRACE_DELETE("RayCastSettings", pSettings);
-    delete pSettings;
-}
+  BODYOF_FREE(RayCastSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_RayCastSettings
@@ -90,7 +81,7 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_RayCastSettings_g
   (JNIEnv *, jclass, jlong settingsVa) {
     const RayCastSettings * const pSettings
             = reinterpret_cast<RayCastSettings *> (settingsVa);
-    bool result = pSettings->mTreatConvexAsSolid;
+    const bool result = pSettings->mTreatConvexAsSolid;
     return result;
 }
 

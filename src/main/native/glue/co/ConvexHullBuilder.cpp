@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_ConvexHullBuilder_cou
   (JNIEnv *, jclass, jlong builderVa) {
     const ConvexHullBuilder * const pBuilder
             = reinterpret_cast<ConvexHullBuilder *> (builderVa);
-    const Array<ConvexHullBuilder::Face *> &array = pBuilder->GetFaces();
+    const Array<ConvexHullBuilder::Face *>& array = pBuilder->GetFaces();
     const Array<ConvexHullBuilder::Face *>::size_type result = array.size();
     return result;
 }
@@ -53,11 +53,13 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ConvexHullBuilder_cr
   (JNIEnv *pEnv, jclass, jobject pointBuffer) {
     const jfloat * const pPoints
             = (jfloat *) pEnv->GetDirectBufferAddress(pointBuffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
     const jlong numFloats = pEnv->GetDirectBufferCapacity(pointBuffer);
-    const int numPoints = numFloats / 3;
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const uint64 numPoints = numFloats / 3;
     Array<Vec3> * const pArray = new Array<Vec3>(); // TODO memory leak
     TRACE_NEW("Array<Vec3>", pArray)
-    for (int i = 0; i < numPoints; ++i) {
+    for (uint64 i = 0; i < numPoints; ++i) {
         const jfloat x = pPoints[3 * i];
         const jfloat y = pPoints[3 * i + 1];
         const jfloat z = pPoints[3 * i + 2];
@@ -112,12 +114,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ConvexHullBuilder_det
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ConvexHullBuilder_free
-  (JNIEnv *, jclass, jlong builderVa) {
-    ConvexHullBuilder * const pBuilder
-            = reinterpret_cast<ConvexHullBuilder *> (builderVa);
-    TRACE_DELETE("ConvexHullBuilder", pBuilder)
-    delete pBuilder;
-}
+  BODYOF_FREE(ConvexHullBuilder)
 
 /*
  * Class:     com_github_stephengold_joltjni_ConvexHullBuilder
@@ -150,10 +147,10 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ConvexHullBuilder_get
   (JNIEnv *pEnv, jclass, jlong builderVa, jlongArray storeVas) {
     const ConvexHullBuilder * const pBuilder
             = reinterpret_cast<ConvexHullBuilder *> (builderVa);
-    const Array<ConvexHullBuilder::Face *> &faces = pBuilder->GetFaces();
+    const Array<ConvexHullBuilder::Face *>& faces = pBuilder->GetFaces();
     jboolean isCopy;
     jlong * const pFaceVas = pEnv->GetLongArrayElements(storeVas, &isCopy);
-    for (int i = 0; i < faces.size(); ++i) {
+    for (size_t i = 0; i < faces.size(); ++i) {
         ConvexHullBuilder::Face * const pFace = faces[i];
         pFaceVas[i] = reinterpret_cast<jlong> (pFace);
     }
@@ -173,6 +170,9 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_ConvexHullBuilder_ini
     const char *pMessage;
     const ConvexHullBuilder::EResult result
             = pBuilder->Initialize(maxVertices, tolerance, pMessage);
+    if (result == ConvexHullBuilder::EResult::Success) {
+        pMessage = "";
+    }
     jstring message = pEnv->NewStringUTF(pMessage);
     pEnv->SetObjectArrayElement(storeMessage, (jsize)0, message);
     return (jint) result;

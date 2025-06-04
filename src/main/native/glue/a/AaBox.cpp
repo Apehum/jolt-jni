@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,28 +46,51 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_AaBox_contains
 /*
  * Class:     com_github_stephengold_joltjni_AaBox
  * Method:    createAaBox
- * Signature: ()J
+ * Signature: (FFFFFF)J
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AaBox_createAaBox__
-  (JNIEnv *, jclass) {
-    AABox * const pBox = new AABox();
-    TRACE_NEW("AABox", pBox)
-    return reinterpret_cast<jlong> (pBox);
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AaBox_createAaBox
+  (JNIEnv *, jclass, jfloat minX, jfloat minY, jfloat minZ, jfloat maxX, jfloat maxY, jfloat maxZ) {
+    const Vec3 min(minX, minY, minZ);
+    const Vec3 max(maxX, maxY, maxZ);
+    AABox * const pResult = new AABox(min, max);
+    TRACE_NEW("AABox", pResult)
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*
  * Class:     com_github_stephengold_joltjni_AaBox
- * Method:    createAaBox
- * Signature: (FFFFFF)J
+ * Method:    createBiggest
+ * Signature: ()J
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AaBox_createAaBox__FFFFFF
-  (JNIEnv *, jclass, jfloat minX, jfloat minY, jfloat minZ, jfloat maxX, jfloat maxY, jfloat maxZ) {
-    const Vec3 min(minX, minY, minZ);
-    const Vec3 max(maxX, maxY, maxZ);
-    AABox * const pBox = new AABox(min, max);
-    TRACE_NEW("AABox", pBox)
-    return reinterpret_cast<jlong> (pBox);
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AaBox_createBiggest
+  (JNIEnv *, jclass) {
+    AABox * const pResult = new AABox();
+    TRACE_NEW("AABox", pResult)
+    *pResult = AABox::sBiggest();
+    return reinterpret_cast<jlong> (pResult);
 }
+
+/*
+ * Class:     com_github_stephengold_joltjni_AaBox
+ * Method:    createCubic
+ * Signature: (FFFF)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AaBox_createCubic
+  (JNIEnv *, jclass, jfloat centerX, jfloat centerY, jfloat centerZ,
+  jfloat halfExtent) {
+    const Vec3 center(centerX, centerY, centerZ);
+    AABox * const pResult = new AABox(center, halfExtent);
+    TRACE_NEW("AABox", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_AaBox
+ * Method:    createDefault
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AaBox_createDefault
+  BODYOF_CREATE_DEFAULT(AABox)
 
 /*
  * Class:     com_github_stephengold_joltjni_AaBox
@@ -99,11 +122,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_AaBox_expandBy
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_AaBox_free
-  (JNIEnv *, jclass, jlong boxVa) {
-    AABox * const pBox = reinterpret_cast<AABox *> (boxVa);
-    TRACE_DELETE("AABox", pBox)
-    delete pBox;
-}
+  BODYOF_FREE(AABox)
 
 /*
  * Class:     com_github_stephengold_joltjni_AaBox
@@ -311,19 +330,6 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_AaBox_isValid
 
 /*
  * Class:     com_github_stephengold_joltjni_AaBox
- * Method:    sBiggest
- * Signature: (Z)J
- */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AaBox_sBiggest
-  (JNIEnv *, jclass, jboolean) {
-    AABox * const pResult = new AABox();
-    TRACE_NEW("AABox", pResult)
-    *pResult = AABox::sBiggest();
-    return reinterpret_cast<jlong> (pResult);
-}
-
-/*
- * Class:     com_github_stephengold_joltjni_AaBox
  * Method:    setEmpty
  * Signature: (J)V
  */
@@ -355,4 +361,16 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_AaBox_setMin
     AABox * const pBox = reinterpret_cast<AABox *> (boxVa);
     const Vec3 min(x, y, z);
     pBox->mMin = min;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_AaBox
+ * Method:    translate
+ * Signature: (JFFF)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_AaBox_translate
+  (JNIEnv *, jclass, jlong boxVa, jfloat x, jfloat y, jfloat z) {
+    AABox * const pBox = reinterpret_cast<AABox *> (boxVa);
+    const Vec3 offset(x, y, z);
+    pBox->Translate(offset);
 }

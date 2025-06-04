@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@ import com.github.stephengold.joltjni.enumerate.EShapeType;
 import com.github.stephengold.joltjni.readonly.ConstColor;
 import com.github.stephengold.joltjni.readonly.ConstPhysicsMaterial;
 import com.github.stephengold.joltjni.readonly.ConstShape;
-import com.github.stephengold.joltjni.readonly.ConstSubShapeId;
 import com.github.stephengold.joltjni.readonly.Mat44Arg;
 import com.github.stephengold.joltjni.readonly.RMat44Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
@@ -192,6 +191,26 @@ final public class ShapeRefC extends JoltPhysicsObject implements ConstShape {
     }
 
     /**
+     * Access the leaf shape for the specified sub-shape ID.
+     *
+     * @param subShapeId an ID that indicates the path to the desired leaf shape
+     * (not null, unaffected)
+     * @param storeRemainderId storage for the remainder of the ID after
+     * removing the path to the leaf shape (not null, modified)
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null} if the ID is invalid
+     */
+    @Override
+    public ConstShape getLeafShape(int subShapeId, int[] storeRemainderId) {
+        long currentVa = targetVa();
+        long leafVa
+                = Shape.getLeafShape(currentVa, subShapeId, storeRemainderId);
+        ConstShape result = Shape.newShape(leafVa);
+
+        return result;
+    }
+
+    /**
      * Return a bounding box that includes the convex radius. The shape is
      * unaffected.
      *
@@ -223,15 +242,28 @@ final public class ShapeRefC extends JoltPhysicsObject implements ConstShape {
     /**
      * Access the material of the specified sub-shape. The shape is unaffected.
      *
-     * @param id identifies the particular sub-shape (not null, unaffected)
+     * @param subShapeId which sub-shape
      * @return a new JVM object with the pre-existing native object assigned
      */
     @Override
-    public ConstPhysicsMaterial getMaterial(ConstSubShapeId id) {
+    public ConstPhysicsMaterial getMaterial(int subShapeId) {
         long shapeVa = targetVa();
-        long idVa = id.targetVa();
-        long materialVa = Shape.getMaterial(shapeVa, idVa);
+        long materialVa = Shape.getMaterial(shapeVa, subShapeId);
         ConstPhysicsMaterial result = new PhysicsMaterial(this, materialVa);
+
+        return result;
+    }
+
+    /**
+     * Return the shape's revision count, which is automatically incremented
+     * each time the shape is altered. The shape is unaffected.
+     *
+     * @return the count
+     */
+    @Override
+    public long getRevisionCount() {
+        long shapeVa = targetVa();
+        long result = Shape.getUserData(shapeVa);
 
         return result;
     }
@@ -293,20 +325,6 @@ final public class ShapeRefC extends JoltPhysicsObject implements ConstShape {
     }
 
     /**
-     * Return the shape's user data: can be used for anything. The shape is
-     * unaffected.
-     *
-     * @return the value
-     */
-    @Override
-    public long getUserData() {
-        long shapeVa = targetVa();
-        long result = Shape.getUserData(shapeVa);
-
-        return result;
-    }
-
-    /**
      * Return the bounding box including convex radius. The shape is unaffected.
      *
      * @param comTransform the center-of-mass transform to apply to the shape
@@ -352,6 +370,42 @@ final public class ShapeRefC extends JoltPhysicsObject implements ConstShape {
     }
 
     /**
+     * Test whether the specified scale vector is valid for wrapping the current
+     * shape in a {@code ScaledShape}. The current shape is unaffected.
+     *
+     * @param scale the proposed scale vector (not null, unaffected)
+     * @return {@code true} if valid, otherwise {@code false}
+     */
+    @Override
+    public boolean isValidScale(Vec3Arg scale) {
+        long shapeVa = targetVa();
+        float sx = scale.getX();
+        float sy = scale.getY();
+        float sz = scale.getZ();
+        boolean result = Shape.isValidScale(shapeVa, sx, sy, sz);
+
+        return result;
+    }
+
+    /**
+     * Transform the specified scale vector such that it will be valid for
+     * wrapping the current shape in a {@code ScaledShape}. The current shape is
+     * unaffected.
+     *
+     * @param scale the proposed scale vector (not null, unaffected)
+     * @return a new scale vector
+     */
+    @Override
+    public Vec3 makeScaleValid(Vec3Arg scale) {
+        long shapeVa = targetVa();
+        FloatBuffer floatBuffer = scale.toBuffer();
+        Shape.makeScaleValid(shapeVa, floatBuffer);
+        Vec3 result = new Vec3(floatBuffer);
+
+        return result;
+    }
+
+    /**
      * Test whether the shape can be used in a dynamic/kinematic body. The shape
      * is unaffected.
      *
@@ -366,7 +420,7 @@ final public class ShapeRefC extends JoltPhysicsObject implements ConstShape {
     }
 
     /**
-     * Save the state of this shape in binary form. The shape is unaffected.
+     * Save the shape to the specified binary stream. The shape is unaffected.
      *
      * @param stream the stream to write to (not null)
      */

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,11 +38,12 @@ class Layers
 };
 
 /// Class that determines if two object layers can collide
-class ObjectLayerPairFilterImpl extends ObjVsObjFilter
+class ObjectLayerPairFilterImpl extends ObjectLayerPairFilterTable
 {
 	ObjectLayerPairFilterImpl() {
 		super(Layers.NUM_LAYERS);
-		disablePair(Layers.NON_MOVING, Layers.NON_MOVING);
+		enableCollision(Layers.MOVING, Layers.MOVING);
+		enableCollision(Layers.MOVING, Layers.NON_MOVING);
 	}
 };
 
@@ -55,13 +56,13 @@ class BroadPhaseLayers
 };
 
 /// BroadPhaseLayerInterface implementation
-class BPLayerInterfaceImpl extends MapObj2Bp
+class BPLayerInterfaceImpl extends BroadPhaseLayerInterfaceTable
 {
 									BPLayerInterfaceImpl()
 	{
 		super(Layers.NUM_LAYERS, BroadPhaseLayers.NUM_LAYERS);
-		add(Layers.NON_MOVING, BroadPhaseLayers.NON_MOVING);
-		add(Layers.MOVING, BroadPhaseLayers.MOVING);
+		mapObjectToBroadPhaseLayer(Layers.NON_MOVING, BroadPhaseLayers.NON_MOVING);
+		mapObjectToBroadPhaseLayer(Layers.MOVING, BroadPhaseLayers.MOVING);
 	}
 };
 

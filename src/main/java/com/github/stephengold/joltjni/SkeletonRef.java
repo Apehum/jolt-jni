@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.ConstSkeleton;
 import com.github.stephengold.joltjni.template.Ref;
 
 /**
@@ -29,7 +30,7 @@ import com.github.stephengold.joltjni.template.Ref;
  *
  * @author Stephen Gold sgold@sonic.net
  */
-final public class SkeletonRef extends Ref {
+final public class SkeletonRef extends Ref implements ConstSkeleton {
     // *************************************************************************
     // constructors
 
@@ -52,6 +53,94 @@ final public class SkeletonRef extends Ref {
     SkeletonRef(long refVa, boolean owner) {
         Runnable freeingAction = owner ? () -> free(refVa) : null;
         setVirtualAddress(refVa, freeingAction);
+    }
+    // *************************************************************************
+    // ConstSkeleton methods
+
+    /**
+     * Test whether the joints are correctly ordered, parents before children.
+     *
+     * @return {@code true} if in order, otherwise {@code false}
+     */
+    @Override
+    public boolean areJointsCorrectlyOrdered() {
+        long skeletonVa = targetVa();
+        boolean result = Skeleton.areJointsCorrectlyOrdered(skeletonVa);
+
+        return result;
+    }
+
+    /**
+     * Access the specified joint.
+     *
+     * @param jointIndex the index of the joint to access (&ge;0)
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    @Override
+    public Joint getJoint(int jointIndex) {
+        long skeletonVa = targetVa();
+        long resultVa = Skeleton.getJoint(skeletonVa, jointIndex);
+        Joint result = new Joint(this, resultVa);
+
+        return result;
+    }
+
+    /**
+     * Count how many joints are in the skeleton.
+     *
+     * @return the count (&ge;0)
+     */
+    @Override
+    public int getJointCount() {
+        long skeletonVa = targetVa();
+        int result = Skeleton.getJointCount(skeletonVa);
+
+        return result;
+    }
+
+    /**
+     * Find the index of the named joint.
+     *
+     * @param name the name of the joint to find (not null)
+     * @return the joint index
+     */
+    @Override
+    public int getJointIndex(String name) {
+        long skeletonVa = targetVa();
+        int result = Skeleton.getJointIndex(skeletonVa, name);
+
+        return result;
+    }
+
+    /**
+     * Access all the joints.
+     *
+     * @return a new array of new JVM objects with the pre-existing native
+     * objects assigned
+     */
+    @Override
+    public Joint[] getJoints() {
+        long skeletonVa = targetVa();
+        int numJoints = Skeleton.getJointCount(skeletonVa);
+        Joint[] result = new Joint[numJoints];
+        for (int i = 0; i < numJoints; ++i) {
+            long jointVa = Skeleton.getJoint(skeletonVa, i);
+            result[i] = new Joint(this, jointVa);
+        }
+
+        return result;
+    }
+
+    /**
+     * Save the skeleton to the specified binary stream.
+     *
+     * @param stream the stream to write to (not null)
+     */
+    @Override
+    public void saveBinaryState(StreamOut stream) {
+        long skeletonVa = targetVa();
+        long streamVa = stream.va();
+        Skeleton.saveBinaryState(skeletonVa, streamVa);
     }
     // *************************************************************************
     // Ref methods

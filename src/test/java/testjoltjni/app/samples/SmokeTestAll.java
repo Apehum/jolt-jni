@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,11 @@ import testjoltjni.app.samples.character.*;
 import testjoltjni.app.samples.constraints.*;
 import testjoltjni.app.samples.convexcollision.*;
 import testjoltjni.app.samples.general.*;
+import testjoltjni.app.samples.rig.*;
 import testjoltjni.app.samples.shapes.*;
 import testjoltjni.app.samples.softbody.*;
 import testjoltjni.app.samples.vehicle.*;
-import testjoltjni.app.samples.water.BoatTest;
+import testjoltjni.app.samples.water.*;
 
 /**
  * Console app to perform a "smoke test" on each of the Samples tests.
@@ -39,6 +40,14 @@ import testjoltjni.app.samples.water.BoatTest;
  * @author Stephen Gold sgold@sonic.net
  */
 final public class SmokeTestAll {
+    // *************************************************************************
+    // constants
+
+    /**
+     * default number of physics steps to simulate during each invocation of
+     * {@code smokeTest()}
+     */
+    final private static int defaultNumSteps = 1;
     // *************************************************************************
     // fields
 
@@ -65,6 +74,8 @@ final public class SmokeTestAll {
     public static void main(String... arguments) {
         TestUtils.loadNativeLibrary();
         TestUtils.initializeNativeLibrary();
+        System.out.println(Jolt.getConfigurationString());
+        System.out.println();
 
         String fileName = "SmokeTestAll.jor";
         int mode = StreamOutWrapper.out()
@@ -75,6 +86,94 @@ final public class SmokeTestAll {
         final int numBytes = 1 << 25; // 32 MiB
         tempAllocator = new TempAllocatorImpl(numBytes);
 
+        smokeTestAll();
+    }
+    // *************************************************************************
+    // private methods
+
+    /**
+     * Allocate and initialize a {@code PhysicsSystem} in the customary
+     * configuration.
+     *
+     * @param maxBodies the desired number of bodies (&ge;1)
+     * @return a new system
+     */
+    static private PhysicsSystem newPhysicsSystem(int maxBodies) {
+        BPLayerInterfaceImpl mapObj2Bp = new BPLayerInterfaceImpl();
+        ObjectVsBroadPhaseLayerFilterImpl objVsBpFilter
+                = new ObjectVsBroadPhaseLayerFilterImpl();
+        ObjectLayerPairFilterImpl objVsObjFilter
+                = new ObjectLayerPairFilterImpl();
+
+        int numBodyMutexes = 0; // 0 means "use the default value"
+        int maxBodyPairs = 65_536;
+        int maxContacts = 20_480;
+        PhysicsSystem result = new PhysicsSystem();
+        result.init(maxBodies, numBodyMutexes, maxBodyPairs, maxContacts,
+                mapObj2Bp, objVsBpFilter, objVsObjFilter);
+
+        return result;
+    }
+
+    /**
+     * Invoke key methods of the specified Test to see whether they crash.
+     *
+     * @param test the Test instance to use (not null)
+     */
+    static private void smokeTest(Test test) {
+        smokeTest(test, defaultNumSteps);
+    }
+
+    /**
+     * Invoke key methods of the specified Test to see whether they crash.
+     *
+     * @param test the Test instance to use (not null)
+     * @param numSteps the number of physics steps to simulate (&ge;0,
+     * default=defaultNumSteps)
+     */
+    static private void smokeTest(Test test, int numSteps) {
+        ++numTests;
+
+        // Log the name of the test:
+        String testName = test.getClass().getSimpleName();
+        System.out.printf("=== Test #%d:  %s for %d step%s%n",
+                numTests, testName, numSteps, (numSteps == 1) ? "" : "s");
+        System.out.flush();
+
+        test.SetDebugRenderer(renderer);
+        test.SetTempAllocator(tempAllocator);
+
+        // Create a new job/physics systems for each test:
+        JobSystem jobSystem = new JobSystemThreadPool(
+                Jolt.cMaxPhysicsJobs, Jolt.cMaxPhysicsBarriers, 1);
+        test.SetJobSystem(jobSystem);
+
+        PhysicsSystem physicsSystem = newPhysicsSystem(10_240);
+        test.SetPhysicsSystem(physicsSystem);
+
+        test.Initialize();
+
+        // Single-step the physics numSteps times:
+        for (int i = 0; i < numSteps; ++i) {
+            PreUpdateParams params = new PreUpdateParams();
+            params.mDeltaTime = 0.02f;
+            test.PrePhysicsUpdate(params);
+
+            int collisionSteps = 1;
+            physicsSystem.update(params.mDeltaTime, collisionSteps,
+                    tempAllocator, jobSystem);
+
+            test.PostPhysicsUpdate(params.mDeltaTime);
+        }
+
+        test.Cleanup();
+        System.gc();
+    }
+
+    /**
+     * Smoke test all the packages.
+     */
+    private static void smokeTestAll() {
         // broadphase package:
         smokeTest(new BroadPhaseCastRayTest());
         smokeTest(new BroadPhaseInsertionTest());
@@ -85,7 +184,35 @@ final public class SmokeTestAll {
         smokeTest(new CharacterTest());
         smokeTest(new CharacterVirtualTest());
 
-        // constraints package:
+        smokeTestConstraints();
+
+        // convex-collision package:
+        smokeTest(new CapsuleVsBoxTest());
+        smokeTest(new ClosestPointTest());
+        smokeTest(new ConvexHullShrinkTest());
+        smokeTest(new ConvexHullTest());
+
+        smokeTestGeneral();
+        smokeTestRig();
+        smokeTestShapes();
+        smokeTestSoftBody();
+
+        // vehicle package:
+        smokeTest(new MotorcycleTest());
+        smokeTest(new TankTest());
+        smokeTest(new VehicleConstraintTest());
+        smokeTest(new VehicleSixDOFTest());
+        smokeTest(new VehicleStressTest());
+
+        // water package:
+        smokeTest(new BoatTest());
+        smokeTest(new WaterShapeTest());
+    }
+
+    /**
+     * Smoke test the "constraints" package.
+     */
+    private static void smokeTestConstraints() {
         smokeTest(new ConeConstraintTest());
         smokeTest(new ConstraintPriorityTest());
         smokeTest(new ConstraintSingularityTest());
@@ -106,14 +233,12 @@ final public class SmokeTestAll {
         smokeTest(new SpringTest());
         smokeTest(new SwingTwistConstraintFrictionTest());
         smokeTest(new SwingTwistConstraintTest());
+    }
 
-        // convex-collision package:
-        smokeTest(new CapsuleVsBoxTest());
-        smokeTest(new ClosestPointTest());
-        smokeTest(new ConvexHullShrinkTest());
-        smokeTest(new ConvexHullTest());
-
-        // general package:
+    /**
+     * Smoke test the "general" package.
+     */
+    private static void smokeTestGeneral() {
         smokeTest(new ActivateDuringUpdateTest());
         smokeTest(new ActiveEdgesTest());
         smokeTest(new AllowedDOFsTest());
@@ -142,8 +267,27 @@ final public class SmokeTestAll {
         smokeTest(new ManifoldReductionTest());
         smokeTest(new ModifyMassTest());
         smokeTest(new RestitutionTest());
+    }
 
-        // shapes package:
+    /**
+     * Smoke test the "rig" package.
+     */
+    private static void smokeTestRig() {
+        //smokeTest(new BigWorldTest());
+        smokeTest(new CreateRigTest());
+        smokeTest(new KinematicRigTest());
+        smokeTest(new LoadRigTest());
+        smokeTest(new LoadSaveBinaryRigTest());
+        smokeTest(new LoadSaveRigTest());
+        smokeTest(new PoweredRigTest());
+        smokeTest(new RigPileTest());
+        smokeTest(new SkeletonMapperTest());
+    }
+
+    /**
+     * Smoke test the "shapes" package.
+     */
+    private static void smokeTestShapes() {
         smokeTest(new BoxShapeTest());
         smokeTest(new CapsuleShapeTest());
         smokeTest(new ConvexHullShapeTest());
@@ -152,86 +296,38 @@ final public class SmokeTestAll {
         smokeTest(new EmptyShapeTest());
         smokeTest(new HeightFieldShapeTest());
         smokeTest(new MeshShapeTest());
+        smokeTest(new MeshShapeUserDataTest());
         smokeTest(new MutableCompoundShapeTest());
+        smokeTest(new OffsetCenterOfMassShapeTest());
         smokeTest(new PlaneShapeTest());
         smokeTest(new RotatedTranslatedShapeTest());
+        smokeTest(new SphereShapeTest());
+        smokeTest(new StaticCompoundShapeTest());
+        smokeTest(new TaperedCapsuleShapeTest());
+        smokeTest(new TaperedCylinderShapeTest());
+        smokeTest(new TriangleShapeTest());
+    }
 
-        // softbody package:
+    /**
+     * Smoke test the "softbody" package.
+     */
+    private static void smokeTestSoftBody() {
+        smokeTest(new SoftBodyBendConstraintTest());
+        smokeTest(new SoftBodyContactListenerTest());
+        smokeTest(new SoftBodyCustomUpdateTest());
+        smokeTest(new SoftBodyForceTest());
+        smokeTest(new SoftBodyFrictionTest());
+        smokeTest(new SoftBodyGravityFactorTest());
+        smokeTest(new SoftBodyKinematicTest());
+        smokeTest(new SoftBodyLRAConstraintTest());
         smokeTest(new SoftBodyPressureTest());
-
-        // vehicle package:
-        smokeTest(new MotorcycleTest());
-        smokeTest(new TankTest());
-        smokeTest(new VehicleStressTest());
-
-        // water package:
-        smokeTest(new BoatTest());
-    }
-    // *************************************************************************
-    // private methods
-
-    /**
-     * Invoke key methods of the specified Test to see whether they crash.
-     *
-     * @param test the Test instance to use (not null)
-     */
-    static private void smokeTest(Test test) {
-        ++numTests;
-
-        // Log the name of the test:
-        String testName = test.getClass().getSimpleName();
-        System.out.println("=== Test #" + numTests + ":  " + testName);
-        System.out.flush();
-
-        test.SetDebugRenderer(renderer);
-        test.SetTempAllocator(tempAllocator);
-
-        // Create new job/physics systems for each test:
-        JobSystem jobSystem = new JobSystemThreadPool(
-                Jolt.cMaxPhysicsJobs, Jolt.cMaxPhysicsBarriers, 1);
-        test.SetJobSystem(jobSystem);
-
-        PhysicsSystem physicsSystem = newPhysicsSystem(10_240);
-        test.SetPhysicsSystem(physicsSystem);
-
-        // Initialize and single-step the test:
-        test.Initialize();
-
-        PreUpdateParams params = new PreUpdateParams();
-        params.mDeltaTime = 0.02f;
-        test.PrePhysicsUpdate(params);
-
-        int collisionSteps = 1;
-        physicsSystem.update(
-                params.mDeltaTime, collisionSteps, tempAllocator, jobSystem);
-
-        test.PostPhysicsUpdate(params.mDeltaTime);
-
-        test.Cleanup();
-        System.gc();
-    }
-
-    /**
-     * Allocate and initialize a {@code PhysicsSystem} in the customary
-     * configuration.
-     *
-     * @param maxBodies the desired number of bodies (&ge;1)
-     * @return a new instance
-     */
-    static private PhysicsSystem newPhysicsSystem(int maxBodies) {
-        BPLayerInterfaceImpl mapObj2Bp = new BPLayerInterfaceImpl();
-        ObjectVsBroadPhaseLayerFilterImpl objVsBpFilter
-                = new ObjectVsBroadPhaseLayerFilterImpl();
-        ObjectLayerPairFilterImpl objVsObjFilter
-                = new ObjectLayerPairFilterImpl();
-
-        int numBodyMutexes = 0; // 0 means "use the default value"
-        int maxBodyPairs = 65_536;
-        int maxContacts = 20_480;
-        PhysicsSystem result = new PhysicsSystem();
-        result.init(maxBodies, numBodyMutexes, maxBodyPairs, maxContacts,
-                mapObj2Bp, objVsBpFilter, objVsObjFilter);
-
-        return result;
+        smokeTest(new SoftBodyRestitutionTest());
+        smokeTest(new SoftBodySensorTest());
+        smokeTest(new SoftBodyShapesTest());
+        smokeTest(new SoftBodySkinnedConstraintTest());
+        smokeTest(new SoftBodyStressTest());
+        smokeTest(new SoftBodyUpdatePositionTest());
+        smokeTest(new SoftBodyVertexRadiusTest());
+        smokeTest(new SoftBodyVsFastMovingTest());
     }
 }

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,8 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.enumerate.EShapeSubType;
+import com.github.stephengold.joltjni.readonly.ConstShape;
+import com.github.stephengold.joltjni.readonly.ConstShapeSettings;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
 
 /**
@@ -48,17 +50,17 @@ public class OffsetCenterOfMassShapeSettings extends DecoratedShapeSettings {
      * Instantiate a settings object with the specified offset and base shape.
      *
      * @param offset (not null, unaffected)
-     * @param baseShapeRef a reference to the base shape (not null)
+     * @param baseShape the desired base shape (not null)
      */
     public OffsetCenterOfMassShapeSettings(
-            Vec3Arg offset, ShapeRefC baseShapeRef) {
+            Vec3Arg offset, ConstShape baseShape) {
         float offsetX = offset.getX();
         float offsetY = offset.getY();
         float offsetZ = offset.getZ();
-        long baseShapeRefVa = baseShapeRef.va();
-        long ocomssVa = createSettingsFromShapeRef(
-                offsetX, offsetY, offsetZ, baseShapeRefVa);
-        setVirtualAddress(ocomssVa, null); // no owner due to ref counting
+        long baseShapeVa = baseShape.targetVa();
+        long ocomssVa = createSettingsFromShape(
+                offsetX, offsetY, offsetZ, baseShapeVa);
+        setVirtualAddress(ocomssVa); // no owner due to ref counting
         setSubType(EShapeSubType.OffsetCenterOfMass);
     }
 
@@ -70,14 +72,14 @@ public class OffsetCenterOfMassShapeSettings extends DecoratedShapeSettings {
      * @param baseShapeSettings settings to create the base shape (not null)
      */
     public OffsetCenterOfMassShapeSettings(
-            Vec3Arg offset, ShapeSettings baseShapeSettings) {
+            Vec3Arg offset, ConstShapeSettings baseShapeSettings) {
         float offsetX = offset.getX();
         float offsetY = offset.getY();
         float offsetZ = offset.getZ();
-        long baseShapeSettingsVa = baseShapeSettings.va();
+        long baseShapeSettingsVa = baseShapeSettings.targetVa();
         long ocomssVa = createSettingsFromSettings(
                 offsetX, offsetY, offsetZ, baseShapeSettingsVa);
-        setVirtualAddress(ocomssVa, null); // no owner due to ref counting
+        setVirtualAddress(ocomssVa); // no owner due to ref counting
         setSubType(EShapeSubType.OffsetCenterOfMass);
     }
     // *************************************************************************
@@ -118,8 +120,8 @@ public class OffsetCenterOfMassShapeSettings extends DecoratedShapeSettings {
     native private static long createSettingsFromSettings(float offsetX,
             float offsetY, float offsetZ, long baseShapeSettingsVa);
 
-    native private static long createSettingsFromShapeRef(
-            float offsetX, float offsetY, float offsetZ, long baseShapeRefVa);
+    native private static long createSettingsFromShape(
+            float offsetX, float offsetY, float offsetZ, long baseShapeVa);
 
     native private static float getOffsetX(long ocomssVa);
 

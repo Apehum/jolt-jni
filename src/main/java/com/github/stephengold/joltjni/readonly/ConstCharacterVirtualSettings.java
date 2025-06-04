@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,6 @@ import com.github.stephengold.joltjni.enumerate.EBackFaceMode;
  */
 public interface ConstCharacterVirtualSettings
         extends ConstCharacterBaseSettings {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Determine whether the character will move through back-facing triangles.
      * The settings are unaffected.
@@ -78,7 +75,7 @@ public interface ConstCharacterVirtualSettings
     /**
      * Return the shape of the inner rigid body. The settings are unaffected.
      *
-     * @return the shape, or null for no inner body
+     * @return the shape, or {@code null} for no inner body
      */
     ConstShape getInnerBodyShape();
 

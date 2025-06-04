@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,16 +31,20 @@ SOFTWARE.
 using namespace JPH;
 
 /*
+ * Class:     com_github_stephengold_joltjni_createCopy
+ * Method:    createMassProperties
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MassProperties_createCopy
+  BODYOF_CREATE_COPY(MassProperties)
+
+/*
  * Class:     com_github_stephengold_joltjni_MassProperties
  * Method:    createMassProperties
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MassProperties_createMassProperties
-  (JNIEnv *, jclass) {
-    MassProperties * const pProperties = new MassProperties();
-    TRACE_NEW("MassProperties", pProperties)
-    return reinterpret_cast<jlong> (pProperties);
-}
+  BODYOF_CREATE_DEFAULT(MassProperties)
 
 /*
  * Class:     com_github_stephengold_joltjni_MassProperties
@@ -71,12 +75,7 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_MassProperties_de
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_MassProperties_free
-  (JNIEnv *, jclass, jlong propertiesVa) {
-    MassProperties * const pProperties
-            = reinterpret_cast<MassProperties *> (propertiesVa);
-    TRACE_DELETE("MassProperties", pProperties)
-    delete pProperties;
-}
+  BODYOF_FREE(MassProperties)
 
 /*
  * Class:     com_github_stephengold_joltjni_MassProperties

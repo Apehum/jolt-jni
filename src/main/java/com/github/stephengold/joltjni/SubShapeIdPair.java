@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,10 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
-import com.github.stephengold.joltjni.readonly.ConstBodyId;
-import com.github.stephengold.joltjni.readonly.ConstSubShapeId;
 import com.github.stephengold.joltjni.readonly.ConstSubShapeIdPair;
 
 /**
- * Identify a pair of colliding subshapes. (native type: SubShapeIDPair)
+ * Identify a pair of colliding sub-shapes. (native type: SubShapeIDPair)
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -44,41 +42,41 @@ final public class SubShapeIdPair
      * zero)
      */
     public SubShapeIdPair(long pairVa) {
-        setVirtualAddress(pairVa, null);
+        setVirtualAddress(pairVa);
     }
     // *************************************************************************
     // ConstSubShapeIdPair methods
 
     /**
-     * Return the ID of the first body.
+     * Return the ID of the first body. The pair is unaffected. (native method:
+     * GetBody1ID)
      *
-     * @return a new object
+     * @return the {@code BodyID} value
      */
     @Override
-    public ConstBodyId getBody1Id() {
+    public int getBody1Id() {
         long pairVa = va();
-        long bodyIdVa = getBody1Id(pairVa);
-        ConstBodyId result = new BodyId(bodyIdVa, true);
+        int result = getBody1Id(pairVa);
 
         return result;
     }
 
     /**
-     * Return the ID of the 2nd body.
+     * Return the ID of the 2nd body. The pair is unaffected. (native method:
+     * GetBody2ID)
      *
-     * @return a new object
+     * @return the {@code BodyID} value
      */
     @Override
-    public ConstBodyId getBody2Id() {
+    public int getBody2Id() {
         long pairVa = va();
-        long bodyIdVa = getBody2Id(pairVa);
-        ConstBodyId result = new BodyId(bodyIdVa, true);
+        int result = getBody2Id(pairVa);
 
         return result;
     }
 
     /**
-     * Return the hashcode for the pair.
+     * Return the hashcode for the pair. The pair is unaffected.
      *
      * @return the value
      */
@@ -91,42 +89,42 @@ final public class SubShapeIdPair
     }
 
     /**
-     * Return the ID of the first subshape.
+     * Return the ID of the first sub-shape. The pair is unaffected. (native
+     * method: GetSubShapeID1)
      *
-     * @return a new object
+     * @return a {@code SubShapeID} value
      */
     @Override
-    public ConstSubShapeId getSubShapeId1() {
+    public int getSubShapeId1() {
         long pairVa = va();
-        long bodyIdVa = getSubShapeId1(pairVa);
-        ConstSubShapeId result = new SubShapeId(bodyIdVa, true);
+        int result = getSubShapeId1(pairVa);
 
         return result;
     }
 
     /**
-     * Return the ID of the 2nd subshape.
+     * Return the ID of the 2nd sub-shape. The pair is unaffected. (native
+     * method: GetSubShapeID2)
      *
-     * @return a new object
+     * @return a {@code SubShapeID} value
      */
     @Override
-    public ConstSubShapeId getSubShapeId2() {
+    public int getSubShapeId2() {
         long pairVa = va();
-        long bodyIdVa = getSubShapeId2(pairVa);
-        ConstSubShapeId result = new SubShapeId(bodyIdVa, true);
+        int result = getSubShapeId2(pairVa);
 
         return result;
     }
     // *************************************************************************
     // native private methods
 
-    native private static long getBody1Id(long pairVa);
+    native private static int getBody1Id(long pairVa);
 
-    native private static long getBody2Id(long pairVa);
+    native private static int getBody2Id(long pairVa);
 
     native private static long getHash(long pairVa);
 
-    native private static long getSubShapeId1(long pairVa);
+    native private static int getSubShapeId1(long pairVa);
 
-    native private static long getSubShapeId2(long pairVa);
+    native private static int getSubShapeId2(long pairVa);
 }

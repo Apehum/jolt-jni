@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,22 +33,22 @@ using namespace JPH;
 /*
  * Class:     com_github_stephengold_joltjni_BodyManager
  * Method:    activateBodies
- * Signature: (J[J)V
+ * Signature: (J[I)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyManager_activateBodies
-  (JNIEnv *pEnv, jclass, jlong managerVa, jlongArray idVas) {
+  (JNIEnv *pEnv, jclass, jlong managerVa, jintArray idArray) {
     BodyManager * const pManager = reinterpret_cast<BodyManager *> (managerVa);
-    const jsize numBodies = pEnv->GetArrayLength(idVas);
+    const jsize numBodies = pEnv->GetArrayLength(idArray);
     BodyID * const pTempArray = new BodyID[numBodies];
     TRACE_NEW("BodyID[]", pTempArray)
     jboolean isCopy;
-    jlong * const pIdVas = pEnv->GetLongArrayElements(idVas, &isCopy);
-    for (int i = 0; i < numBodies; ++i) {
-        const jlong idVa = pIdVas[i];
-        BodyID * const pId = reinterpret_cast<BodyID *> (idVa);
-        pTempArray[i] = *pId;
+    jint * const pIds = pEnv->GetIntArrayElements(idArray, &isCopy);
+    for (jsize i = 0; i < numBodies; ++i) {
+        const jint bodyId = pIds[i];
+        const BodyID id(bodyId);
+        pTempArray[i] = id;
     }
-    pEnv->ReleaseLongArrayElements(idVas, pIdVas, JNI_ABORT);
+    pEnv->ReleaseIntArrayElements(idArray, pIds, JNI_ABORT);
     pManager->ActivateBodies(pTempArray, numBodies);
     TRACE_DELETE("BodyID[]", pTempArray)
     delete[] pTempArray;
@@ -63,7 +63,7 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_BodyManager_addBo
   (JNIEnv *, jclass, jlong managerVa, jlong bodyVa) {
     BodyManager * const pManager = reinterpret_cast<BodyManager *> (managerVa);
     Body * const pBody = reinterpret_cast<Body *> (bodyVa);
-    bool result = pManager->AddBody(pBody);
+    const bool result = pManager->AddBody(pBody);
     return result;
 }
 
@@ -77,7 +77,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyManager_allocate
     BodyManager * const pManager = reinterpret_cast<BodyManager *> (managerVa);
     const BodyCreationSettings * const pSettings
             = reinterpret_cast<BodyCreationSettings *> (settingsVa);
-    Body * pResult = pManager->AllocateBody(*pSettings);
+    Body * const pResult = pManager->AllocateBody(*pSettings);
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -87,31 +87,27 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyManager_allocate
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyManager_createBodyManager
-  (JNIEnv *, jclass) {
-    BodyManager * const pManager = new BodyManager();
-    TRACE_NEW("BodyManager", pManager)
-    return reinterpret_cast<jlong> (pManager);
-}
+  BODYOF_CREATE_DEFAULT(BodyManager)
 
 /*
  * Class:     com_github_stephengold_joltjni_BodyManager
  * Method:    deactivateBodies
- * Signature: (J[J)V
+ * Signature: (J[I)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyManager_deactivateBodies
-  (JNIEnv *pEnv, jclass, jlong managerVa, jlongArray idVas) {
+  (JNIEnv *pEnv, jclass, jlong managerVa, jintArray idArray) {
     BodyManager * const pManager = reinterpret_cast<BodyManager *> (managerVa);
-    const jsize numBodies = pEnv->GetArrayLength(idVas);
+    const jsize numBodies = pEnv->GetArrayLength(idArray);
     BodyID * const pTempArray = new BodyID[numBodies];
     TRACE_NEW("BodyID[]", pTempArray)
     jboolean isCopy;
-    jlong * const pIdVas = pEnv->GetLongArrayElements(idVas, &isCopy);
-    for (int i = 0; i < numBodies; ++i) {
-        const jlong idVa = pIdVas[i];
-        BodyID * const pId = reinterpret_cast<BodyID *> (idVa);
-        pTempArray[i] = *pId;
+    jint * const pIds = pEnv->GetIntArrayElements(idArray, &isCopy);
+    for (jsize i = 0; i < numBodies; ++i) {
+        const jint bodyId = pIds[i];
+        const BodyID id(bodyId);
+        pTempArray[i] = id;
     }
-    pEnv->ReleaseLongArrayElements(idVas, pIdVas, JNI_ABORT);
+    pEnv->ReleaseIntArrayElements(idArray, pIds, JNI_ABORT);
     pManager->DeactivateBodies(pTempArray, numBodies);
     TRACE_DELETE("BodyID[]", pTempArray)
     delete[] pTempArray;
@@ -120,22 +116,22 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyManager_deactivat
 /*
  * Class:     com_github_stephengold_joltjni_BodyManager
  * Method:    destroyBodies
- * Signature: (J[J)V
+ * Signature: (J[I)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyManager_destroyBodies
-  (JNIEnv *pEnv, jclass, jlong managerVa, jlongArray idVas) {
+  (JNIEnv *pEnv, jclass, jlong managerVa, jintArray idArray) {
     BodyManager * const pManager = reinterpret_cast<BodyManager *> (managerVa);
-    const jsize numBodies = pEnv->GetArrayLength(idVas);
+    const jsize numBodies = pEnv->GetArrayLength(idArray);
     BodyID * const pTempArray = new BodyID[numBodies];
     TRACE_NEW("BodyID[]", pTempArray)
     jboolean isCopy;
-    jlong * const pIdVas = pEnv->GetLongArrayElements(idVas, &isCopy);
-    for (int i = 0; i < numBodies; ++i) {
-        const jlong idVa = pIdVas[i];
-        BodyID * const pId = reinterpret_cast<BodyID *> (idVa);
-        pTempArray[i] = *pId;
+    jint * const pIds = pEnv->GetIntArrayElements(idArray, &isCopy);
+    for (jsize i = 0; i < numBodies; ++i) {
+        const jint bodyId = pIds[i];
+        const BodyID id(bodyId);
+        pTempArray[i] = id;
     }
-    pEnv->ReleaseLongArrayElements(idVas, pIdVas, JNI_ABORT);
+    pEnv->ReleaseIntArrayElements(idArray, pIds, JNI_ABORT);
     pManager->DestroyBodies(pTempArray, numBodies);
     TRACE_DELETE("BodyID[]", pTempArray)
     delete[] pTempArray;
@@ -168,11 +164,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyManager_draw
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyManager_free
-  (JNIEnv *, jclass, jlong managerVa) {
-    BodyManager * const pManager = reinterpret_cast<BodyManager *> (managerVa);
-    TRACE_DELETE("BodyManager", pManager)
-    delete pManager;
-}
+  BODYOF_FREE(BodyManager)
 
 /*
  * Class:     com_github_stephengold_joltjni_BodyManager
@@ -183,6 +175,19 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyManager_getBodie
   (JNIEnv *, jclass, jlong managerVa) {
     BodyManager * const pManager = reinterpret_cast<BodyManager *> (managerVa);
     const BodyVector * const pResult = &pManager->GetBodies();
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_BodyManager
+ * Method:    getBody
+ * Signature: (JI)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyManager_getBody
+  (JNIEnv *, jclass, jlong managerVa, jint bodyId) {
+    BodyManager * const pManager = reinterpret_cast<BodyManager *> (managerVa);
+    const BodyID id(bodyId);
+    Body * const pResult = &pManager->GetBody(id);
     return reinterpret_cast<jlong> (pResult);
 }
 

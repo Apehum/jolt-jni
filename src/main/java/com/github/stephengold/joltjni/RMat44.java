@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ import com.github.stephengold.joltjni.readonly.RMat44Arg;
 import com.github.stephengold.joltjni.readonly.RVec3Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
 import com.github.stephengold.joltjni.readonly.Vec4Arg;
+import java.nio.FloatBuffer;
 
 /**
  * A 4x4 matrix used to represent transformations of 3-D coordinates.
@@ -43,6 +44,17 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     public RMat44() {
         long matrixVa = createUninitialized();
         setVirtualAddress(matrixVa, () -> free(matrixVa));
+    }
+
+    /**
+     * Instantiate with the specified container and native object.
+     *
+     * @param container the containing object, or {@code null} if none
+     * @param matrixVa the virtual address of the native object to assign (not
+     * zero)
+     */
+    RMat44(JoltPhysicsObject container, long matrixVa) {
+        super(container, matrixVa);
     }
 
     /**
@@ -70,7 +82,18 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     }
 
     /**
-     * Instantiate from 4 column vectors.
+     * Instantiate a copy of the specified matrix.
+     *
+     * @param original the matrix to duplicate (not null, unaffected)
+     */
+    public RMat44(RMat44Arg original) {
+        long originalVa = original.targetVa();
+        long matrixVa = createCopy(originalVa);
+        setVirtualAddress(matrixVa, () -> free(matrixVa));
+    }
+
+    /**
+     * Instantiate a matrix with the specified columns.
      *
      * @param c1 the desired first/leftmost column (not null, unaffected)
      * @param c2 the desired 2nd column (not null, unaffected)
@@ -95,6 +118,61 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     // new methods exposed
 
     /**
+     * Left-multiply the current matrix by the argument.
+     *
+     * @param leftFactor the left factor (not null, unaffected)
+     */
+    public void leftMultiplyInPlace(RMat44Arg leftFactor) {
+        long currentVa = va();
+        long leftVa = leftFactor.targetVa();
+        leftMultiplyInPlace(currentVa, leftVa);
+    }
+
+    /**
+     * Set the current matrix to identity.
+     */
+    public void loadIdentity() {
+        long matrixVa = va();
+        loadIdentity(matrixVa);
+    }
+
+    /**
+     * Return the product of the specified matrices.
+     *
+     * @param mArray an array of input matrices (not null, unaffected)
+     * @return a new matrix
+     */
+    public static RMat44 product(RMat44Arg... mArray) {
+        int length = mArray.length;
+
+        long resultVa;
+        if (length == 0) {
+            resultVa = createIdentity();
+        } else {
+            long factorVa = mArray[0].targetVa();
+            resultVa = createCopy(factorVa);
+            for (int i = 1; i < length; ++i) {
+                factorVa = mArray[i].targetVa();
+                rightMultiplyInPlace(resultVa, factorVa);
+            }
+        }
+        RMat44 result = new RMat44(resultVa, true);
+
+        return result;
+    }
+
+    /**
+     * Right-multiply the current matrix by the argument.
+     *
+     * @param rightFactor the right factor (not null, unaffected)
+     */
+    public void rightMultiplyInPlace(RMat44Arg rightFactor) {
+        long currentVa = va();
+        long rightVa = rightFactor.targetVa();
+        rightMultiplyInPlace(currentVa, rightVa);
+    }
+
+    /**
      * Copy all elements of the argument to the current matrix.
      *
      * @param source the matrix to copy (not null, unaffected)
@@ -106,6 +184,45 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     }
 
     /**
+     * Set the first column to the specified vector.
+     *
+     * @param vec the vector to use (not null, unaffected)
+     */
+    public void setAxisX(Vec3Arg vec) {
+        long matrixVa = va();
+        float x = vec.getX();
+        float y = vec.getY();
+        float z = vec.getZ();
+        setAxisX(matrixVa, x, y, z);
+    }
+
+    /**
+     * Set the 2nd column to the specified vector.
+     *
+     * @param vec the vector to use (not null, unaffected)
+     */
+    public void setAxisY(Vec3Arg vec) {
+        long matrixVa = va();
+        float x = vec.getX();
+        float y = vec.getY();
+        float z = vec.getZ();
+        setAxisY(matrixVa, x, y, z);
+    }
+
+    /**
+     * Set the 3rd column to the specified vector.
+     *
+     * @param vec the vector to use (not null, unaffected)
+     */
+    public void setAxisZ(Vec3Arg vec) {
+        long matrixVa = va();
+        float x = vec.getX();
+        float y = vec.getY();
+        float z = vec.getZ();
+        setAxisZ(matrixVa, x, y, z);
+    }
+
+    /**
      * Alter the specified element in double precision.
      *
      * @param row the zero-origin index of the row (&ge;0, &lt;4)
@@ -113,14 +230,30 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
      * @param value the desired value
      */
     public void setElement(int row, int column, double value) {
+        assert column >= 0 && column < 4 : "column = " + column;
+        assert row >= 0 && row < 4 : "row = " + row;
+
         long matrixVa = va();
         setElement(matrixVa, row, column, value);
     }
 
     /**
+     * Alter the translation component.
+     *
+     * @param offset the desired translation (not null, unaffected)
+     */
+    public void setTranslation(RVec3Arg offset) {
+        long matrixVa = va();
+        double xx = offset.xx();
+        double yy = offset.yy();
+        double zz = offset.zz();
+        setTranslation(matrixVa, xx, yy, zz);
+    }
+
+    /**
      * Create an identity matrix.
      *
-     * @return a new instance
+     * @return a new matrix
      */
     public static RMat44 sIdentity() {
         long matrixVa = createIdentity();
@@ -140,7 +273,7 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
         float rx = rotation.getX();
         float ry = rotation.getY();
         float rz = rotation.getZ();
-        long matrixVa = sRotation(rx, ry, rz, rw);
+        long matrixVa = createRotation(rx, ry, rz, rw);
         RMat44 result = new RMat44(matrixVa, true);
 
         return result;
@@ -169,11 +302,39 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     }
 
     /**
+     * Create a uniform scaling matrix.
+     *
+     * @param factor the amount to scale each axis
+     * @return a new matrix
+     */
+    public static RMat44 sScale(float factor) {
+        long matrixVa = createScale(factor, factor, factor);
+        RMat44 result = new RMat44(matrixVa, true);
+
+        return result;
+    }
+
+    /**
+     * Create a pure scaling matrix.
+     *
+     * @param factors the amount to scale each axis (not null, unaffected)
+     * @return a new matrix
+     */
+    public static RMat44 sScale(Vec3Arg factors) {
+        float x = factors.getX();
+        float y = factors.getY();
+        float z = factors.getZ();
+        long matrixVa = createScale(x, y, z);
+        RMat44 result = new RMat44(matrixVa, true);
+
+        return result;
+    }
+
+    /**
      * Create a pure translation matrix.
      *
      * @param offset the amount to translate (not null, unaffected)
-     * @return a new instance
-     *
+     * @return a new matrix
      */
     public static RMat44 sTranslation(RVec3Arg offset) {
         double xx = offset.xx();
@@ -188,7 +349,7 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     /**
      * Create an all-zero matrix.
      *
-     * @return a new instance
+     * @return a new matrix
      */
     public static RMat44 sZero() {
         long matrixVa = createZero();
@@ -248,6 +409,22 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     }
 
     /**
+     * Copy the diagonal elements to a {@code Vec3}. The matrix is unaffected.
+     *
+     * @return a new vector
+     */
+    @Override
+    public Vec3 getDiagonal3() {
+        long matrixVa = va();
+        float x = (float) getElement(matrixVa, 0, 0);
+        float y = (float) getElement(matrixVa, 1, 1);
+        float z = (float) getElement(matrixVa, 2, 2);
+        Vec3 result = new Vec3(x, y, z);
+
+        return result;
+    }
+
+    /**
      * Return the specified element in double precision. The matrix is
      * unaffected.
      *
@@ -257,6 +434,9 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
      */
     @Override
     public double getElement(int row, int column) {
+        assert column >= 0 && column < 4 : "column = " + column;
+        assert row >= 0 && row < 4 : "row = " + row;
+
         long matrixVa = va();
         double result = getElement(matrixVa, row, column);
 
@@ -273,8 +453,7 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
         long matrixVa = va();
         float[] storeFloats = new float[4];
         getQuaternion(matrixVa, storeFloats);
-        Quat result = new Quat(
-                storeFloats[0], storeFloats[1], storeFloats[2], storeFloats[3]);
+        Quat result = new Quat(storeFloats);
 
         return result;
     }
@@ -310,6 +489,22 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     }
 
     /**
+     * Return the inverse of the current matrix, assuming the current matrix
+     * consists entirely of rotation and translation. The current matrix is
+     * unaffected.
+     *
+     * @return a new matrix
+     */
+    @Override
+    public RMat44 inversedRotationTranslation() {
+        long currentVa = va();
+        long resultVa = inversedRotationTranslation(currentVa);
+        RMat44 result = new RMat44(resultVa, true);
+
+        return result;
+    }
+
+    /**
      * Test whether the current matrix is equal to the argument. The current
      * matrix is unaffected.
      *
@@ -326,16 +521,48 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
     }
 
     /**
-     * Multiply the current matrix by the argument. The matrix is unaffected.
+     * Test whether the current matrix is an identity matrix. The matrix is
+     * unaffected.
      *
-     * @param m2 the right factor (not null, unaffected)
+     * @return {@code true} if exactly equal, otherwise {@code false}
+     */
+    @Override
+    public boolean isIdentity() {
+        long matrixVa = va();
+        boolean result = isIdentity(matrixVa);
+
+        return result;
+    }
+
+    /**
+     * Multiply the current matrix by the specified single-precision matrix. The
+     * current matrix is unaffected.
+     *
+     * @param right the right factor (not null, unaffected)
      * @return a new matrix
      */
     @Override
-    public RMat44 multiply(RMat44Arg m2) {
-        long m1Va = va();
-        long m2Va = m2.targetVa();
-        long productVa = multiply(m1Va, m2Va);
+    public RMat44 multiply(Mat44Arg right) {
+        long leftVa = va();
+        long rightVa = right.targetVa();
+        long resultVa = multiplyBySp(leftVa, rightVa);
+        RMat44 result = new RMat44(resultVa, true);
+
+        return result;
+    }
+
+    /**
+     * Multiply the current matrix by the argument. The current matrix is
+     * unaffected.
+     *
+     * @param right the right factor (not null, unaffected)
+     * @return a new matrix
+     */
+    @Override
+    public RMat44 multiply(RMat44Arg right) {
+        long leftVa = va();
+        long rightVa = right.targetVa();
+        long productVa = multiply(leftVa, rightVa);
         RMat44 result = new RMat44(productVa, true);
 
         return result;
@@ -362,13 +589,13 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
      * Multiply the transpose of the 3x3 matrix by the specified column vector.
      * The matrix is unaffected.
      *
-     * @param vec3Arg the right factor (not null, unaffected)
+     * @param rightVector the right factor (not null, unaffected)
      * @return a new vector
      */
     @Override
-    public Vec3 multiply3x3Transposed(Vec3Arg vec3Arg) {
+    public Vec3 multiply3x3Transposed(Vec3Arg rightVector) {
         long matrixVa = va();
-        float[] tmpFloats = vec3Arg.toArray();
+        float[] tmpFloats = rightVector.toArray();
         multiply3x3Transposed(matrixVa, tmpFloats);
         Vec3 result = new Vec3(tmpFloats);
 
@@ -380,13 +607,13 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
      * component of the right factor implied to be one. The matrix is
      * unaffected.
      *
-     * @param rvec3Arg the right factor (not null, unaffected)
+     * @param rightVector the right factor (not null, unaffected)
      * @return a new vector
      */
     @Override
-    public RVec3 multiply3x4(RVec3Arg rvec3Arg) {
+    public RVec3 multiply3x4(RVec3Arg rightVector) {
         long matrixVa = va();
-        double[] tmpDoubles = rvec3Arg.toArray();
+        double[] tmpDoubles = rightVector.toArray();
         multiply3x4r(matrixVa, tmpDoubles);
         RVec3 result = new RVec3(tmpDoubles);
 
@@ -398,19 +625,99 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
      * component of the right factor implied to be one. The matrix is
      * unaffected.
      *
-     * @param vec3Arg the right factor (not null, unaffected)
+     * @param vec3 the right factor (not null, unaffected)
      * @return a new vector
      */
     @Override
-    public RVec3 multiply3x4(Vec3Arg vec3Arg) {
+    public RVec3 multiply3x4(Vec3Arg vec3) {
         long matrixVa = va();
-        float x = vec3Arg.getX();
-        float y = vec3Arg.getY();
-        float z = vec3Arg.getZ();
+        float x = vec3.getX();
+        float y = vec3.getY();
+        float z = vec3.getZ();
         double[] storeDoubles = new double[3];
         multiply3x4(matrixVa, x, y, z, storeDoubles);
         RVec3 result = new RVec3(storeDoubles);
 
+        return result;
+    }
+
+    /**
+     * Post multiply by the specified translation vector. The current matrix is
+     * unaffected.
+     *
+     * @param leftVector the left factor (not null, unaffected)
+     * @return a new matrix
+     */
+    @Override
+    public RMat44 postTranslated(RVec3Arg leftVector) {
+        long matrixVa = va();
+        double xx = leftVector.xx();
+        double yy = leftVector.yy();
+        double zz = leftVector.zz();
+        long resultVa = postTranslated(matrixVa, xx, yy, zz);
+        RMat44 result = new RMat44(resultVa, true);
+
+        return result;
+    }
+
+    /**
+     * Post multiply by the specified translation vector. The current matrix is
+     * unaffected.
+     *
+     * @param vec3 the left factor (not null, unaffected)
+     * @return a new matrix
+     */
+    @Override
+    public RMat44 postTranslated(Vec3Arg vec3) {
+        long matrixVa = va();
+        float x = vec3.getX();
+        float y = vec3.getY();
+        float z = vec3.getZ();
+        long resultVa = postTranslatedSp(matrixVa, x, y, z);
+        RMat44 result = new RMat44(resultVa, true);
+
+        return result;
+    }
+
+    /**
+     * Write the 3x3 matrix in single precision to the specified buffer in
+     * column-major order and advance the buffer's position by 9. The matrix is
+     * unaffected.
+     *
+     * @param storeBuffer the destination buffer (not null)
+     */
+    @Override
+    public void put3x3ColumnMajor(FloatBuffer storeBuffer) {
+        int position = storeBuffer.position();
+        long matrixVa = va();
+        put3x3ColumnMajor(matrixVa, position, storeBuffer);
+        storeBuffer.position(position + 9);
+    }
+
+    /**
+     * Write all 16 components in single precision to the specified buffer in
+     * column-major order and advance the buffer's position by 16. The matrix is
+     * unaffected.
+     *
+     * @param storeBuffer the destination buffer (not null)
+     */
+    @Override
+    public void putColumnMajor(FloatBuffer storeBuffer) {
+        int position = storeBuffer.position();
+        long matrixVa = va();
+        putColumnMajor(matrixVa, position, storeBuffer);
+        storeBuffer.position(position + 16);
+    }
+
+    /**
+     * Copy the current matrix to a new, single-precision matrix. The current
+     * matrix is unaffected.
+     *
+     * @return the new matrix
+     */
+    @Override
+    public Mat44 toMat44() {
+        Mat44 result = new Mat44(this);
         return result;
     }
     // *************************************************************************
@@ -452,6 +759,8 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
 
     native private static void assign(long targetVa, long sourceVa);
 
+    native private static long createCopy(long originalVa);
+
     native private static long createFromRowMajor(
             float[] floatArray, double m14, double m24, double m34);
 
@@ -459,8 +768,13 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
 
     native private static long createIdentity();
 
+    native private static long createRotation(
+            float rx, float ry, float rz, float rw);
+
     native private static long createRotationTranslation(float qx, float qy,
-            float qz, float qw, double tx, double ty, double tz);
+            float qz, float qw, double xx, double yy, double zz);
+
+    native private static long createScale(float x, float y, float z);
 
     native private static long createTranslation(
             double xx, double yy, double zz);
@@ -486,7 +800,15 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
 
     native private static long inversed(long currentVa);
 
-    native private static long multiply(long m1Va, long m2Va);
+    native private static long inversedRotationTranslation(long currentVa);
+
+    native private static boolean isIdentity(long matrixVa);
+
+    native private static void leftMultiplyInPlace(long currentVa, long leftVa);
+
+    native private static void loadIdentity(long matrixVa);
+
+    native private static long multiply(long leftVa, long rightVa);
 
     native private static void multiply3x3(long matrixVa, float[] tmpFloats);
 
@@ -498,9 +820,35 @@ final public class RMat44 extends JoltPhysicsObject implements RMat44Arg {
 
     native private static void multiply3x4r(long matrixVa, double[] tmpDoubles);
 
+    native private static long multiplyBySp(long leftVa, long rightVa);
+
+    native private static long postTranslated(
+            long matrixVa, double xx, double yy, double zz);
+
+    native private static long postTranslatedSp(
+            long matrixVa, float x, float y, float z);
+
+    native private static void put3x3ColumnMajor(
+            long matrixVa, int position, FloatBuffer storeBuffer);
+
+    native private static void putColumnMajor(
+            long matrixVa, int position, FloatBuffer storeBuffer);
+
+    native private static void rightMultiplyInPlace(
+            long currentVa, long rightVa);
+
+    native private static void setAxisX(
+            long matrixVa, float x, float y, float z);
+
+    native private static void setAxisY(
+            long matrixVa, float x, float y, float z);
+
+    native private static void setAxisZ(
+            long matrixVa, float x, float y, float z);
+
     native private static void setElement(
             long matrixVa, int row, int column, double value);
 
-    native private static long sRotation(
-            float rx, float ry, float rz, float rw);
+    native private static void setTranslation(
+            long matrixVa, double xx, double yy, double zz);
 }

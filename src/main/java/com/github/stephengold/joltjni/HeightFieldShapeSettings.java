@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,27 @@ import java.nio.FloatBuffer;
 public class HeightFieldShapeSettings extends ShapeSettings {
     // *************************************************************************
     // constructors
+
+    /**
+     * Instantiate the default settings.
+     */
+    public HeightFieldShapeSettings() {
+        long settingsVa = createDefault();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EShapeSubType.HeightField);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public HeightFieldShapeSettings(HeightFieldShapeSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+        setSubType(EShapeSubType.HeightField);
+    }
 
     /**
      * Instantiate with the specified native object assigned but not owned.
@@ -99,7 +120,7 @@ public class HeightFieldShapeSettings extends ShapeSettings {
         long settingsVa = createSettingsFromArray(
                 samples, offsetX, offsetY, offsetZ, scaleX, scaleY, scaleZ,
                 sampleCount, materialIndices, listVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.HeightField);
     }
 
@@ -160,7 +181,7 @@ public class HeightFieldShapeSettings extends ShapeSettings {
         long settingsVa = createSettingsFromBuffer(
                 samples, offsetX, offsetY, offsetZ, scaleX, scaleY, scaleZ,
                 sampleCount, materialIndices, listVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.HeightField);
     }
     // *************************************************************************
@@ -237,8 +258,8 @@ public class HeightFieldShapeSettings extends ShapeSettings {
     }
 
     /**
-     * Return the offset of the first sample. The settings are unaffected.
-     * (native attribute: mOffset)
+     * Copy the offset of the first sample. The settings are unaffected. (native
+     * attribute: mOffset)
      *
      * @return a new offset vector
      */
@@ -266,7 +287,7 @@ public class HeightFieldShapeSettings extends ShapeSettings {
     }
 
     /**
-     * Return the scale factors. The settings are unaffected. (native attribute:
+     * Copy the scale factors. The settings are unaffected. (native attribute:
      * mScale)
      *
      * @return a new scaling vector
@@ -321,7 +342,7 @@ public class HeightFieldShapeSettings extends ShapeSettings {
     /**
      * Alter the artificial maximum height. (native attribute: mMaxHeightValue)
      *
-     * @param maxHeight the desired height value (default=-MAX_VALUE)
+     * @param maxHeight the desired height value (default=-1e15)
      */
     public void setMaxHeightValue(float maxHeight) {
         long settingsVa = va();
@@ -331,7 +352,7 @@ public class HeightFieldShapeSettings extends ShapeSettings {
     /**
      * Alter the artificial minimum height. (native attribute: mMinHeightValue)
      *
-     * @param minHeight the desired height value (default=MAX_VALUE)
+     * @param minHeight the desired height value (default=1e15)
      */
     public void setMinHeightValue(float minHeight) {
         long settingsVa = va();
@@ -367,6 +388,10 @@ public class HeightFieldShapeSettings extends ShapeSettings {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
+
+    native private static long createDefault();
 
     native private static long createSettingsFromArray(
             float[] samples, float offsetX, float offsetY, float offsetZ,

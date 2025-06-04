@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@ import testjoltjni.app.samples.*;
 import testjoltjni.app.testframework.CameraState;
 import static com.github.stephengold.joltjni.Jolt.*;
 import static com.github.stephengold.joltjni.operator.Op.*;
-import static com.github.stephengold.joltjni.std.Std.*;
 /**
  * A line-for-line Java translation of the Jolt Physics boat test.
  * <p>
@@ -55,7 +54,7 @@ float cBarrelAngularDrag=0.1f;
 float cForwardAcceleration=15;
 float cSteerAcceleration=1.5f;
 Body mBoatBody;
-BodyId mWaterSensor=new BodyId();
+int mWaterSensor=cInvalidBodyId;
 RMat44 mCameraPivot=RMat44.sIdentity();
 Mutex mBodiesInWaterMutex=new Mutex();
 BodyIdVector mBodiesInWater=new BodyIdVector();
@@ -127,7 +126,7 @@ void BoatTest::ProcessInput(const ProcessInputParams &inParams)
 
 RVec3 GetWaterSurfacePosition(RVec3Arg inXZPosition)
 {
-	return new RVec3(inXZPosition.xx(), cMinWaterHeight + sin(0.1f * (float)(inXZPosition.getZ()) + mTime) * (cMaxWaterHeight - cMinWaterHeight), inXZPosition.zz());
+	return new RVec3(inXZPosition.xx(), cMinWaterHeight + sin(0.1f * inXZPosition.z() + mTime) * (cMaxWaterHeight - cMinWaterHeight), inXZPosition.zz());
 }
 
 public void PrePhysicsUpdate( PreUpdateParams inParams)
@@ -150,7 +149,7 @@ public void PrePhysicsUpdate( PreUpdateParams inParams)
 	// Apply buoyancy to all bodies in the water
 	{
 		mBodiesInWaterMutex.lock();
-		for (ConstBodyId id : mBodiesInWater.toList())
+		for (int id : mBodiesInWater.toList())
 		{
 			BodyLockWrite body_lock=new BodyLockWrite(mPhysicsSystem.getBodyLockInterface(), id);
 			Body body = body_lock.getBody();
@@ -215,13 +214,13 @@ void RestoreInputState(StateRecorder inStream)
 	mRight=inStream.readFloat(mRight);
 }
 
-public void SaveState(StateRecorder inStream)
+protected void SaveState(StateRecorder inStream)
 {
 	inStream.write(mTime);
 	inStream.write(mBodiesInWater);
 }
 
-public void RestoreState(StateRecorder inStream)
+protected void RestoreState(StateRecorder inStream)
 {
 	mTime=inStream.readFloat(mTime);
 	inStream.readBodyIdVector(mBodiesInWater);
@@ -255,9 +254,9 @@ void OnContactAdded( ConstBody inBody1,  ConstBody inBody2,  ConstContactManifol
 	// When a body enters the water add it to the list of bodies in the water
 	mBodiesInWaterMutex.lock();
 	if (inBody1.getId() == mWaterSensor)
-		mBodiesInWater.pushBack(inBody2.getId().copy());
+		mBodiesInWater.pushBack(inBody2.getId());
 	else if (inBody2.getId() == mWaterSensor)
-		mBodiesInWater.pushBack(inBody1.getId().copy());
+		mBodiesInWater.pushBack(inBody1.getId());
 	mBodiesInWater.sort(); // Sort to make deterministic (OnContactAdded is called from multiple threads and the order is not guaranteed)
         mBodiesInWaterMutex.unlock();
 }

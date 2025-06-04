@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,8 @@ SOFTWARE.
  */
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Body/BodyActivationListener.h"
+#include "Jolt/Physics/Body/BodyID.h"
+
 #include "auto/com_github_stephengold_joltjni_CustomBodyActivationListener.h"
 #include "glue/glue.h"
 
@@ -47,40 +49,40 @@ public:
                 "com/github/stephengold/joltjni/CustomBodyActivationListener");
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
-        mActivatedMethodId = pEnv->GetMethodID(clss, "onBodyActivated", "(JJ)V");
+        mActivatedMethodId = pEnv->GetMethodID(clss, "onBodyActivated", "(IJ)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
-        mDeactivatedMethodId = pEnv->GetMethodID(clss, "onBodyDeactivated", "(JJ)V");
+        mDeactivatedMethodId = pEnv->GetMethodID(clss, "onBodyDeactivated", "(IJ)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
     }
 
-    void OnBodyActivated(const BodyID &inBodyID, uint64 inBodyUserData) {
+    void OnBodyActivated(const BodyID& inBodyID, uint64 inBodyUserData) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
-        const jlong idVa = reinterpret_cast<jlong> (&inBodyID);
+        const jint id = inBodyID.GetIndexAndSequenceNumber();
         const jlong userData = inBodyUserData;
-        pAttachEnv->CallVoidMethod(mJavaObject, mActivatedMethodId, idVa, userData);
+        pAttachEnv->CallVoidMethod(mJavaObject, mActivatedMethodId, id, userData);
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
         mpVM->DetachCurrentThread();
     }
 
-    void OnBodyDeactivated(const BodyID &inBodyID, uint64 inBodyUserData) {
+    void OnBodyDeactivated(const BodyID& inBodyID, uint64 inBodyUserData) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
-        const jlong idVa = reinterpret_cast<jlong> (&inBodyID);
+        const jint id = inBodyID.GetIndexAndSequenceNumber();
         const jlong userData = inBodyUserData;
-        pAttachEnv->CallVoidMethod(mJavaObject, mDeactivatedMethodId, idVa, userData);
+        pAttachEnv->CallVoidMethod(mJavaObject, mDeactivatedMethodId, id, userData);
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
         mpVM->DetachCurrentThread();
     }
 
     ~CustomBodyActivationListener() {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         pAttachEnv->DeleteGlobalRef(mJavaObject);

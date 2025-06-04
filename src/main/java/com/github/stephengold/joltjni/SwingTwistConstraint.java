@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -75,7 +75,7 @@ public class SwingTwistConstraint extends TwoBodyConstraint {
     /**
      * Alter the maximum friction torque when not driven by a motor.
      *
-     * @param torque the desired limit (in Newton-meters)
+     * @param torque the desired limit (in Newton.meters)
      */
     public void setMaxFrictionTorque(float torque) {
         long settingsVa = va();
@@ -146,7 +146,7 @@ public class SwingTwistConstraint extends TwoBodyConstraint {
 
     /**
      * Alter the target angular velocity of body 2 in the constraint space of
-     * body 2.
+     * body 2. (native method: SetTargetAngularVelocityCS)
      *
      * @param omega the desired angular velocity (in radians per second, not
      * null, unaffected)
@@ -160,7 +160,8 @@ public class SwingTwistConstraint extends TwoBodyConstraint {
     }
 
     /**
-     * Alter the target orientation in constraint space.
+     * Alter the target orientation in constraint space. (native method:
+     * SetTargetOrientationCS)
      *
      * @param orientation the desired orientation (not null, unaffected)
      */

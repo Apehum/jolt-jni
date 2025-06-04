@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,15 @@ SOFTWARE.
 #include "Jolt/Jolt.h"
 #include "Jolt/ConfigurationString.h"
 #include "Jolt/Core/Factory.h"
+#include "Jolt/Core/HashCombine.h"
 #include "Jolt/Core/Profiler.h"
 #include "Jolt/Core/TempAllocator.h"
 #include "Jolt/Geometry/RayAABox.h"
+#include "Jolt/Physics/Body/BodyID.h"
+#include "Jolt/Physics/Character/CharacterID.h"
 #include "Jolt/Physics/DeterminismLog.h"
 #include "Jolt/RegisterTypes.h"
-#include "TestFramework/Math/Perlin.h"
+#include "TestFramework/External/Perlin.h"
 
 #include "auto/com_github_stephengold_joltjni_Jolt.h"
 #include "glue/glue.h"
@@ -41,17 +44,61 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    aCos
+ * Signature: (F)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_Jolt_aCos
+  (JNIEnv *, jclass, jfloat ratio) {
+    const float result = ACos(ratio);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    aTan
+ * Signature: (F)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_Jolt_aTan
+  (JNIEnv *, jclass, jfloat ratio) {
+    const float result = ATan(ratio);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    aTan2
+ * Signature: (FF)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_Jolt_aTan2
+  (JNIEnv *, jclass, jfloat opposite, jfloat adjacent) {
+    const float result = ATan2(opposite, adjacent);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
  * Method:    buildType
  * Signature: ()Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_github_stephengold_joltjni_Jolt_buildType
   (JNIEnv *pEnv, jclass) {
     jstring result;
-#ifdef JPH_NO_DEBUG
-    result = pEnv->NewStringUTF("Release");
-#else
+#ifdef JPH_DEBUG
     result = pEnv->NewStringUTF("Debug");
+#else
+    result = pEnv->NewStringUTF("Release");
 #endif
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    cos
+ * Signature: (F)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_Jolt_cos
+  (JNIEnv *, jclass, jfloat angle) {
+    const float result = Cos(angle);
     return result;
 }
 
@@ -83,9 +130,10 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_detLog
     const char * const pMessage = pEnv->GetStringUTFChars(message, &isCopy);
     JPH_DET_LOG(pMessage);
     pEnv->ReleaseStringUTFChars(message, pMessage);
-#elif defined(_DEBUG)
+#elif defined(JPH_DEBUG)
     if (gWarnDetLogIneffective) {
-        Trace("Jolt.detLog() has no effect unless JPH_ENABLE_DETERMINISM_LOG is defined.");
+        std::cout << "Jolt.detLog() has no effect unless JPH_ENABLE_DETERMINISM_LOG is defined."
+                << std::endl;
         gWarnDetLogIneffective = false;
     }
 #endif
@@ -112,6 +160,30 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Jolt_hashBytes__JI
   (JNIEnv *, jclass, jlong dataVa, jint inSize) {
     const void * const pData = reinterpret_cast<void *> (dataVa);
     const uint64 result = HashBytes(pData, inSize);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    hashCombine
+ * Signature: (JI)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Jolt_hashCombine__JI
+  (JNIEnv *, jclass, jlong oldHash, jint iValue) {
+    uint64 result = oldHash;
+    HashCombine(result, (uint32)iValue);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    hashCombine
+ * Signature: (JJ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Jolt_hashCombine__JJ
+  (JNIEnv *, jclass, jlong oldHash, jlong lValue) {
+    uint64 result = oldHash;
+    HashCombine(result, (uint64)lValue);
     return result;
 }
 
@@ -167,8 +239,9 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_installDefaultAs
   (JNIEnv *, jclass) {
 #ifdef JPH_ENABLE_ASSERTS
     AssertFailed = DefaultAssertFailed;
-#elif defined(_DEBUG)
-    Trace("Jolt.installDefaultAssertCallback() has no effect unless JPH_ENABLE_ASSERTS is defined.");
+#elif defined(JPH_DEBUG)
+    std::cout << "Jolt.installDefaultAssertCallback() has no effect unless JPH_ENABLE_ASSERTS is defined."
+            << std::endl;
 #endif
 }
 
@@ -268,12 +341,20 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_profileStart
 /*
  * Class:     com_github_stephengold_joltjni_Jolt
  * Method:    newFactory
- * Signature: ()V
+ * Signature: ()Z
  */
-JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_newFactory
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_Jolt_newFactory
   (JNIEnv *, jclass) {
+#if defined(JPH_DEBUG) && !defined(JPH_DISABLE_CUSTOM_ALLOCATOR)
+    if (!Allocate) {
+        std::cerr << "Can't create a Factory because no default allocator is registered!"
+                << std::endl;
+        return JNI_FALSE;
+    }
+#endif
     Factory::sInstance = new Factory();
     TRACE_NEW("Factory", Factory::sInstance)
+    return Factory::sInstance != nullptr;
 }
 
 /*
@@ -296,7 +377,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_registerTypes
     RegisterTypes();
 }
 
-#ifdef _DEBUG
+#ifdef JPH_DEBUG
 // global flag to enable tracing of new/delete operations in glue code:
 bool gTraceAllocations = false;
 #endif
@@ -308,11 +389,32 @@ bool gTraceAllocations = false;
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_setTraceAllocations
   (JNIEnv *, jclass, jboolean setting) {
-#ifdef _DEBUG
+#ifdef JPH_DEBUG
     gTraceAllocations = setting;
 #else
-    Trace("Jolt.setTraceAllocations() has no effect in a Release native library.");
+    std::cout << "Jolt.setTraceAllocations() has no effect in a Release native library." << std::endl;
 #endif
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    sin
+ * Signature: (F)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_Jolt_sin
+  (JNIEnv *, jclass, jfloat angle) {
+    const float result = Sin(angle);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    sSetNextCharacterId
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_sSetNextCharacterId
+  (JNIEnv *, jclass, jint nextValue) {
+    CharacterID::sSetNextCharacterID(nextValue);
 }
 
 /*
@@ -331,6 +433,17 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_Jolt_supportsObje
 
 /*
  * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    tan
+ * Signature: (F)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_Jolt_tan
+  (JNIEnv *, jclass, jfloat angle) {
+    const float result = Tan(angle);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
  * Method:    unregisterTypes
  * Signature: ()V
  */
@@ -339,6 +452,8 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_unregisterTypes
     UnregisterTypes();
 }
 
+#define STRING(arg) STRINGIFY(arg)
+#define STRINGIFY(arg) #arg
 /*
  * Class:     com_github_stephengold_joltjni_Jolt
  * Method:    versionString
@@ -346,7 +461,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Jolt_unregisterTypes
  */
 JNIEXPORT jstring JNICALL Java_com_github_stephengold_joltjni_Jolt_versionString
   (JNIEnv *pEnv, jclass) {
-    const jstring result = pEnv->NewStringUTF("0.9.4-SNAPSHOT");
+    const jstring result = pEnv->NewStringUTF(STRING(JOLT_JNI_VERSION_STRING));
     return result;
 }
 
@@ -376,6 +491,32 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Jolt_hashBytes__FFFF
 
 /*
  * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    hashCombineRVec3
+ * Signature: (JDDD)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Jolt_hashCombineRVec3
+  (JNIEnv *, jclass, jlong oldHash, jdouble xx, jdouble yy, jdouble zz) {
+    uint64 result = oldHash;
+    const RVec3 rvec(xx, yy, zz);
+    HashCombine(result, rvec);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
+ * Method:    hashCombineVec3
+ * Signature: (JFFF)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Jolt_hashCombineVec3
+  (JNIEnv *, jclass, jlong oldHash, jfloat x, jfloat y, jfloat z) {
+    uint64 result = oldHash;
+    const Vec3 vec(x, y, z);
+    HashCombine(result, vec);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Jolt
  * Method:    rayAaBoxHits
  * Signature: (FFFFFFFFFFFF)Z
  */
@@ -387,6 +528,6 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_Jolt_rayAaBoxHits
     const Vec3 offset(offsetX, offsetY, offsetZ);
     const Vec3 min(minX, minY, minZ);
     const Vec3 max(maxX, maxY, maxZ);
-    bool result = RayAABoxHits(start, offset, min, max);
+    const bool result = RayAABoxHits(start, offset, min, max);
     return result;
 }

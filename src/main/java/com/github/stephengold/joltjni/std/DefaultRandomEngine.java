@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +27,14 @@ import com.github.stephengold.joltjni.JoltPhysicsObject;
  * Generate a pseudo-random sequence of integers for casual use. (native type:
  * std::default_random_engine)
  * <p>
- * The algorithm isn't specific to Jolt Physics; it's included in jolt-jni for
+ * The algorithm isn't specific to Jolt Physics. It's included in Jolt JNI for
  * expediency, since BroadPhaseTest.cpp uses it.
  *
  * @author Stephen Gold sgold@sonic.net
  */
-public class DefaultRandomEngine extends JoltPhysicsObject {
+public class DefaultRandomEngine
+        extends JoltPhysicsObject
+        implements RandomNumberEngine {
     // *************************************************************************
     // constructors
 
@@ -54,18 +56,30 @@ public class DefaultRandomEngine extends JoltPhysicsObject {
         setVirtualAddress(generatorVa, () -> free(generatorVa));
     }
     // *************************************************************************
-    // new methods exposed
+    // RandomEngine methods
 
     /**
      * Return the next integer in the sequence.
      *
      * @return an integer value
      */
+    @Override
     public int nextInt() {
         long generatorVa = va();
         int result = nextInt(generatorVa);
 
         return result;
+    }
+
+    /**
+     * Seed the engine with the specified value.
+     *
+     * @param value the value to use
+     */
+    @Override
+    public void seed(int value) {
+        long generatorVa = va();
+        setSeed(generatorVa, value);
     }
     // *************************************************************************
     // native private methods
@@ -77,4 +91,6 @@ public class DefaultRandomEngine extends JoltPhysicsObject {
     native private static void free(long generatorVa);
 
     native private static int nextInt(long generatorVa);
+
+    native private static void setSeed(long generatorVa, int value);
 }

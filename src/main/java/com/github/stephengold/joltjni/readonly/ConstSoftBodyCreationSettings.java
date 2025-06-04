@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,10 @@ package com.github.stephengold.joltjni.readonly;
 
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RVec3;
+import com.github.stephengold.joltjni.StreamOut;
+import com.github.stephengold.joltjni.streamutils.GroupFilterToIdMap;
+import com.github.stephengold.joltjni.streamutils.MaterialToIdMap;
+import com.github.stephengold.joltjni.streamutils.SharedSettingsToIdMap;
 
 /**
  * Read-only access to a {@code SoftBodyCreationSettings} object. (native type:
@@ -31,9 +35,6 @@ import com.github.stephengold.joltjni.RVec3;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstSoftBodyCreationSettings extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Test whether the created body will be allowed to fall asleep. The
      * settings are unaffected.
@@ -41,6 +42,13 @@ public interface ConstSoftBodyCreationSettings extends ConstJoltPhysicsObject {
      * @return {@code true} if allowed, otherwise {@code false}
      */
     boolean getAllowSleeping();
+
+    /**
+     * Access the collision group.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    ConstCollisionGroup getCollisionGroup();
 
     /**
      * Return the friction ratio. The settings are unaffected.
@@ -64,11 +72,27 @@ public interface ConstSoftBodyCreationSettings extends ConstJoltPhysicsObject {
     float getLinearDamping();
 
     /**
+     * Test whether to bake rotation into the vertices and set the body rotation
+     * to identity. The settings are unaffected.
+     *
+     * @return {@code true} if rotation will be baked in, otherwise
+     * {@code false}
+     */
+    boolean getMakeRotationIdentity();
+
+    /**
      * Return the maximum linear speed. The settings are unaffected.
      *
      * @return the maximum speed (in meters per second)
      */
     float getMaxLinearVelocity();
+
+    /**
+     * Return the number of solver iterations. The settings are unaffected.
+     *
+     * @return the number of iterations
+     */
+    int getNumIterations();
 
     /**
      * Return the index of the object layer. The settings are unaffected.
@@ -78,15 +102,15 @@ public interface ConstSoftBodyCreationSettings extends ConstJoltPhysicsObject {
     int getObjectLayer();
 
     /**
-     * Return the (initial) location. The settings are unaffected.
+     * Copy the (initial) location. The settings are unaffected.
      *
-     * @return a new location vector (in physics-system coordinates, all
-     * components finite)
+     * @return a new location vector (in system coordinates, all components
+     * finite)
      */
     RVec3 getPosition();
 
     /**
-     * Return the pressure. The settings are unaffected.
+     * Return the internal pressure. The settings are unaffected.
      *
      * @return the pressure
      */
@@ -103,7 +127,60 @@ public interface ConstSoftBodyCreationSettings extends ConstJoltPhysicsObject {
      * Copy the (initial) orientation of the body's axes. The settings are
      * unaffected.
      *
-     * @return a new rotation quaternion (relative to the physics-system axes)
+     * @return a new rotation quaternion (relative to the system axes)
      */
     Quat getRotation();
+
+    /**
+     * Access the shared settings.
+     *
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null} if none
+     */
+    ConstSoftBodySharedSettings getSettings();
+
+    /**
+     * Test whether to update the position of the body during simulation. The
+     * settings are unaffected.
+     *
+     * @return {@code true} if the position will be updated, otherwise
+     * {@code false}
+     */
+    boolean getUpdatePosition();
+
+    /**
+     * Return the user data. The settings are unaffected.
+     *
+     * @return the value
+     */
+    long getUserData();
+
+    /**
+     * Return the radius of each particle. The settings are unaffected.
+     *
+     * @return the radius (in meters)
+     */
+    float getVertexRadius();
+
+    /**
+     * Write the state of this object to the specified stream, excluding the
+     * shared settings, materials, and group filter. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not null)
+     */
+    void saveBinaryState(StreamOut stream);
+
+    /**
+     * Write the state of this object to the specified stream. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not null)
+     * @param sbssMap track multiple uses of shared settings (may be null)
+     * @param materialMap track multiple uses of physics materials (may be null)
+     * @param filterMap track multiple uses of group filters (may be null)
+     */
+    void saveWithChildren(
+            StreamOut stream, SharedSettingsToIdMap sbssMap,
+            MaterialToIdMap materialMap, GroupFilterToIdMap filterMap);
 }

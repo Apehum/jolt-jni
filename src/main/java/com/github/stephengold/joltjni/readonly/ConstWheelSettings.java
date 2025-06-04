@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni.readonly;
 
+import com.github.stephengold.joltjni.StreamOut;
 import com.github.stephengold.joltjni.Vec3;
 
 /**
@@ -29,9 +30,6 @@ import com.github.stephengold.joltjni.Vec3;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstWheelSettings extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Determine where to apply tire forces. The settings are unaffected.
      *
@@ -101,6 +99,14 @@ public interface ConstWheelSettings extends ConstJoltPhysicsObject {
     float getSuspensionPreloadLength();
 
     /**
+     * Access the settings for the suspension spring. The settings are
+     * unaffected.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    ConstSpringSettings getSuspensionSpring();
+
+    /**
      * Copy the forward direction when steering is neutral. The settings are
      * unaffected.
      *
@@ -122,4 +128,12 @@ public interface ConstWheelSettings extends ConstJoltPhysicsObject {
      * @return the width (in meters)
      */
     float getWidth();
+
+    /**
+     * Save the settings to the specified binary stream. The settings are
+     * unaffected.
+     *
+     * @param stream the stream to write to (not null)
+     */
+    void saveBinaryState(StreamOut stream);
 }

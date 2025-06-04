@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,7 @@ package com.github.stephengold.joltjni;
 import com.github.stephengold.joltjni.operator.Op;
 import com.github.stephengold.joltjni.readonly.QuatArg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
-import com.github.stephengold.joltjni.std.DefaultRandomEngine;
-import com.github.stephengold.joltjni.std.Std;
+import com.github.stephengold.joltjni.std.RandomNumberEngine;
 import com.github.stephengold.joltjni.std.UniformFloatDistribution;
 import java.nio.FloatBuffer;
 
@@ -91,6 +90,44 @@ final public class Quat implements QuatArg {
     }
 
     /**
+     * Instantiate a quaternion from the specified array.
+     *
+     * @param array the desired component values (in XYZW order, not null,
+     * length&ge;4, unaffected)
+     */
+    public Quat(float[] array) {
+        this.x = array[0];
+        this.y = array[1];
+        this.z = array[2];
+        this.w = array[3];
+    }
+
+    /**
+     * Instantiate from a buffer.
+     *
+     * @param buffer the desired component values (not null, unaffected,
+     * capacity&ge;4)
+     */
+    public Quat(FloatBuffer buffer) {
+        this.x = buffer.get(0);
+        this.y = buffer.get(1);
+        this.z = buffer.get(2);
+        this.w = buffer.get(3);
+    }
+
+    /**
+     * Instantiate a copy of the argument.
+     *
+     * @param original the quaternion to copy (not null, unaffected)
+     */
+    public Quat(QuatArg original) {
+        this.x = original.getX();
+        this.y = original.getY();
+        this.z = original.getZ();
+        this.w = original.getW();
+    }
+
+    /**
      * Instantiate a quaternion based on a {@code Vec3Arg}.
      *
      * @param v the desired XYZ components
@@ -104,6 +141,16 @@ final public class Quat implements QuatArg {
     }
     // *************************************************************************
     // new methods exposed
+
+    /**
+     * Set the current quaternion to identity.
+     */
+    public void loadIdentity() {
+        this.x = 0f;
+        this.y = 0f;
+        this.z = 0f;
+        this.w = 1f;
+    }
 
     /**
      * Set all 4 components to specified values.
@@ -121,30 +168,75 @@ final public class Quat implements QuatArg {
     }
 
     /**
-     * Create a rotation quaternion from Euler angles. Rotation order is X then
-     * Y then Z.
+     * Set all 4 components from the specified array.
      *
-     * @param angles the desired rotation around each axis (in radians, not
-     * null, unaffected)
+     * @param array the desired component values (in XYZW order, not null,
+     * length&ge;4, unaffected)
+     */
+    public void set(float[] array) {
+        this.x = array[0];
+        this.y = array[1];
+        this.z = array[2];
+        this.w = array[3];
+    }
+
+    /**
+     * Copy all 4 components from the argument.
+     *
+     * @param source the quaternion to copy (not null, unaffected)
+     */
+    public void set(QuatArg source) {
+        this.w = source.getW();
+        this.x = source.getX();
+        this.y = source.getY();
+        this.z = source.getZ();
+    }
+
+    /**
+     * Create a rotation quaternion from the specified Tait-Bryan angles,
+     * applying the rotations in x-y-z extrinsic order or z-y'-x" intrinsic
+     * order.
+     *
+     * @param x the desired rotation around the X axis (in radians)
+     * @param y the desired rotation around the Y axis (in radians)
+     * @param z the desired rotation around the Z axis (in radians)
      * @return a new quaternion
      */
-    public static Quat sEulerAngles(Vec3 angles) {
-        float halfX = 0.5f * angles.getX();
-        float halfY = 0.5f * angles.getY();
-        float halfZ = 0.5f * angles.getZ();
+    public static Quat sEulerAngles(float x, float y, float z) {
+        float halfX = 0.5f * x;
+        float halfY = 0.5f * y;
+        float halfZ = 0.5f * z;
 
-        float cx = Std.cos(halfX);
-        float cy = Std.cos(halfY);
-        float cz = Std.cos(halfZ);
-        float sx = Std.sin(halfX);
-        float sy = Std.sin(halfY);
-        float sz = Std.sin(halfZ);
+        float cx = Jolt.cos(halfX);
+        float cy = Jolt.cos(halfY);
+        float cz = Jolt.cos(halfZ);
+        float sx = Jolt.sin(halfX);
+        float sy = Jolt.sin(halfY);
+        float sz = Jolt.sin(halfZ);
 
         Quat result = new Quat(
                 cz * sx * cy - sz * cx * sy,
                 cz * cx * sy + sz * sx * cy,
                 sz * cx * cy - cz * sx * sy,
                 cz * cx * cy + sz * sx * sy);
+
+        return result;
+    }
+
+    /**
+     * Create a rotation quaternion from the specified Tait-Bryan angles,
+     * applying the rotations in x-y-z extrinsic order or z-y'-x" intrinsic
+     * order.
+     *
+     * @param angles the desired rotation around each axis (in radians, not
+     * null, unaffected)
+     * @return a new quaternion
+     */
+    public static Quat sEulerAngles(Vec3Arg angles) {
+        float x = angles.getX();
+        float y = angles.getY();
+        float z = angles.getZ();
+        Quat result = sEulerAngles(x, y, z);
 
         return result;
     }
@@ -157,7 +249,7 @@ final public class Quat implements QuatArg {
      * @return a new quaternion
      */
     public static Quat sFromTo(Vec3Arg from, Vec3Arg to) {
-        float lenV1V2 = Std.sqrt(from.lengthSq() * to.lengthSq());
+        float lenV1V2 = (float) Math.sqrt(from.lengthSq() * to.lengthSq());
         float w = lenV1V2 + from.dot(to);
 
         if (w == 0f) {
@@ -190,23 +282,23 @@ final public class Quat implements QuatArg {
      * @param engine the generator to use (not null)
      * @return a new unit quaternion
      */
-    public static Quat sRandom(DefaultRandomEngine engine) {
+    public static Quat sRandom(RandomNumberEngine engine) {
         assert engine != null;
         if (distro == null) {
             distro = new UniformFloatDistribution(0f, 1f);
         }
 
         float x0 = distro.nextFloat(engine);
-        float r1 = Std.sqrt(1f - x0);
-        float r2 = Std.sqrt(x0);
+        float r1 = (float) Math.sqrt(1f - x0);
+        float r2 = (float) Math.sqrt(x0);
 
         float px = 2f * Jolt.JPH_PI * distro.nextFloat(engine);
         float py = 2f * Jolt.JPH_PI * distro.nextFloat(engine);
 
-        float x = r1 * Std.sin(px);
-        float y = r1 * Std.cos(px);
-        float z = r2 * Std.sin(py);
-        float w = r2 * Std.cos(py);
+        float x = r1 * Jolt.sin(px);
+        float y = r1 * Jolt.cos(px);
+        float z = r2 * Jolt.sin(py);
+        float w = r2 * Jolt.cos(py);
         Quat result = new Quat(x, y, z, w);
 
         return result;
@@ -219,11 +311,11 @@ final public class Quat implements QuatArg {
      * @param angle the desired rotation angle (in radians)
      * @return a new quaternion
      */
-    public static Quat sRotation(Vec3 axis, float angle) {
+    public static Quat sRotation(Vec3Arg axis, float angle) {
         assert axis.isNormalized();
 
-        float qw = Std.cos(0.5f * angle);
-        float s = Std.sin(0.5f * angle);
+        float qw = Jolt.cos(0.5f * angle);
+        float s = Jolt.sin(0.5f * angle);
         float qx = axis.getX() * s;
         float qy = axis.getY() * s;
         float qz = axis.getZ() * s;
@@ -290,6 +382,20 @@ final public class Quat implements QuatArg {
     }
 
     /**
+     * Test whether the quaternion contains infinities or NaNs. The quaternion
+     * is unaffected.
+     *
+     * @return {@code false} if one or more infinities or NaNs, otherwise
+     * {@code true}
+     */
+    @Override
+    public boolean isFinite() {
+        boolean result = Float.isFinite(w) && Float.isFinite(x)
+                && Float.isFinite(y) && Float.isFinite(z);
+        return result;
+    }
+
+    /**
      * Test whether the quaternion is normalized to within a tolerance of 10^-5.
      * The quaternion is unaffected.
      *
@@ -319,6 +425,33 @@ final public class Quat implements QuatArg {
     }
 
     /**
+     * Test whether the quaternion represents an identity rotation. The
+     * quaternion is unaffected.
+     *
+     * @return {@code true} if the real component is a non-zero number and the
+     * imaginary components are all zero, otherwise {@code false}
+     */
+    @Override
+    public boolean isRotationIdentity() {
+        if (w != 0f && !Float.isNaN(w) && x == 0f && y == 0f && z == 0f) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Test whether the quaternion is zero. The quaternion is unaffected.
+     *
+     * @return {@code true} if exactly zero, otherwise {@code false}
+     */
+    @Override
+    public boolean isZero() {
+        boolean result = (w == 0f) && (x == 0f) && (y == 0f) && (z == 0f);
+        return result;
+    }
+
+    /**
      * Return the length. The quaternion is unaffected.
      *
      * @return the length
@@ -326,7 +459,7 @@ final public class Quat implements QuatArg {
     @Override
     public float length() {
         float lengthSq = lengthSq();
-        float result = Std.sqrt(lengthSq);
+        float result = (float) Math.sqrt(lengthSq);
 
         return result;
     }
@@ -355,8 +488,8 @@ final public class Quat implements QuatArg {
     }
 
     /**
-     * Write all 4 components to the specified buffer and advance the buffer's
-     * position by 4. The quaternion is unaffected.
+     * Write all 4 components to the specified buffer in XYZW order and advance
+     * the buffer's position by 4. The quaternion is unaffected.
      *
      * @param storeBuffer the destination buffer (not null)
      */

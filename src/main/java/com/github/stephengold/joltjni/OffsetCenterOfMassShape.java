@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -56,23 +56,7 @@ public class OffsetCenterOfMassShape extends DecoratedShape {
         float offsetZ = offset.getZ();
         long baseShapeVa = baseShape.targetVa();
         long ocomShapeVa = createShape(baseShapeVa, offsetX, offsetY, offsetZ);
-        setVirtualAddress(ocomShapeVa, null); // no owner due to ref counting
-    }
-
-    /**
-     * Instantiate a with on the specified offset, rotation, and base shape.
-     *
-     * @param baseShapeRef a reference to the base shape (not null)
-     * @param offset (not null, unaffected)
-     */
-    public OffsetCenterOfMassShape(ShapeRefC baseShapeRef, Vec3Arg offset) {
-        float offsetX = offset.getX();
-        float offsetY = offset.getY();
-        float offsetZ = offset.getZ();
-        ConstShape baseShape = baseShapeRef.getPtr();
-        long baseShapeVa = baseShape.targetVa();
-        long ocomShapeVa = createShape(baseShapeVa, offsetX, offsetY, offsetZ);
-        setVirtualAddress(ocomShapeVa, null); // no owner due to ref counting
+        setVirtualAddress(ocomShapeVa); // no owner due to ref counting
     }
     // *************************************************************************
     // new methods exposed

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -62,14 +62,54 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_addStep
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    containsConstraint
+ * Signature: (JJ)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_containsConstraint
+  (JNIEnv *, jclass, jlong systemVa, jlong constraintVa) {
+    const PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    const Constraints constraints = pSystem->GetConstraints();
+    for (size_t i = 0; i < constraints.size(); ++i) {
+        const RefConst<Constraint> ref = constraints[i];
+        const Constraint * const ptr = ref.GetPtr();
+        const jlong va = reinterpret_cast<jlong> (ptr);
+        if (va == constraintVa) {
+            return JNI_TRUE;
+        }
+    }
+    return JNI_FALSE;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
  * Method:    createPhysicsSystem
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_createPhysicsSystem
-  (JNIEnv *, jclass) {
-    PhysicsSystem * const pResult = new PhysicsSystem();
-    TRACE_NEW("PhysicsSystem", pResult)
-    return reinterpret_cast<jlong> (pResult);
+  BODYOF_CREATE_DEFAULT(PhysicsSystem)
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    destroyAllBodies
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_destroyAllBodies
+  (JNIEnv *, jclass, jlong systemVa) {
+    PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    BodyIDVector vector;
+    pSystem->GetBodies(vector);
+    BodyInterface& bi = pSystem->GetBodyInterface();
+    const size_t result = vector.size();
+    for (size_t i = 0; i < result; ++i) {
+        const BodyID id = vector[i];
+        if (bi.IsAdded(id)) {
+            bi.RemoveBody(id);
+        }
+        bi.DestroyBody(id);
+    }
+    return result;
 }
 
 /*
@@ -87,8 +127,62 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_drawBod
     DebugRenderer * const pRenderer
             = reinterpret_cast<DebugRenderer *> (rendererVa);
     pSystem->DrawBodies(*pSettings, pRenderer);
-#elif defined(_DEBUG)
+#elif defined(JPH_DEBUG)
     Trace("PhysicsSystem.drawBodies() has no effect unless JPH_DEBUG_RENDERER is defined.");
+#endif
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    drawConstraints
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_drawConstraints
+  (JNIEnv *, jclass, jlong systemVa, jlong rendererVa) {
+#ifdef JPH_DEBUG_RENDERER
+    PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    DebugRenderer * const pRenderer
+            = reinterpret_cast<DebugRenderer *> (rendererVa);
+    pSystem->DrawConstraints(pRenderer);
+#elif defined(JPH_DEBUG)
+    Trace("PhysicsSystem.drawConstraints() has no effect unless JPH_DEBUG_RENDERER is defined.");
+#endif
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    drawConstraintLimits
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_drawConstraintLimits
+  (JNIEnv *, jclass, jlong systemVa, jlong rendererVa) {
+#ifdef JPH_DEBUG_RENDERER
+    PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    DebugRenderer * const pRenderer
+            = reinterpret_cast<DebugRenderer *> (rendererVa);
+    pSystem->DrawConstraintLimits(pRenderer);
+#elif defined(JPH_DEBUG)
+    Trace("PhysicsSystem.drawConstraintLimits() has no effect unless JPH_DEBUG_RENDERER is defined.");
+#endif
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    drawConstraintReferenceFrame
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_drawConstraintReferenceFrame
+  (JNIEnv *, jclass, jlong systemVa, jlong rendererVa) {
+#ifdef JPH_DEBUG_RENDERER
+    PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    DebugRenderer * const pRenderer
+            = reinterpret_cast<DebugRenderer *> (rendererVa);
+    pSystem->DrawConstraintReferenceFrame(pRenderer);
+#elif defined(JPH_DEBUG)
+    Trace("PhysicsSystem.drawConstraintReferenceFrame() has no effect unless JPH_DEBUG_RENDERER is defined.");
 #endif
 }
 
@@ -98,12 +192,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_drawBod
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_free
-  (JNIEnv *, jclass, jlong systemVa) {
-    PhysicsSystem * const pSystem
-            = reinterpret_cast<PhysicsSystem *> (systemVa);
-    TRACE_DELETE("PhysicsSystem", pSystem)
-    delete pSystem;
-}
+  BODYOF_FREE(PhysicsSystem)
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsSystem
@@ -429,6 +518,48 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_optimiz
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    removeAllBodies
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_removeAllBodies
+  (JNIEnv *, jclass, jlong systemVa) {
+    PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    BodyIDVector vector;
+    pSystem->GetBodies(vector);
+    BodyInterface& bi = pSystem->GetBodyInterface();
+    const size_t numBodies = vector.size();
+    jint result = 0;
+    for (size_t i = 0; i < numBodies; ++i) {
+        const BodyID id = vector[i];
+        if (bi.IsAdded(id)) {
+            bi.RemoveBody(id);
+            ++result;
+        }
+    }
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    removeAllConstraints
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_removeAllConstraints
+  (JNIEnv *, jclass, jlong systemVa) {
+    PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    const Array<Ref<Constraint>>& refArray = pSystem->GetConstraints();
+    const size_t numConstraints = refArray.size();
+    for (size_t i = 0; i < numConstraints; ++i) {
+        Constraint * pConstraint = refArray[i].GetPtr();
+        pSystem->RemoveConstraint(pConstraint);
+    }
+    return numConstraints;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
  * Method:    removeConstraint
  * Signature: (JJ)V
  */
@@ -439,6 +570,20 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_removeC
     Constraint * const pConstraint
             = reinterpret_cast<Constraint *> (constraintVa);
     pSystem->RemoveConstraint(pConstraint);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    removeStepListener
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_removeStepListener
+  (JNIEnv *, jclass, jlong systemVa, jlong listenerVa) {
+    PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    PhysicsStepListener * const pListener
+            = reinterpret_cast<PhysicsStepListener *> (listenerVa);
+    pSystem->RemoveStepListener(pListener);
 }
 
 /*
@@ -554,6 +699,20 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_setPhys
     const PhysicsSettings * const pSettings
             = reinterpret_cast<PhysicsSettings *> (settingsVa);
     pSystem->SetPhysicsSettings(*pSettings);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsSystem
+ * Method:    setSoftBodyContactListener
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsSystem_setSoftBodyContactListener
+  (JNIEnv *, jclass, jlong systemVa, jlong listenerVa) {
+    PhysicsSystem * const pSystem
+            = reinterpret_cast<PhysicsSystem *> (systemVa);
+    SoftBodyContactListener * const pListener
+            = reinterpret_cast<SoftBodyContactListener *> (listenerVa);
+    pSystem->SetSoftBodyContactListener(pListener);
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,29 @@ public class WheeledVehicleControllerSettings
      */
     WheeledVehicleControllerSettings(boolean dummy) {
     }
+
+    /**
+     * Instantiate a settings object with the specified native object assigned
+     * but not owned.
+     *
+     * @param controllerSettingsVa the virtual address of the native object to
+     * assign (not zero)
+     */
+    WheeledVehicleControllerSettings(long controllerSettingsVa) {
+        super(controllerSettingsVa);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public WheeledVehicleControllerSettings(
+            WheeledVehicleControllerSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+    }
     // *************************************************************************
     // new methods exposed
 
@@ -53,7 +76,7 @@ public class WheeledVehicleControllerSettings
      * Access the settings for the specified differential. (native field:
      * mDifferentials)
      *
-     * @param index the index of differential to access (&ge;0)
+     * @param index the index of the differential to access (&ge;0)
      * @return a new JVM object with the pre-existing native object assigned
      */
     public VehicleDifferentialSettings getDifferential(int index) {
@@ -110,7 +133,7 @@ public class WheeledVehicleControllerSettings
     /**
      * Alter the number of differentials. (native attribute: mDifferentials)
      *
-     * @param count the desired number (&ge;0)
+     * @param count the desired number (&ge;0, default=0)
      */
     public void setNumDifferentials(int count) {
         long settingsVa = va();
@@ -132,6 +155,8 @@ public class WheeledVehicleControllerSettings
     // native private methods
 
     native private static int countDifferentials(long vehicleSettingsVa);
+
+    native private static long createCopy(long originalVa);
 
     native private static long createDefault();
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,16 +32,19 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_TrackedVehicleControllerSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_TrackedVehicleControllerSettings_createCopy
+  BODYOF_CREATE_COPY(TrackedVehicleControllerSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_TrackedVehicleControllerSettings
  * Method:    createDefault
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_TrackedVehicleControllerSettings_createDefault
-  (JNIEnv *, jclass) {
-    TrackedVehicleControllerSettings * const pSettings
-            = new TrackedVehicleControllerSettings();
-    TRACE_NEW("TrackedVehicleControllerSettings", pSettings)
-    return reinterpret_cast<jlong> (pSettings);
-}
+  BODYOF_CREATE_DEFAULT(TrackedVehicleControllerSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_TrackedVehicleControllerSettings
@@ -50,7 +53,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_TrackedVehicleContro
  */
 JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_TrackedVehicleControllerSettings_getNumTracks
   (JNIEnv *, jclass, jlong) {
-    const int result = (int) ETrackSide::Num;
+    const jint result = (jint) ETrackSide::Num;
     return result;
 }
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,18 @@ public class CharacterVirtualSettings
      */
     public CharacterVirtualSettings() {
         long settingsVa = createCharacterVirtualSettings();
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public CharacterVirtualSettings(ConstCharacterVirtualSettings original) {
+        long originalVa = original.targetVa();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
     }
 
     /**
@@ -120,7 +131,8 @@ public class CharacterVirtualSettings
      * Replace the shape of the inner rigid body. (native attribute:
      * mInnerBodyShape)
      *
-     * @param shape the desired shape, or null for no inner body (default=null)
+     * @param shape the desired shape, or {@code null} for no inner body
+     * (default=null)
      */
     public void setInnerBodyShape(ConstShape shape) {
         long settingsVa = va();
@@ -309,7 +321,7 @@ public class CharacterVirtualSettings
      * Return the shape of the inner rigid body. The settings are unaffected.
      * (native attribute: mInnerBodyShape)
      *
-     * @return the shape, or null for no inner body
+     * @return the shape, or {@code null} for no inner body
      */
     @Override
     public ConstShape getInnerBodyShape() {
@@ -493,6 +505,8 @@ public class CharacterVirtualSettings
     // native private methods
 
     native private static long createCharacterVirtualSettings();
+
+    native private static long createCopy(long originalVa);
 
     native private static int getBackFaceMode(long settingsVa);
 

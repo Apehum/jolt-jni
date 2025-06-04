@@ -1,4 +1,273 @@
-# release log for the jolt-jni project
+# release log for the Jolt-JNI project
+
+## Version 1.0.0 released on 18 May 2025
+
++ Add 5 public methods:
+  + `SoftBodyCreationSettings.setUserData()`
+  + `SoftBodyCreationSettings.getNumIterations()`
+  + `SoftBodyCreationSettings.getUserData()`
+  + `VertexAtrributes.setBendCompliance()`
+  + `VertexAtrributes.setLraMaxDistanceMultiplier()`
+
++ Add chaining to 4 setters:
+  + `SpringSettings.setDamping()`
+  + `SpringSettings.setFrequency()`
+  + `SpringSettings.setMode()`
+  + `SpringSettings.setStiffness()`
+
+## Version 0.9.10 released on 28 April 2025
+
++ API change:
+  + remove the `MapObj2Bp` class (use `BroadPhaseLayerInterfaceTable` instead)
+
++ Bugfixes:
+  + `Shape.copyDebugTriangles()` doesn't account for the center-of-mass
+  + infinite recursion colliding triangle with triangle (JoltPhysics issue 1620)
+
++ Added 4 classes:
+  + `BroadPhaseLayerInterfaceTable`
+  + `ObjectLayerPairFilterTable`
+  + `ObjectVsBroadPhaseLayerFilterTable`
+  + `OrientedBox`
+
++ Added some public methods to the libraries.
++ Declared an open module that exports all packages.
++ Updated the Jolt source code and assets to 2dcab94 (=sg250427).
++ Updated the OSHI library to v6.8.1 .
+
+## Version 0.9.9 released on 13 April 2025
+
++ API changes:
+  + Began representing body IDs, character IDs, and sub-shape IDs
+    using `int` primitives instead of objects.
+  + Removed the `BodyId`, `CharacterId`, and `SubShapeId` classes.
+  + Removed the `ConstBodyId` interface.
+  + Moved the `sSetNextCharacterId()` method from `CharacterId` to `Jolt`.
+  + Added chaining to 15 public setters in the `SoftBodyCreationSettings` class.
+  + Altered the return types and/or semantics of 14 other methods:
+    + `Body.getCollisionGroup()`
+    + `Body.setCollisionGroup()`
+    + `CollisionGroup.getGroupFilter()`
+    + `ConstBodyCreationSettings.getMassPropertiesOverride()`
+    + `ConstCharacterVirtual.getActiveContacts()`
+    + `ConstContact.getCharacterB()`
+    + `Skeleton.getJoint()`
+    + `Skeleton.getJoints()`
+    + `SkeletonRef.getJoint()`
+    + `SkeletonRef.getJoints()`
+    + `SoftBodyCreationSettings.getSettings()`
+    + `SoftBodyMotionProperties.getFace()`
+    + `SoftBodyMotionProperties.getFaces()`
+    + `SoftBodyMotionProperties.getSettings()`
+  + Generalized 2 methods:
+    + `SoftBodyCreationSettings.setCollisionGroup()`
+    + `BodyCreationSettings.setCollisionGroup()`
+
++ Bugfixes:
+  + unimplemented `CharacterVirtual.getTransformedShape()`
+  + 2 logic errors in `CustomCharacterContactListener`
+  + assertion failure in `JoltPhysicsObject` while creating a `SoftBodyVertex`
+
++ Added 2 interfaces:
+  + `ConstCollisionGroup`
+  + `ConstGroupFilter`
+
++ Added many public methods to the libraries.
+
+## Version 0.9.8 released on 30 March 2025
+
++ API changes:
+  + Removed the `containsBody()` method from the `PhysicsSystem` class.
+  + Deleted the public "user data" accessors from the `Shape` class.
+  + Redeclared the `ConvexHullBuilder` constructor.
+  + Changed `VehicleConstraint` to manage the step listener
+    like a contained object.
+  + Added chaining to 41 public methods.
+  + Changed the return types of the `getHits()` methods in the
+   `AllHitCollideShapeCollector` and `AllHitRayCastBodyCollector` classes.
+  + Corrected the return type of `SoftBodyCreationSettings.getSettings()`.
+
++ Bugfixes:
+  + `Shape` throws an `UnsatisfiedLinkError`
+  + `getHit()` doesn't return a new object
+  + silently starting extra cleaner threads
+  + logic error in MeshShapeSettings.cpp
+  + logic errors in `countDebugTriangles()` and `copyDebugTriangles()`
+  + bugfix: unimplemented `putEdgeIndices()` method
+
++ Added classes:
+  + `AllHitCastRayCollector`
+  + `AllHitCastShapeCollector`
+  + `AllHitCollidePointCollector`
+  + `AllHitCollideShapeBodyCollector`
+  + `AllHitTransformedShapeCollector`
+  + `AnyHitCastRayCollector`
+  + `AnyHitCastShapeCollector`
+  + `AnyHitCollideShapeCollector`
+  + `CharacterRefC`
+  + `CharacterVirtualRefC`
+  + `ClosestHitCollideShapeCollector`
+  + `CsrFace`
+  + `Float2`
+  + `GetTrianglesContext`
+  + `PhysicsMaterialRefC`
+  + `ScaleHelpers`
+  + `ShapeSettingsRefC`
+  + `SupportingFace`
+  + `TransformedShape`
+  + `TransformedShapeCollector`
+  + `VertexArray`
+
++ Added interfaces:
+  + `ConstFace`
+  + `ConstMotionProperties`
+  + `ConstSoftBodyMotionProperties`
+  + `ConstSoftBodyVertex`
+
++ Implemented revision counting for collision shapes.
++ Added many public constructors and methods to the libraries.
++ Defined another desktop platform:  Linux_LoongArch64
++ Updated the Jolt source code and assets to 0373ec0 (=v5.3.0).
++ Updated the jSnapLoader library to v1.1.1-stable .
++ Updated the OSHI library to v6.8.0 .
+
+## Version 0.9.7 released on 6 March 2025
+
++ API changes:
+  + Renamed the `RVec3.addLocal()` method to `addInPlace()`.
+  + Added a return value to the `Jolt.newFactory()` method.
+
++ Bugfixes:
+  + Debug builds suppress diagnostic output
+  + `product()` methods always return an identity matrix
+
++ Added 2 desktop platforms:  "Linux64_fma" and "Windows64_avx2".
++ Added the `ConstShapeSettings` interface.
++ Added many public constructors and methods to the libraries.
+
+## Version 0.9.6 released on 20 February 2025
+
++ API changes:
+  + Renamed `CharacterVsCharacterCollisionSimple.getCharactersAsArray()`.
+  + Delete 5 trig functions from `Std` in favor of their `Jolt` replacements.
+
++ Bugfixes:
+  + `ClassCastException` in "BoatTest.java" with flavor=Dp
+  + native assertion failures at DMat44.h:115
+  + out-of-range error in `CharacterVsCharacterCollisionSimple`
+
++ Switched to LLVM when compiling (but not cross-compiling) on Linux.
++ Added V-HACD v4.1.0 source code to the project.
+
++ Added classes, enums, and interfaces to the libraries:
+  + `CharacterId`
+  + `ConstSoftBodyContactSettings`
+  + `ConvexHull`
+  + `CustomSoftBodyContactListener`
+  + `Decomposer`
+  + `FillMode`
+  + `InvBind`
+  + `Parameters`
+  + `ProgressListener`
+  + `Skinned`
+  + `SkinWeight`
+  + `SoftBodyContactListener`
+  + `SoftBodyContactSettings`
+  + `SoftBodyManifold`
+  + `SoftBodyMotionProperties`
+  + `SoftBodyShape`
+  + `SoftBodyValidateResult`
+  + `SoftBodyVertex`
+
++ Added many public methods to the libraries.
++ Updated the Jolt source code and assets to c1bdc5a (=sg250217).
+
+## Version 0.9.5 released on 20 January 2025
+
++ Bugfix:  heap corruption in `ConvexHullShapeSettings.createSettings()`
++ Bugfix:  `UnsatisfiedLinkError` in `VehicleConstraintSettings` on Windows
+
++ Added support for 4 Android platforms.
++ Added classes and interfaces to the libraries:
+  + `RandomNumberEngine`
+  + `SkeletonMapper`
+  + `SkeletonMapperRef`
+  + `VehicleAntiRollBar`
+  + `VehicleCollisonTesterCastSphere`
+  + `VehicleCollisonTesterCastSphereRef`
+  + `VehicleEngine`
+  + `VehicleTransmission`
++ Added many public methods to the libraries.
+
+## Version 0.9.4 released on 6 January 2025
+
++ API changes:
+ + Renamed 25 public static methods in the `Op` class.
+ + Split off the `Std` class from the `Jolt` class.
+ + Split off the "com.stephengold.joltjni.std" package.
+ + Renamed the `UniformRealDistribution` class.
+ + Renamed the `Vec3.add()` method.
+ + Deleted 3 classes from the libraries:
+   + `TrackedVehicleControllerRef`
+   + `VehicleControllerRef`
+   + `WheeledVehicleControllerRef`
+ + Renamed the `Ragdoll.getBodyIDs()` method.
+ + Moved the `cDefaultConvexRadius` constant to the `Jolt` class.
+ + Altered the value returned by the `AaBox.biggest()` method.
+ + Altered the semantics of the `BodyIdVector.get()` method.
+ + Altered the signature of the `BodyIdArray.set()` method.
+ + Altered the signature of the `SkeletonPose.setSkeleton()` method.
+ + Added an argument to the `Part.getToParent()` method.
+ + Altered the return type of the `BodyIdArray.get()` method.
+ + Altered the default values returned by the `getMaxHeightValue()` and
+   `getMinHeightValue()` methods in the `HeightfiedShapeSettings` class.
+ + Deleted a redundant `addShape()` method from
+   the `CompoundShapeSettings` class.
+ + Redesigned the `CharacterVsCharacterCollisionSimple` class.
+ + De-publicized the `Wheel.newWheel()` method.
+
++ Bug fixes:
+ + crash due to use-after-free when a `PhysicsSystem` gets cleaned
+   before a character or `Ragdoll`
+ + premature cleaning of various physics objects
+ + crash due to uninitialized data in `ConvexHullBuilder.initialize()`
+ + assertion error while instantiating a `PhysicsScene`
+ + lossy casts in 4 `PlaneShape` getters
+ + `SkeletonPose.getJointMatrices()` returns an invalid pointer
+ + methods that should return `null` but are unabled to:
+   + `RagdollSettings.createRagdoll()`
+   + `RagdollSettingsRef.createRagdoll()`
+   + `Contact.getCharacterB()`
+ + memory leaks in `ObjectStreamIn`
+
++ Added classes and enums to the libraries:
+  + `AddConvexRadiusSupport`
+  + `AdditionalConstraint`
+  + `ChbEdge`
+  + `ChbFace`
+  + `ConvexHullBuilder`
+  + `EConstraintOverride`
+  + `EResult`
+  + `EStreamType`
+  + `ESupportMode`
+  + `HeightFieldShapeConstants`
+  + `Joint`
+  + `Mat44Array`
+  + `ObjectStreamOut`
+  + `PhysicsMaterialSimple`
+  + `PhysicsSceneResult`
+  + `RagdollResult`
+  + `ShapeList`
+  + `Sphere`
+  + `Stats`
+  + `StreamInWrapper`
+  + `StringStream`
+  + `Support`
+  + `SupportBuffer`
+
++ Added many public constants and public methods to the libraries.
++ Added chaining capability to 7 methods.
++ Updated the Jolt source code and assets to ba8beb8 (=sg250106).
 
 ## Version 0.9.3 released on 13 November 2024
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,11 +36,7 @@ using namespace JPH;
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollisionGroup_createDefault
-  (JNIEnv *, jclass) {
-    CollisionGroup * const pResult = new CollisionGroup();
-    TRACE_NEW("CollisionGroup", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(CollisionGroup)
 
 /*
  * Class:     com_github_stephengold_joltjni_CollisionGroup
@@ -65,12 +61,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollisionGroup_creat
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_CollisionGroup_free
-  (JNIEnv *, jclass, jlong groupVa) {
-    CollisionGroup * const pGroup
-            = reinterpret_cast<CollisionGroup *> (groupVa);
-    TRACE_DELETE("CollisionGroup", pGroup)
-    delete pGroup;
-}
+  BODYOF_FREE(CollisionGroup)
 
 /*
  * Class:     com_github_stephengold_joltjni_CollisionGroup

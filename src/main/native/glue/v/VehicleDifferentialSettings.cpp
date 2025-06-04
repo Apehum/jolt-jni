@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -44,6 +44,19 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_VehicleDifferential
 
 /*
  * Class:     com_github_stephengold_joltjni_VehicleDifferentialSettings
+ * Method:    getEngineTorqueRatio
+ * Signature: (J)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_VehicleDifferentialSettings_getEngineTorqueRatio
+  (JNIEnv *, jclass, jlong settingsVa) {
+    const VehicleDifferentialSettings * const pSettings
+            = reinterpret_cast<VehicleDifferentialSettings *> (settingsVa);
+    const float result = pSettings->mEngineTorqueRatio;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleDifferentialSettings
  * Method:    getLeftWheel
  * Signature: (J)I
  */
@@ -52,6 +65,19 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_VehicleDifferentialSe
     const VehicleDifferentialSettings * const pSettings
             = reinterpret_cast<VehicleDifferentialSettings *> (settingsVa);
     const int result = pSettings->mLeftWheel;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleDifferentialSettings
+ * Method:    getLimitedSlipRatio
+ * Signature: (J)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_VehicleDifferentialSettings_getLimitedSlipRatio
+  (JNIEnv *, jclass, jlong settingsVa) {
+    const VehicleDifferentialSettings * const pSettings
+            = reinterpret_cast<VehicleDifferentialSettings *> (settingsVa);
+    const float result = pSettings->mLimitedSlipRatio;
     return result;
 }
 
@@ -82,6 +108,18 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleDifferentialSe
 
 /*
  * Class:     com_github_stephengold_joltjni_VehicleDifferentialSettings
+ * Method:    setEngineTorqueRatio
+ * Signature: (JF)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleDifferentialSettings_setEngineTorqueRatio
+  (JNIEnv *, jclass, jlong settingsVa, jfloat fraction) {
+    VehicleDifferentialSettings * const pSettings
+            = reinterpret_cast<VehicleDifferentialSettings *> (settingsVa);
+    pSettings->mEngineTorqueRatio = fraction;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleDifferentialSettings
  * Method:    setLeftWheel
  * Signature: (JI)V
  */
@@ -90,6 +128,18 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleDifferentialSe
     VehicleDifferentialSettings * const pSettings
             = reinterpret_cast<VehicleDifferentialSettings *> (settingsVa);
     pSettings->mLeftWheel = wheelIndex;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleDifferentialSettings
+ * Method:    setLimitedSlipRatio
+ * Signature: (JF)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleDifferentialSettings_setLimitedSlipRatio
+  (JNIEnv *, jclass, jlong settingsVa, jfloat ratio) {
+    VehicleDifferentialSettings * const pSettings
+            = reinterpret_cast<VehicleDifferentialSettings *> (settingsVa);
+    pSettings->mLimitedSlipRatio = ratio;
 }
 
 /*

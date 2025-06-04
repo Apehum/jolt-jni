@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,17 @@ public class ExtendedUpdateSettings extends JoltPhysicsObject {
     public ExtendedUpdateSettings() {
         long settingsVa = createDefault();
         setVirtualAddress(settingsVa, () -> free(settingsVa));
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public ExtendedUpdateSettings(ExtendedUpdateSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa, () -> free(copyVa));
     }
     // *************************************************************************
     // new methods exposed
@@ -135,7 +146,7 @@ public class ExtendedUpdateSettings extends JoltPhysicsObject {
      * horizontal for adjusting the step-forward test. (native attribute:
      * mWalkStairsCosAngleForwardContact)
      *
-     * @param cosine the cosine of the maximum angle (default=cos(75 degrees)}
+     * @param cosine the cosine of the maximum angle (default=cos(75 degrees))
      */
     public void setWalkStairsCosAngleForwardContact(float cosine) {
         long settingsVa = va();
@@ -180,6 +191,8 @@ public class ExtendedUpdateSettings extends JoltPhysicsObject {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
 
     native private static long createDefault();
 

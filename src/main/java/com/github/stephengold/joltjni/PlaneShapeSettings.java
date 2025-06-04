@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,27 @@ public class PlaneShapeSettings extends ShapeSettings {
     // constructors
 
     /**
+     * Instantiate default settings.
+     */
+    public PlaneShapeSettings() {
+        long settingsVa = createDefault();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Plane);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public PlaneShapeSettings(PlaneShapeSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Plane);
+    }
+
+    /**
      * Instantiate settings for the specified plane.
      *
      * @param plane the desired surface plane (not null, unaffected)
@@ -79,7 +100,7 @@ public class PlaneShapeSettings extends ShapeSettings {
         long materialVa = (material == null) ? 0L : material.targetVa();
         long settingsVa = createPlaneShapeSettings(
                 nx, ny, nz, planeConstant, materialVa, halfExtent);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.Plane);
     }
 
@@ -159,7 +180,8 @@ public class PlaneShapeSettings extends ShapeSettings {
     /**
      * Replace the material. (native attribute: mMaterial)
      *
-     * @param material the desired material, or null for none (default=null)
+     * @param material the desired material, or {@code null} if none
+     * (default=null)
      */
     public void setMaterial(ConstPhysicsMaterial material) {
         long settingsVa = va();
@@ -170,7 +192,8 @@ public class PlaneShapeSettings extends ShapeSettings {
     /**
      * Alter the surface equation. (native attribute: mPlane)
      *
-     * @param plane the desired surface (not null, unaffected)
+     * @param plane the desired surface (not null, unaffected,
+     * default=((0,0,0),0))
      */
     public void setPlane(ConstPlane plane) {
         long settingsVa = va();
@@ -182,6 +205,10 @@ public class PlaneShapeSettings extends ShapeSettings {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
+
+    native private static long createDefault();
 
     native private static long createPlaneShapeSettings(float nx, float ny,
             float nz, float planeConstant, long materialVa, float halfExtent);

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -55,15 +55,14 @@ public class RayCastResult extends BroadPhaseCastResult {
     // new methods exposed
 
     /**
-     * Return the ID of the subshape that was hit. The result object is
+     * Return the ID of the sub-shape that was hit. The result object is
      * unaffected. (native attribute: mSubShapeID2)
      *
-     * @return a new JVM object with the pre-existing native object assigned
+     * @return a {@code SubShapeID} value
      */
-    public SubShapeId getSubShapeId2() {
+    public int getSubShapeId2() {
         long castResultVa = va();
-        long idVa = getSubShapeId2(castResultVa);
-        SubShapeId result = new SubShapeId(idVa, false);
+        int result = getSubShapeId2(castResultVa);
 
         return result;
     }
@@ -72,5 +71,5 @@ public class RayCastResult extends BroadPhaseCastResult {
 
     native private static long createRayCastResult();
 
-    native private static long getSubShapeId2(long castResultVa);
+    native private static int getSubShapeId2(long castResultVa);
 }

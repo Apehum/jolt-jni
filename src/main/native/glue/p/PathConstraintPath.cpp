@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,8 @@ IMPLEMENT_REF(PathConstraintPath,
   Java_com_github_stephengold_joltjni_PathConstraintPathRef_copy,
   Java_com_github_stephengold_joltjni_PathConstraintPathRef_createEmpty,
   Java_com_github_stephengold_joltjni_PathConstraintPathRef_free,
-  Java_com_github_stephengold_joltjni_PathConstraintPathRef_getPtr)
+  Java_com_github_stephengold_joltjni_PathConstraintPathRef_getPtr,
+  Java_com_github_stephengold_joltjni_PathConstraintPathRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_PathConstraintPath
@@ -122,6 +123,19 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_PathConstraintPat
 
 /*
  * Class:     com_github_stephengold_joltjni_PathConstraintPath
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PathConstraintPath_saveBinaryState
+  (JNIEnv *, jclass, jlong pathVa, jlong streamVa) {
+    const PathConstraintPath * const pPath
+            = reinterpret_cast<PathConstraintPath *> (pathVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pPath->SaveBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PathConstraintPath
  * Method:    setEmbedded
  * Signature: (J)V
  */
@@ -142,6 +156,21 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PathConstraintPath_se
     PathConstraintPath * const pPath
             = reinterpret_cast<PathConstraintPath *> (pathVa);
     pPath->SetIsLooping(setting);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PathConstraintPath
+ * Method:    sRestoreFromBinaryState
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PathConstraintPath_sRestoreFromBinaryState
+  (JNIEnv *, jclass, jlong streamVa) {
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    PathConstraintPath::PathResult * const pResult
+            = new PathConstraintPath::PathResult();
+    TRACE_NEW("PathConstraintPath::PathResult", pResult);
+    *pResult = PathConstraintPath::sRestoreFromBinaryState(*pStream);
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ SOFTWARE.
 package testjoltjni.app.samples.general;
 import com.github.stephengold.joltjni.*;
 import com.github.stephengold.joltjni.enumerate.*;
+import static com.github.stephengold.joltjni.Jolt.*;
 import java.util.*;
 import testjoltjni.app.samples.*;
 /**
@@ -31,7 +32,7 @@ import testjoltjni.app.samples.*;
  * https://github.com/jrouwe/JoltPhysics/blob/master/Samples/Tests/General/ChangeShapeTest.cpp
  */
 public class ChangeShapeTest extends Test{
-BodyId mBodyID;
+int mBodyID=cInvalidBodyId;
 boolean mActivateAfterSwitch = true;
 List<ShapeRefC> mShapes=new ArrayList<>();
 float mTime = 0.0f;
@@ -99,8 +100,8 @@ protected void RestoreState(StateRecorder inStream)
 }
 /*TODO
 
-void ChangeShapeTest.CreateSettingsMenu(DebugUI *inUI, UIElement *inSubMenu)
+void ChangeShapeTest::CreateSettingsMenu(DebugUI *inUI, UIElement *inSubMenu)
 {
-	inUI->CreateCheckBox(inSubMenu, "Activate Body After Switch", mActivateAfterSwitch, [this](UICheckBox.EState inState) { mActivateAfterSwitch = inState == UICheckBox.STATE_CHECKED; });
+	inUI->CreateCheckBox(inSubMenu, "Activate Body After Switch", mActivateAfterSwitch, [this](UICheckBox::EState inState) { mActivateAfterSwitch = inState == UICheckBox::STATE_CHECKED; });
 }
 */}

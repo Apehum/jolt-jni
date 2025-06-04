@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,11 +36,7 @@ using namespace JPH;
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MotionProperties_createMotionProperties
-  (JNIEnv *, jclass) {
-    MotionProperties * const pProperties = new MotionProperties();
-    TRACE_NEW("MotionProperties", pProperties)
-    return reinterpret_cast<jlong> (pProperties);
-}
+  BODYOF_CREATE_DEFAULT(MotionProperties)
 
 /*
  * Class:     com_github_stephengold_joltjni_MotionProperties
@@ -48,12 +44,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MotionProperties_cre
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_MotionProperties_free
-  (JNIEnv *, jclass, jlong propertiesVa) {
-    MotionProperties * const pProperties
-            = reinterpret_cast<MotionProperties *> (propertiesVa);
-    TRACE_DELETE("MotionProperties", pProperties)
-    delete pProperties;
-}
+  BODYOF_FREE(MotionProperties)
 
 /*
  * Class:     com_github_stephengold_joltjni_MotionProperties

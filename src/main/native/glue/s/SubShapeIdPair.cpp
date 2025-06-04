@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,31 +33,27 @@ using namespace JPH;
 /*
  * Class:     com_github_stephengold_joltjni_SubShapeIdPair
  * Method:    getBody1Id
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getBody1Id
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getBody1Id
   (JNIEnv *, jclass, jlong pairVa) {
     const SubShapeIDPair * const pPair
             = reinterpret_cast<SubShapeIDPair *> (pairVa);
-    const BodyID id = pPair->GetBody1ID();
-    BodyID * const pResult = new BodyID(id);
-    TRACE_NEW("BodyID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const BodyID result = pPair->GetBody1ID();
+    return result.GetIndexAndSequenceNumber();
 }
 
 /*
  * Class:     com_github_stephengold_joltjni_SubShapeIdPair
  * Method:    getBody2Id
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getBody2Id
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getBody2Id
   (JNIEnv *, jclass, jlong pairVa) {
     const SubShapeIDPair * const pPair
             = reinterpret_cast<SubShapeIDPair *> (pairVa);
-    const BodyID id = pPair->GetBody2ID();
-    BodyID * const pResult = new BodyID(id);
-    TRACE_NEW("BodyID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const BodyID result = pPair->GetBody2ID();
+    return result.GetIndexAndSequenceNumber();
 }
 
 /*
@@ -76,29 +72,25 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getHa
 /*
  * Class:     com_github_stephengold_joltjni_SubShapeIdPair
  * Method:    getSubShapeId1
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getSubShapeId1
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getSubShapeId1
   (JNIEnv *, jclass, jlong pairVa) {
     const SubShapeIDPair * const pPair
             = reinterpret_cast<SubShapeIDPair *> (pairVa);
-    SubShapeID * const pResult = new SubShapeID();
-    TRACE_NEW("SubShapeID", pResult)
-    *pResult = pPair->GetSubShapeID1();
-    return reinterpret_cast<jlong> (pResult);
+    const SubShapeID result = pPair->GetSubShapeID1();
+    return result.GetValue();
 }
 
 /*
  * Class:     com_github_stephengold_joltjni_SubShapeIdPair
  * Method:    getSubShapeId2
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getSubShapeId2
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SubShapeIdPair_getSubShapeId2
   (JNIEnv *, jclass, jlong pairVa) {
     const SubShapeIDPair * const pPair
             = reinterpret_cast<SubShapeIDPair *> (pairVa);
-    SubShapeID * const pResult = new SubShapeID();
-    TRACE_NEW("SubShapeID", pResult)
-    *pResult = pPair->GetSubShapeID2();
-    return reinterpret_cast<jlong> (pResult);
+    const SubShapeID result = pPair->GetSubShapeID2();
+    return result.GetValue();
 }

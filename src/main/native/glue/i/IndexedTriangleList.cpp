@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,11 +49,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_IndexedTriangleList_c
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_IndexedTriangleList_createIndexedTriangleList
-  (JNIEnv *, jclass) {
-    IndexedTriangleList * const pList = new IndexedTriangleList();
-    TRACE_NEW("IndexedTriangleList", pList)
-    return reinterpret_cast<jlong> (pList);
-}
+  BODYOF_CREATE_DEFAULT(IndexedTriangleList)
 
 /*
  * Class:     com_github_stephengold_joltjni_IndexedTriangleList
@@ -74,12 +70,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_IndexedTriangleList_e
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_IndexedTriangleList_free
-  (JNIEnv *, jclass, jlong listVa) {
-    IndexedTriangleList * const pList
-            = reinterpret_cast<IndexedTriangleList *> (listVa);
-    TRACE_DELETE("IndexedTriangleList", pList)
-    delete pList;
-}
+  BODYOF_FREE(IndexedTriangleList)
 
 /*
  * Class:     com_github_stephengold_joltjni_IndexedTriangleList

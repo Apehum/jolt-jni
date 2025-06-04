@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -58,7 +58,21 @@ public class VehicleDifferentialSettings extends JoltPhysicsObject {
     }
 
     /**
-     * Return the index of left wheel. The settings are unaffected. (native
+     * Return the fraction of the engine's torque that is applied to this
+     * differential. The settings are unaffected. (native attribute:
+     * mEngineTorqueRatio)
+     *
+     * @return the fraction
+     */
+    public float getEngineTorqueRatio() {
+        long settingsVa = va();
+        float result = getEngineTorqueRatio(settingsVa);
+
+        return result;
+    }
+
+    /**
+     * Return the index of the left wheel. The settings are unaffected. (native
      * attribute: mLeftWheel)
      *
      * @return the index of the wheel (&ge;0) or -1 for none
@@ -71,7 +85,20 @@ public class VehicleDifferentialSettings extends JoltPhysicsObject {
     }
 
     /**
-     * Return the index of right wheel. The settings are unaffected. (native
+     * Return the ratio of maximum wheel speed to minimum wheel speed. The
+     * settings are unaffected. (native member: mLimitedSlipRatio)
+     *
+     * @return the ratio (&gt;1, {@code FLT_MAX} for an open differential)
+     */
+    public float getLimitedSlipRatio() {
+        long settingsVa = va();
+        float result = getLimitedSlipRatio(settingsVa);
+
+        return result;
+    }
+
+    /**
+     * Return the index of the right wheel. The settings are unaffected. (native
      * attribute: mRightWheel)
      *
      * @return the index of the wheel (&ge;0) or -1 for none
@@ -95,6 +122,20 @@ public class VehicleDifferentialSettings extends JoltPhysicsObject {
     }
 
     /**
+     * Alter the fraction of the engine's torque that is applied to this
+     * differential. (native attribute: mEngineTorqueRatio)
+     *
+     * @param fraction the desired ratio (default=1)
+     * @return the fraction, for chaining
+     */
+    public float setEngineTorqueRatio(float fraction) {
+        long settingsVa = va();
+        setEngineTorqueRatio(settingsVa, fraction);
+
+        return fraction;
+    }
+
+    /**
      * Alter which left wheel is assigned to the differential. (native
      * attribute: mLeftWheel)
      *
@@ -104,6 +145,19 @@ public class VehicleDifferentialSettings extends JoltPhysicsObject {
     public void setLeftWheel(int wheelIndex) {
         long settingsVa = va();
         setLeftWheel(settingsVa, wheelIndex);
+    }
+
+    /**
+     * Alter the ratio of maximum wheel speed to minimum wheel speed. When this
+     * ratio is exceeded, all torque gets distributed to the slowest wheel.
+     * (native member: mLimitedSlipRatio)
+     *
+     * @param ratio the desired ratio (&gt;1, {@code FLT_MAX} for an open
+     * differential, default=1.4)
+     */
+    public void setLimitedSlipRatio(float ratio) {
+        long settingsVa = va();
+        setLimitedSlipRatio(settingsVa, ratio);
     }
 
     /**
@@ -122,14 +176,24 @@ public class VehicleDifferentialSettings extends JoltPhysicsObject {
 
     native private static float getDifferentialRatio(long settingsVa);
 
+    native private static float getEngineTorqueRatio(long settingsVa);
+
     native private static int getLeftWheel(long settingsVa);
+
+    native private static float getLimitedSlipRatio(long settingsVa);
 
     native private static int getRightWheel(long settingsVa);
 
     native private static void setDifferentialRatio(
             long settingsVa, float ratio);
 
+    native private static void setEngineTorqueRatio(
+            long settingsVa, float fraction);
+
     native private static void setLeftWheel(long settingsVa, int wheelIndex);
+
+    native private static void setLimitedSlipRatio(
+            long settingsVa, float ratio);
 
     native private static void setRightWheel(long settingsVa, int wheelIndex);
 }

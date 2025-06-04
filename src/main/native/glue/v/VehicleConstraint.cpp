@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,8 @@ IMPLEMENT_REF(VehicleConstraint,
   Java_com_github_stephengold_joltjni_VehicleConstraintRef_copy,
   Java_com_github_stephengold_joltjni_VehicleConstraintRef_createEmpty,
   Java_com_github_stephengold_joltjni_VehicleConstraintRef_free,
-  Java_com_github_stephengold_joltjni_VehicleConstraintRef_getPtr)
+  Java_com_github_stephengold_joltjni_VehicleConstraintRef_getPtr,
+  Java_com_github_stephengold_joltjni_VehicleConstraintRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_VehicleConstraint
@@ -83,6 +84,19 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_VehicleConstraint_ge
 
 /*
  * Class:     com_github_stephengold_joltjni_VehicleConstraint
+ * Method:    getStepListener
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_VehicleConstraint_getStepListener
+  (JNIEnv *, jclass, jlong constraintVa) {
+    VehicleConstraint * const pConstraint
+            = reinterpret_cast<VehicleConstraint *> (constraintVa);
+    PhysicsStepListener * const pListener = pConstraint;
+    return reinterpret_cast<jlong> (pListener);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleConstraint
  * Method:    getVehicleBody
  * Signature: (J)J
  */
@@ -124,21 +138,6 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_VehicleConstraint_ge
     RMat44 * const pResult = new RMat44(matrix);
     TRACE_NEW("RMat44", pResult)
     return reinterpret_cast<jlong> (pResult);
-}
-
-/*
- * Class:     com_github_stephengold_joltjni_VehicleConstraint
- * Method:    onStep
- * Signature: (JJ)V
- */
-JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleConstraint_onStep
-  (JNIEnv *, jclass, jlong constraintVa, jlong contextVa) {
-    VehicleConstraint * const pConstraint
-            = reinterpret_cast<VehicleConstraint *> (constraintVa);
-    PhysicsStepListener * const pListener = pConstraint;
-    const PhysicsStepListenerContext *pContext
-            = reinterpret_cast<PhysicsStepListenerContext *> (contextVa);
-    pListener->OnStep(*pContext);
 }
 
 /*

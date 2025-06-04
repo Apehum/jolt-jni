@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,11 +36,7 @@ using namespace JPH;
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Triangle_createDefaultTriangle
-  (JNIEnv *, jclass) {
-    Triangle * const pTriangle = new Triangle();
-    TRACE_NEW("Triangle", pTriangle)
-    return reinterpret_cast<jlong> (pTriangle);
-}
+    BODYOF_CREATE_DEFAULT(Triangle)
 
 /*
  * Class:     com_github_stephengold_joltjni_Triangle
@@ -65,11 +61,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Triangle_createTrian
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Triangle_free
-  (JNIEnv *, jclass, jlong triangleVa) {
-    Triangle * const pTriangle = reinterpret_cast<Triangle *> (triangleVa);
-    TRACE_DELETE("Triangle", pTriangle)
-    delete pTriangle;
-}
+    BODYOF_FREE(Triangle)
 
 /*
  * Class:     com_github_stephengold_joltjni_Triangle

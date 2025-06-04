@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,7 @@ import com.github.stephengold.joltjni.readonly.ConstPlane;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
@@ -103,7 +104,7 @@ public class Test006 {
      * Test the {@code BoxShapeSettings} class.
      */
     private static void doBoxShapeSettings() {
-        BoxShapeSettings settings = new BoxShapeSettings(new Vec3(1f, 1f, 1f));
+        BoxShapeSettings settings = new BoxShapeSettings(1f, 1f, 1f);
 
         testBoxSsDefaults(settings);
         testBoxSsSetters(settings);
@@ -129,14 +130,15 @@ public class Test006 {
      * Test the {@code ConvexHullShapeSettings} class.
      */
     private static void doConvexHullShapeSettings() {
+        // create from an array:
         Vec3Arg[] points = {new Vec3()};
         ConvexHullShapeSettings settings = new ConvexHullShapeSettings(points);
 
         testConvexHullSsDefaults(settings);
         testConvexHullSsSetters(settings);
 
-        List<Vec3Arg> list = new ArrayList<>(1);
-        list.add(new Vec3());
+        // create from a collection:
+        Collection<Vec3Arg> list = List.of(new Vec3());
         ConvexHullShapeSettings settings2 = new ConvexHullShapeSettings(list);
 
         testConvexHullSsDefaults(settings2);
@@ -513,8 +515,8 @@ public class Test006 {
                 0.996195f, settings.getActiveEdgeCosThresholdAngle(), 0f);
         Assert.assertEquals(8, settings.getBitsPerSample());
         Assert.assertEquals(2, settings.getBlockSize());
-        Assert.assertEquals(-Float.MAX_VALUE, settings.getMaxHeightValue(), 0f);
-        Assert.assertEquals(Float.MAX_VALUE, settings.getMinHeightValue(), 0f);
+        Assert.assertEquals(-1e15f, settings.getMaxHeightValue(), 0f);
+        Assert.assertEquals(1e15f, settings.getMinHeightValue(), 0f);
         TestUtils.assertEquals(0f, 0f, 0f, settings.getOffset(), 0f);
         Assert.assertEquals(4, settings.getSampleCount());
         TestUtils.assertEquals(1f, 1f, 1f, settings.getScale(), 0f);

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,11 +49,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialList_c
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialList_createEmptyList
-  (JNIEnv *, jclass) {
-    PhysicsMaterialList * const pList = new PhysicsMaterialList();
-    TRACE_NEW("PhysicsMaterialList", pList)
-    return reinterpret_cast<jlong> (pList);
-}
+  BODYOF_CREATE_DEFAULT(PhysicsMaterialList)
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsMaterialList
@@ -74,12 +70,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialList_e
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialList_free
-  (JNIEnv *, jclass, jlong listVa) {
-    PhysicsMaterialList * const pList
-            = reinterpret_cast<PhysicsMaterialList *> (listVa);
-    TRACE_DELETE("PhysicsMaterialList", pList)
-    delete pList;
-}
+  BODYOF_FREE(PhysicsMaterialList)
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsMaterialList
@@ -91,7 +82,8 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialList_
     PhysicsMaterialList * const pList
             = reinterpret_cast<PhysicsMaterialList *> (listVa);
     RefConst<PhysicsMaterial>& element = pList->at(elementIndex);
-    RefConst<PhysicsMaterial>* pResult = new RefConst<PhysicsMaterial> (element);
+    RefConst<PhysicsMaterial>* const pResult
+            = new RefConst<PhysicsMaterial>(element);
     TRACE_NEW("RefConst<PhysicsMaterial>", pResult)
     return reinterpret_cast<jlong> (pResult);
 }

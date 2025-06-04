@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,8 @@ import com.github.stephengold.joltjni.enumerate.ELraType;
 import com.github.stephengold.joltjni.readonly.ConstVertexAttributes;
 
 /**
- * Per-vertex attributes used to configure the constraints in a soft body.
+ * Per-vertex attributes used to configure the constraints in a soft body. The
+ * compliance of each constraint is determined by averaging attached vertices.
  * (native type: {@code SoftBodySharedSettings::VertexAttributes})
  *
  * @author Stephen Gold sgold@sonic.net
@@ -37,13 +38,19 @@ public class VertexAttributes
     // constructors
 
     /**
+     * Instantiate default attributes.
+     */
+    public VertexAttributes() {
+        long attributesVa = createDefault();
+        setVirtualAddress(attributesVa, () -> free(attributesVa));
+    }
+
+    /**
      * Instantiate attributes as specified.
      *
-     * @param compliance the desired compliance of normal/regular edges
-     * (default=0)
-     * @param shearCompliance the desired compliance of the shear edges
-     * (default=0)
-     * @param bendCompliance the desired compliance of bend edges
+     * @param compliance the desired compliance for regular edges (default=0)
+     * @param shearCompliance the desired compliance for shear edges (default=0)
+     * @param bendCompliance the desired compliance for bend edges
      * (default=MAX_VALUE)
      */
     public VertexAttributes(float compliance, float shearCompliance,
@@ -54,11 +61,9 @@ public class VertexAttributes
     /**
      * Instantiate attributes as specified.
      *
-     * @param compliance the desired compliance of normal/regular edges
-     * (default=0)
-     * @param shearCompliance the desired compliance of the shear edges
-     * (default=0)
-     * @param bendCompliance the desired compliance of bend edges
+     * @param compliance the desired compliance for regular edges (default=0)
+     * @param shearCompliance the desired compliance for shear edges (default=0)
+     * @param bendCompliance the desired compliance for bend edges
      * (default=MAX_VALUE)
      * @param lraType the desired long-range attachment (LRA) constraint (not
      * null, default=None)
@@ -71,11 +76,9 @@ public class VertexAttributes
     /**
      * Instantiate attributes as specified.
      *
-     * @param compliance the desired compliance of normal/regular edges
-     * (default=0)
-     * @param shearCompliance the desired compliance of the shear edges
-     * (default=0)
-     * @param bendCompliance the desired compliance of bend edges
+     * @param compliance the desired compliance for regular edges (default=0)
+     * @param shearCompliance the desired compliance for shear edges (default=0)
+     * @param bendCompliance the desired compliance for bend edges
      * (default=MAX_VALUE)
      * @param lraType the desired long-range attachment (LRA) constraint (not
      * null, default=None)
@@ -88,6 +91,79 @@ public class VertexAttributes
         long attributesVa = createAttributes(compliance, shearCompliance,
                 bendCompliance, ordinal, lraMultiplier);
         setVirtualAddress(attributesVa, () -> free(attributesVa));
+    }
+    // *************************************************************************
+    // new methods exposed
+
+    /**
+     * Alter the compliance for bend edges. (native attribute: mBendCompliance)
+     *
+     * @param compliance the desired compliance value (MAX_VALUE to disable any
+     * bend edges attached to the vertex, default=MAX_VALUE)
+     * @return the argument, for chaining
+     */
+    public float setBendCompliance(float compliance) {
+        long attributesVa = va();
+        setBendCompliance(attributesVa, compliance);
+
+        return compliance;
+    }
+
+    /**
+     * Alter the compliance for regular edges. (native attribute: mCompliance)
+     *
+     * @param compliance the desired compliance value (MAX_VALUE to disable any
+     * regular edges attached to the vertex, default=0)
+     * @return the argument, for chaining
+     */
+    public float setCompliance(float compliance) {
+        long attributesVa = va();
+        setCompliance(attributesVa, compliance);
+
+        return compliance;
+    }
+
+    /**
+     * Alter the multiplier for the maximum distance of the long-range
+     * attachment (LRA) constraint. (native attribute:
+     * mLRAMaxDistanceMultiplier)
+     *
+     * @param multiplier the desired multiplier for the maximum distance of the
+     * LRA constraint (relative to the rest-pose distance, default=1)
+     * @return the argument, for chaining
+     */
+    public float setLraMaxDistanceMultiplier(float multiplier) {
+        long attributesVa = va();
+        setLraMaxDistanceMultiplier(attributesVa, multiplier);
+
+        return multiplier;
+    }
+
+    /**
+     * Alter the type of the long-range attachment (LRA) constraint. (native
+     * attribute: mLRAType)
+     *
+     * @param type the desired type (not null, default=None)
+     */
+    public void setLraType(ELraType type) {
+        long attributesVa = va();
+        int ordinal = type.ordinal();
+        setLraType(attributesVa, ordinal);
+    }
+
+    /**
+     * Alter the compliance for shear edges. (native attribute:
+     * mShearCompliance)
+     *
+     * @param compliance the desired compliance value (MAX_VALUE to disable any
+     * shear edges attached to the vertex, default=0)
+     * @return the argument, for chaining
+     */
+    public float setShearCompliance(float compliance) {
+        long attributesVa = va();
+        setShearCompliance(attributesVa, compliance);
+
+        return compliance;
     }
     // *************************************************************************
     // ConstVertexAttributes methods
@@ -107,7 +183,7 @@ public class VertexAttributes
     }
 
     /**
-     * Return the compliance of normal/regular edges. The attributes are
+     * Return the compliance of the regular edges. The attributes are
      * unaffected. (native attribute: mCompliance)
      *
      * @return the compliance value
@@ -170,6 +246,8 @@ public class VertexAttributes
             float compliance, float shearCompliance, float bendCompliance,
             int ordinal, float lraMultiplier);
 
+    native private static long createDefault();
+
     native private static void free(long attributesVa);
 
     native private static float getBendCompliance(long attributesVa);
@@ -181,4 +259,18 @@ public class VertexAttributes
     native private static int getLraType(long attributesVa);
 
     native private static float getShearCompliance(long attributesVa);
+
+    native private static void setBendCompliance(
+            long attributesVa, float compliance);
+
+    native private static void setCompliance(
+            long attributesVa, float compliance);
+
+    native private static void setLraMaxDistanceMultiplier(
+            long attributesVa, float multiplier);
+
+    native private static void setLraType(long attributesVa, int ordinal);
+
+    native private static void setShearCompliance(
+            long attributesVa, float compliance);
 }

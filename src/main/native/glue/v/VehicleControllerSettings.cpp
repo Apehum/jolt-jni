@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,8 @@ IMPLEMENT_REF(VehicleControllerSettings,
   Java_com_github_stephengold_joltjni_VehicleControllerSettingsRef_copy,
   Java_com_github_stephengold_joltjni_VehicleControllerSettingsRef_createEmpty,
   Java_com_github_stephengold_joltjni_VehicleControllerSettingsRef_free,
-  Java_com_github_stephengold_joltjni_VehicleControllerSettingsRef_getPtr)
+  Java_com_github_stephengold_joltjni_VehicleControllerSettingsRef_getPtr,
+  Java_com_github_stephengold_joltjni_VehicleControllerSettingsRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_VehicleControllerSettings
@@ -49,6 +50,32 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_VehicleControllerSett
             = reinterpret_cast<VehicleControllerSettings *> (settingsVa);
     const uint32 result = pSettings->GetRefCount();
     return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleControllerSettings
+ * Method:    restoreBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleControllerSettings_restoreBinaryState
+  (JNIEnv *, jclass, jlong settingsVa, jlong streamVa) {
+    VehicleControllerSettings * const pSettings
+            = reinterpret_cast<VehicleControllerSettings *> (settingsVa);
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    pSettings->RestoreBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleControllerSettings
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleControllerSettings_saveBinaryState
+  (JNIEnv *, jclass, jlong settingsVa, jlong streamVa) {
+    const VehicleControllerSettings * const pSettings
+            = reinterpret_cast<VehicleControllerSettings *> (settingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pSettings->SaveBinaryState(*pStream);
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,51 @@ IMPLEMENT_REF(Skeleton,
   Java_com_github_stephengold_joltjni_SkeletonRef_copy,
   Java_com_github_stephengold_joltjni_SkeletonRef_createEmpty,
   Java_com_github_stephengold_joltjni_SkeletonRef_free,
-  Java_com_github_stephengold_joltjni_SkeletonRef_getPtr)
+  Java_com_github_stephengold_joltjni_SkeletonRef_getPtr,
+  Java_com_github_stephengold_joltjni_SkeletonRef_toRefC)
+
+/*
+ * Class:     com_github_stephengold_joltjni_Skeleton
+ * Method:    addJointWithParent
+ * Signature: (JLjava/lang/String;I)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Skeleton_addJointWithParent
+  (JNIEnv *pEnv, jclass, jlong skeletonVa, jstring name, jint parentIndex) {
+    Skeleton * const pSkeleton = reinterpret_cast<Skeleton *> (skeletonVa);
+    jboolean isCopy;
+    const char * const pName = pEnv->GetStringUTFChars(name, &isCopy);
+    const uint result = pSkeleton->AddJoint(pName, parentIndex);
+    pEnv->ReleaseStringUTFChars(name, pName);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Skeleton
+ * Method:    addRootJoint
+ * Signature: (JLjava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Skeleton_addRootJoint
+  (JNIEnv *pEnv, jclass, jlong skeletonVa, jstring name) {
+    Skeleton * const pSkeleton = reinterpret_cast<Skeleton *> (skeletonVa);
+    jboolean isCopy;
+    const char * const pName = pEnv->GetStringUTFChars(name, &isCopy);
+    const uint result = pSkeleton->AddJoint(pName);
+    pEnv->ReleaseStringUTFChars(name, pName);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Skeleton
+ * Method:    areJointsCorrectlyOrdered
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_Skeleton_areJointsCorrectlyOrdered
+  (JNIEnv *, jclass, jlong skeletonVa) {
+    const Skeleton * const pSkeleton
+            = reinterpret_cast<Skeleton *> (skeletonVa);
+    const bool result = pSkeleton->AreJointsCorrectlyOrdered();
+    return result;
+}
 
 /*
  * Class:     com_github_stephengold_joltjni_Skeleton
@@ -51,6 +95,55 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Skeleton_calculatePar
 
 /*
  * Class:     com_github_stephengold_joltjni_Skeleton
+ * Method:    createDefault
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Skeleton_createDefault
+  BODYOF_CREATE_DEFAULT(Skeleton)
+
+/*
+ * Class:     com_github_stephengold_joltjni_Skeleton
+ * Method:    getJoint
+ * Signature: (JI)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Skeleton_getJoint
+  (JNIEnv *, jclass, jlong skeletonVa, jint jointIndex) {
+    Skeleton * const pSkeleton
+            = reinterpret_cast<Skeleton *> (skeletonVa);
+    const Skeleton::Joint& result = pSkeleton->GetJoint(jointIndex);
+    return reinterpret_cast<jlong> (&result);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Skeleton
+ * Method:    getJointCount
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Skeleton_getJointCount
+  (JNIEnv *, jclass, jlong skeletonVa) {
+    const Skeleton * const pSkeleton = reinterpret_cast<Skeleton *> (skeletonVa);
+    const int result = pSkeleton->GetJointCount();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Skeleton
+ * Method:    getJointIndex
+ * Signature: (JLjava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Skeleton_getJointIndex
+  (JNIEnv *pEnv, jclass, jlong skeletonVa, jstring name) {
+    const Skeleton * const pSkeleton
+            = reinterpret_cast<Skeleton *> (skeletonVa);
+    jboolean isCopy;
+    const char * const pName = pEnv->GetStringUTFChars(name, &isCopy);
+    const int result = pSkeleton->GetJointIndex(pName);
+    pEnv->ReleaseStringUTFChars(name, pName);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Skeleton
  * Method:    getRefCount
  * Signature: (J)I
  */
@@ -59,6 +152,19 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Skeleton_getRefCount
     const Skeleton * const pSkeleton = reinterpret_cast<Skeleton *> (skeletonVa);
     const uint32 result = pSkeleton->GetRefCount();
     return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Skeleton
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Skeleton_saveBinaryState
+  (JNIEnv *, jclass, jlong skeletonVa, jlong streamVa) {
+    const Skeleton * const pSkeleton
+            = reinterpret_cast<Skeleton *> (skeletonVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pSkeleton->SaveBinaryState(*pStream);
 }
 
 /*

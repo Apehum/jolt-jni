@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,18 @@ IMPLEMENT_REF(Character,
   Java_com_github_stephengold_joltjni_CharacterRef_copy,
   Java_com_github_stephengold_joltjni_CharacterRef_createEmpty,
   Java_com_github_stephengold_joltjni_CharacterRef_free,
-  Java_com_github_stephengold_joltjni_CharacterRef_getPtr)
+  Java_com_github_stephengold_joltjni_CharacterRef_getPtr,
+  Java_com_github_stephengold_joltjni_CharacterRef_toRefC)
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterRef
+ * Method:    freeWithSystem
+ * Signature: (JLcom/github/stephengold/joltjni/PhysicsSystem;)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_CharacterRef_freeWithSystem
+  (JNIEnv *pEnv, jclass clazz, jlong refVa, jobject) {
+    Java_com_github_stephengold_joltjni_CharacterRef_free(pEnv, clazz, refVa);
+}
 
 /*
  * Class:     com_github_stephengold_joltjni_Character
@@ -108,16 +119,14 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Character_createChar
 /*
  * Class:     com_github_stephengold_joltjni_Character
  * Method:    getBodyId
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Character_getBodyId
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Character_getBodyId
   (JNIEnv *, jclass, jlong characterVa) {
     const Character * const pCharacter
             = reinterpret_cast<Character *> (characterVa);
-    const BodyID id = pCharacter->GetBodyID();
-    BodyID * const pResult = new BodyID(id);
-    TRACE_NEW("BodyID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const BodyID result = pCharacter->GetBodyID();
+    return result.GetIndexAndSequenceNumber();
 }
 
 /*
@@ -137,6 +146,21 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Character_getCenterOf
     pStoreDoubles[1] = location.GetY();
     pStoreDoubles[2] = location.GetZ();
     pEnv->ReleaseDoubleArrayElements(storeDoubles, pStoreDoubles, 0);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Character
+ * Method:    getCharacterSettings
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Character_getCharacterSettings
+  (JNIEnv *, jclass, jlong characterVa) {
+    const Character * const pCharacter
+            = reinterpret_cast<Character *> (characterVa);
+    CharacterSettings * const pResult = new CharacterSettings();
+    TRACE_NEW("CharacterSettings", pResult)
+    *pResult = pCharacter->GetCharacterSettings();
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*
@@ -237,6 +261,21 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Character_getRotation
     pStoreFloats[2] = orientation.GetZ();
     pStoreFloats[3] = orientation.GetW();
     pEnv->ReleaseFloatArrayElements(storeFloats, pStoreFloats, 0);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Character
+ * Method:    getTransformedShape
+ * Signature: (JZ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Character_getTransformedShape
+  (JNIEnv *, jclass, jlong characterVa, jboolean lockBodies) {
+    const Character * const pCharacter
+            = reinterpret_cast<Character *> (characterVa);
+    const TransformedShape& shape = pCharacter->GetTransformedShape(lockBodies);
+    TransformedShape * const pResult = new TransformedShape(shape);
+    TRACE_NEW("TransformedShape", pResult)
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*
@@ -382,5 +421,20 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Character_toRef
     Character * const pCharacter = reinterpret_cast<Character *> (characterVa);
     Ref<Character> * const pResult = new Ref<Character>(pCharacter);
     TRACE_NEW("Ref<Character>", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Character
+ * Method:    toRefC
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Character_toRefC
+  (JNIEnv *, jclass, jlong characterVa) {
+    const Character * const pCharacter
+            = reinterpret_cast<Character *> (characterVa);
+    RefConst<Character> * const pResult
+            = new RefConst<Character>(pCharacter);
+    TRACE_NEW("RefConst<Character>", pResult)
     return reinterpret_cast<jlong> (pResult);
 }

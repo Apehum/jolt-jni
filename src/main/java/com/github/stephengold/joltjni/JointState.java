@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ import com.github.stephengold.joltjni.readonly.Vec3Arg;
 
 /**
  * The local-space coordinate transform of an animation joint relative to its
- * parent joint. (native type: SkeletonPose::JointState)
+ * parent joint. (native type: {@code SkeletonPose::JointState})
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -35,14 +35,14 @@ public class JointState extends JoltPhysicsObject {
     // constructors
 
     /**
-     * Instantiate a state with the specified native object assigned but not
-     * owned.
+     * Instantiate a state with the specified container and native object.
      *
+     * @param container the containing object, or {@code null} if none
      * @param stateVa the virtual address of the native object to assign (not
      * zero)
      */
-    JointState(long stateVa) {
-        super(stateVa);
+    JointState(JoltPhysicsObject container, long stateVa) {
+        super(container, stateVa);
     }
     // *************************************************************************
     // new methods exposed

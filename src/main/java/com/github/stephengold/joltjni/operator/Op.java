@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,12 @@ SOFTWARE.
 package com.github.stephengold.joltjni.operator;
 
 import com.github.stephengold.joltjni.Color;
+import com.github.stephengold.joltjni.Float3;
 import com.github.stephengold.joltjni.Mat44;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RMat44;
 import com.github.stephengold.joltjni.RVec3;
 import com.github.stephengold.joltjni.Vec3;
-import com.github.stephengold.joltjni.readonly.ConstBodyId;
 import com.github.stephengold.joltjni.readonly.ConstColor;
 import com.github.stephengold.joltjni.readonly.Mat44Arg;
 import com.github.stephengold.joltjni.readonly.QuatArg;
@@ -126,19 +126,6 @@ final public class Op {
     }
 
     /**
-     * Test whether the specified IDs are equal. (native operator: binary
-     * {@code ==})
-     *
-     * @param left the first ID to test (not null, unaffected)
-     * @param right the 2nd ID to test (not null, unaffected)
-     * @return {@code true} if equal, {@code false} if unequal
-     */
-    public static boolean isEqual(ConstBodyId left, ConstBodyId right) {
-        boolean result = left.isEqual(right);
-        return result;
-    }
-
-    /**
      * Test whether the specified colors are equal. (native operator: binary
      * {@code ==})
      *
@@ -168,16 +155,19 @@ final public class Op {
     }
 
     /**
-     * Subtract the 2nd argument from the first argument. (native operator:
-     * binary {@code -=})
+     * Return the negative of the specified vector. (native operator: unary
+     * {@code -})
      *
-     * @param left the accumulating vector (not null, modified)
-     * @param right the vector to subtract (not null, unaffected)
+     * @param right the input vector (not null, unaffected)
+     * @return a new vector
      */
-    public static void minusEquals(Vec3 left, Vec3Arg right) {
-        left.setX(left.getX() - right.getX());
-        left.setY(left.getY() - right.getY());
-        left.setZ(left.getZ() - right.getZ());
+    public static RVec3 minus(RVec3Arg right) {
+        double xx = -right.xx();
+        double yy = -right.yy();
+        double zz = -right.zz();
+        RVec3 result = new RVec3(xx, yy, zz);
+
+        return result;
     }
 
     /**
@@ -248,6 +238,19 @@ final public class Op {
     }
 
     /**
+     * Subtract the 2nd argument from the first argument. (native operator:
+     * binary {@code -=})
+     *
+     * @param left the accumulating vector (not null, modified)
+     * @param right the vector to subtract (not null, unaffected)
+     */
+    public static void minusEquals(Vec3 left, Vec3Arg right) {
+        left.setX(left.getX() - right.getX());
+        left.setY(left.getY() - right.getY());
+        left.setZ(left.getZ() - right.getZ());
+    }
+
+    /**
      * Test whether the specified colors are unequal. (native operator: binary
      * {@code !=})
      *
@@ -260,6 +263,91 @@ final public class Op {
                 || left.getB() != right.getB()
                 || left.getG() != right.getG()
                 || left.getR() != right.getR();
+        return result;
+    }
+
+    /**
+     * Return the component-wise sum of the specified vectors. (native operator:
+     * binary {@code +})
+     *
+     * @param left the first vector (not null, unaffected)
+     * @param right the 2nd vector (not null, unaffected)
+     * @return a new vector
+     */
+    public static RVec3 plus(RVec3Arg left, Float3 right) {
+        double xx = left.xx() + right.x;
+        double yy = left.yy() + right.y;
+        double zz = left.zz() + right.z;
+        RVec3 result = new RVec3(xx, yy, zz);
+
+        return result;
+    }
+
+    /**
+     * Return the component-wise sum of the specified vectors. (native operator:
+     * binary {@code +})
+     *
+     * @param left the first vector (not null, unaffected)
+     * @param right the 2nd vector (not null, unaffected)
+     * @return a new vector
+     */
+    public static RVec3 plus(RVec3Arg left, RVec3Arg right) {
+        double xx = left.xx() + right.xx();
+        double yy = left.yy() + right.yy();
+        double zz = left.zz() + right.zz();
+        RVec3 result = new RVec3(xx, yy, zz);
+
+        return result;
+    }
+
+    /**
+     * Return the component-wise sum of the specified vectors. (native operator:
+     * binary {@code +})
+     *
+     * @param left the base vector (not null, unaffected)
+     * @param right the offset to add (not null, unaffected)
+     * @return a new vector
+     */
+    public static RVec3 plus(RVec3Arg left, Vec3Arg right) {
+        double xx = left.xx() + right.getX();
+        double yy = left.yy() + right.getY();
+        double zz = left.zz() + right.getZ();
+        RVec3 result = new RVec3(xx, yy, zz);
+
+        return result;
+    }
+
+    /**
+     * Return the component-wise sum of the specified vectors. (native operator:
+     * binary {@code +})
+     *
+     * @param left the first vector (not null, unaffected)
+     * @param right the 2nd vector (not null, unaffected)
+     * @return a new vector
+     */
+    public static RVec3 plus(Vec3Arg left, RVec3Arg right) {
+        double xx = left.getX() + right.xx();
+        double yy = left.getY() + right.yy();
+        double zz = left.getZ() + right.zz();
+        RVec3 result = new RVec3(xx, yy, zz);
+
+        return result;
+    }
+
+    /**
+     * Return the component-wise sum of the specified vectors. (native operator:
+     * binary {@code +})
+     *
+     * @param left the first vector (not null, unaffected)
+     * @param right the 2nd vector (not null, unaffected)
+     * @return a new vector
+     */
+    public static Vec3 plus(Vec3Arg left, Vec3Arg right) {
+        float x = left.getX() + right.getX();
+        float y = left.getY() + right.getY();
+        float z = left.getZ() + right.getZ();
+        Vec3 result = new Vec3(x, y, z);
+
         return result;
     }
 
@@ -315,57 +403,6 @@ final public class Op {
         left.setX(left.getX() + right.getX());
         left.setY(left.getY() + right.getY());
         left.setZ(left.getZ() + right.getZ());
-    }
-
-    /**
-     * Return the component-wise sum of the specified vectors. (native operator:
-     * binary {@code +})
-     *
-     * @param left the first vector (not null, unaffected)
-     * @param right the 2nd vector (not null, unaffected)
-     * @return a new vector
-     */
-    public static RVec3 plus(RVec3Arg left, RVec3Arg right) {
-        double xx = left.xx() + right.xx();
-        double yy = left.yy() + right.yy();
-        double zz = left.zz() + right.zz();
-        RVec3 result = new RVec3(xx, yy, zz);
-
-        return result;
-    }
-
-    /**
-     * Return the component-wise sum of the specified vectors. (native operator:
-     * binary {@code +})
-     *
-     * @param left the base vector (not null, unaffected)
-     * @param right the offset to add (not null, unaffected)
-     * @return a new vector
-     */
-    public static RVec3 plus(RVec3Arg left, Vec3Arg right) {
-        double xx = left.xx() + right.getX();
-        double yy = left.yy() + right.getY();
-        double zz = left.zz() + right.getZ();
-        RVec3 result = new RVec3(xx, yy, zz);
-
-        return result;
-    }
-
-    /**
-     * Return the component-wise sum of the specified vectors. (native operator:
-     * binary {@code +})
-     *
-     * @param left the first vector (not null, unaffected)
-     * @param right the 2nd vector (not null, unaffected)
-     * @return a new vector
-     */
-    public static Vec3 plus(Vec3Arg left, Vec3Arg right) {
-        float x = left.getX() + right.getX();
-        float y = left.getY() + right.getY();
-        float z = left.getZ() + right.getZ();
-        Vec3 result = new Vec3(x, y, z);
-
-        return result;
     }
 
     /**
@@ -497,6 +534,19 @@ final public class Op {
     }
 
     /**
+     * Return the product of the specified matrices. (native operator: binary
+     * {@code *})
+     *
+     * @param left the left factor (not null, unaffected)
+     * @param right the right factor (not null, unaffected)
+     * @return a new matrix
+     */
+    public static Mat44 star(Mat44Arg left, Mat44Arg right) {
+        Mat44 result = left.multiply(right);
+        return result;
+    }
+
+    /**
      * Return the product of the specified quaternions. (native operator: binary
      * {@code *})
      *
@@ -544,18 +594,31 @@ final public class Op {
         float ry = right.getY();
         float rz = right.getZ();
 
-        // a = lhs x pure(rhs)
+        // a = left x pure(right)
         float aw = -lx * rx - ly * ry - lz * rz;
         float ax = lw * rx + ly * rz - lz * ry;
         float ay = lw * ry - lx * rz + lz * rx;
         float az = lw * rz + lx * ry - ly * rx;
 
-        // result = vec3(a x conjugate(lhs))
+        // result = vec3(a x conjugate(left))
         float x = -aw * lx + ax * lw - ay * lz + az * ly;
         float y = -aw * ly + ax * lz + ay * lw - az * lx;
         float z = -aw * lz - ax * ly + ay * lx + az * lw;
 
         Vec3 result = new Vec3(x, y, z);
+        return result;
+    }
+
+    /**
+     * Return the product of the specified matrices. (native operator: binary
+     * {@code *})
+     *
+     * @param left the left factor (not null, unaffected)
+     * @param right the right factor (not null, unaffected)
+     * @return a new matrix
+     */
+    public static RMat44 star(RMat44Arg left, Mat44Arg right) {
+        RMat44 result = left.multiply(right);
         return result;
     }
 
@@ -610,6 +673,42 @@ final public class Op {
      */
     public static Vec3 star(Vec3Arg left, float right) {
         Vec3 result = star(right, left);
+        return result;
+    }
+
+    /**
+     * Rotate the specified vector by the conjugate of the specified unit
+     * quaternion. (native operator: binary {@code *})
+     *
+     * @param left the input vector (not null, unaffected)
+     * @param right the conjugate of the rotation to apply (not null,
+     * normalized, unaffected)
+     * @return a new vector
+     */
+    public static Vec3 star(Vec3Arg left, QuatArg right) {
+        assert right.isNormalized();
+
+        float lx = left.getX();
+        float ly = left.getY();
+        float lz = left.getZ();
+
+        float rw = right.getW();
+        float rx = right.getX();
+        float ry = right.getY();
+        float rz = right.getZ();
+
+        // a = pure(left) x right
+        float aw = -lx * rx - ly * ry - lz * rz;
+        float ax = lx * rw + ly * rz - lz * ry;
+        float ay = ly * rw - lx * rz + lz * rx;
+        float az = lz * rw + lx * ry - ly * rx;
+
+        // result = vec3(conjugate(right) x a)
+        float x = rw * ax - rx * aw - ry * az + rz * ay;
+        float y = rw * ay + rx * az - ry * aw - rz * ax;
+        float z = rw * az - rx * ay + ry * ax - rz * aw;
+
+        Vec3 result = new Vec3(x, y, z);
         return result;
     }
 

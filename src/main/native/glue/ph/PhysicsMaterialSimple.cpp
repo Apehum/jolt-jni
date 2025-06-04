@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,8 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialSimpl
     jboolean isCopy;
     const char * name = pEnv->GetStringUTFChars(nameString, &isCopy);
     const Color color(colorInt);
-    PhysicsMaterialSimple * pResult = new PhysicsMaterialSimple(name, color);
+    PhysicsMaterialSimple * const pResult
+            = new PhysicsMaterialSimple(name, color);
     pEnv->ReleaseStringUTFChars(nameString, name);
     TRACE_NEW("PhysicsMaterialSimple", pResult)
     return reinterpret_cast<jlong> (pResult);
@@ -48,12 +49,16 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialSimpl
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsMaterialSimple
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialSimple_createCopy
+  BODYOF_CREATE_COPY(PhysicsMaterialSimple)
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsMaterialSimple
  * Method:    createDefault
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterialSimple_createDefault
-  (JNIEnv *, jclass) {
-    PhysicsMaterialSimple * pResult = new PhysicsMaterialSimple();
-    TRACE_NEW("PhysicsMaterialSimple", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(PhysicsMaterialSimple)

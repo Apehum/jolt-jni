@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,11 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Collect all results from a broad-phase ray cast. (native type: {@code
+ * Collect all results from a broad-phase ray-cast query. (native type: {@code
  * AllHitCollisionCollector<RayCastBodyCollector>})
  *
  * @author Stephen Gold sgold@sonic.net
@@ -56,21 +59,30 @@ public class AllHitRayCastBodyCollector extends RayCastBodyCollector {
     }
 
     /**
-     * Access all the hits as an array. (native attribute: mHits)
+     * Access all the hits as a list. (native attribute: mHits)
      *
-     * @return a new array of new JVM objects with pre-existing native objects
+     * @return a new list of new JVM objects with pre-existing native objects
      * assigned
      */
-    public BroadPhaseCastResult[] getHits() {
+    public List<BroadPhaseCastResult> getHits() {
         long collectorVa = va();
         int numHits = countHits(collectorVa);
-        BroadPhaseCastResult[] result = new BroadPhaseCastResult[numHits];
+        List<BroadPhaseCastResult> result = new ArrayList<>(numHits);
         for (int i = 0; i < numHits; ++i) {
             long hitVa = getHit(collectorVa, i);
-            result[i] = new BroadPhaseCastResult(this, hitVa);
+            BroadPhaseCastResult hit = new BroadPhaseCastResult(this, hitVa);
+            result.add(hit);
         }
 
         return result;
+    }
+
+    /**
+     * Sort the hits.
+     */
+    public void sort() {
+        long collectorVa = va();
+        sort(collectorVa);
     }
     // *************************************************************************
     // native private methods
@@ -80,4 +92,6 @@ public class AllHitRayCastBodyCollector extends RayCastBodyCollector {
     native private static long createDefault();
 
     native private static long getHit(long collectorVa, int hitIndex);
+
+    native private static void sort(long collectorVa);
 }

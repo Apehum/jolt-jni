@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,11 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni.readonly;
 
+import com.github.stephengold.joltjni.StreamOut;
+import com.github.stephengold.joltjni.streamutils.MaterialToIdMap;
+import com.github.stephengold.joltjni.streamutils.SharedSettingsToIdMap;
+import java.nio.IntBuffer;
+
 /**
  * Read-only access to a {@code SoftBodySharedSettings} object. (native type:
  * const SoftBodySharedSettings)
@@ -28,9 +33,6 @@ package com.github.stephengold.joltjni.readonly;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstSoftBodySharedSettings extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Count the edge constraints. The settings are unaffected.
      *
@@ -44,6 +46,13 @@ public interface ConstSoftBodySharedSettings extends ConstJoltPhysicsObject {
      * @return the count (&ge;0)
      */
     int countFaces();
+
+    /**
+     * Count the pinned vertices. The settings are unaffected.
+     *
+     * @return the count (&ge;0)
+     */
+    int countPinnedVertices();
 
     /**
      * Count the vertices. The settings are unaffected.
@@ -60,9 +69,39 @@ public interface ConstSoftBodySharedSettings extends ConstJoltPhysicsObject {
     int countVolumeConstraints();
 
     /**
-     * Return the radius of each particle. The settings are unaffected.
+     * Write the vertex indices of all edges to the specified buffer and advance
+     * the buffer's position. The settings are unaffected.
      *
-     * @return the radius (in meters)
+     * @param storeIndices the destination buffer (not null, modified)
      */
-    float getVertexRadius();
+    void putEdgeIndices(IntBuffer storeIndices);
+
+    /**
+     * Write the vertex indices of all faces to the specified buffer and advance
+     * the buffer's position. The settings are unaffected.
+     *
+     * @param storeIndices the destination buffer (not null, modified)
+     */
+    void putFaceIndices(IntBuffer storeIndices);
+
+    /**
+     * Write the state of this object to the specified stream, excluding the
+     * materials. The settings are unaffected.
+     *
+     * @param stream where to write objects (not {@code null})
+     */
+    void saveBinaryState(StreamOut stream);
+
+    /**
+     * Write the state of this object to the specified stream. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not {@code null})
+     * @param settingsMap track multiple uses of shared settings (not
+     * {@code null})
+     * @param materialMap track multiple uses of physics materials (not
+     * {@code null})
+     */
+    void saveWithMaterials(StreamOut stream, SharedSettingsToIdMap settingsMap,
+            MaterialToIdMap materialMap);
 }

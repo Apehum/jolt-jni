@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,13 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.enumerate.EBendType;
+import com.github.stephengold.joltjni.readonly.ConstFace;
 import com.github.stephengold.joltjni.readonly.ConstSoftBodySharedSettings;
 import com.github.stephengold.joltjni.readonly.ConstVertexAttributes;
+import com.github.stephengold.joltjni.streamutils.MaterialToIdMap;
+import com.github.stephengold.joltjni.streamutils.SharedSettingsToIdMap;
 import com.github.stephengold.joltjni.template.Ref;
+import java.nio.IntBuffer;
 
 /**
  * A counted reference to {@code SoftBodySharedSettings}. (native type:
@@ -77,14 +81,38 @@ final public class SoftBodySharedSettingsRef
      *
      * @param face the face to add (not null, unaffected)
      */
-    public void addFace(Face face) {
+    public void addFace(ConstFace face) {
         long settingsVa = targetVa();
-        long faceVa = face.va();
+        long faceVa = face.targetVa();
         SoftBodySharedSettings.addFace(settingsVa, faceVa);
     }
 
     /**
-     * Add the specified vertex.
+     * Append the specified inverse-bind matrix. (native property:
+     * mInvBindMatrices)
+     *
+     * @param invBind the matrix to add (not null)
+     */
+    public void addInvBindMatrix(InvBind invBind) {
+        long settingsVa = targetVa();
+        long bindVa = invBind.va();
+        SoftBodySharedSettings.addInvBindMatrix(settingsVa, bindVa);
+    }
+
+    /**
+     * Append the specified skinning constraint. (native property:
+     * mSkinnedConstraints)
+     *
+     * @param skinned the constraint to add (not null)
+     */
+    public void addSkinnedConstraint(Skinned skinned) {
+        long settingsVa = targetVa();
+        long skinnedVa = skinned.va();
+        SoftBodySharedSettings.addSkinnedConstraint(settingsVa, skinnedVa);
+    }
+
+    /**
+     * Add the specified vertex. (native attribute: mVertices)
      *
      * @param vertex the vertex to add (not null, unaffected)
      */
@@ -111,6 +139,14 @@ final public class SoftBodySharedSettingsRef
     public void calculateEdgeLengths() {
         long settingsVa = targetVa();
         SoftBodySharedSettings.calculateEdgeLengths(settingsVa);
+    }
+
+    /**
+     * Calculate the information needed for skinned constraint normals.
+     */
+    public void calculateSkinnedConstraintNormals() {
+        long settingsVa = targetVa();
+        SoftBodySharedSettings.calculateSkinnedConstraintNormals(settingsVa);
     }
 
     /**
@@ -192,7 +228,8 @@ final public class SoftBodySharedSettingsRef
     // ConstSoftBodySharedSettings methods
 
     /**
-     * Count the edge constraints. The settings are unaffected.
+     * Count the edge constraints. The settings are unaffected. (native
+     * attribute: mEdgeConstraints)
      *
      * @return the count (&ge;0)
      */
@@ -205,7 +242,7 @@ final public class SoftBodySharedSettingsRef
     }
 
     /**
-     * Count the faces. The settings are unaffected.
+     * Count the faces. The settings are unaffected. (native attribute: mFaces)
      *
      * @return the count (&ge;0)
      */
@@ -218,7 +255,21 @@ final public class SoftBodySharedSettingsRef
     }
 
     /**
-     * Count the vertices. The settings are unaffected.
+     * Count the pinned vertices. The settings are unaffected.
+     *
+     * @return the count (&ge;0)
+     */
+    @Override
+    public int countPinnedVertices() {
+        long settingsVa = targetVa();
+        int result = SoftBodySharedSettings.countPinnedVertices(settingsVa);
+
+        return result;
+    }
+
+    /**
+     * Count the vertices. The settings are unaffected. (native attribute:
+     * mVertices)
      *
      * @return the count (&ge;0)
      */
@@ -231,7 +282,8 @@ final public class SoftBodySharedSettingsRef
     }
 
     /**
-     * Count the volume constraints. The settings are unaffected.
+     * Count the volume constraints. The settings are unaffected. (native
+     * attribute: mVolumeConstraints)
      *
      * @return the count (&ge;0)
      */
@@ -244,17 +296,67 @@ final public class SoftBodySharedSettingsRef
     }
 
     /**
-     * Return the radius of each particle. The settings are unaffected. (native
-     * attribute: mVertexRadius)
+     * Write the vertex indices of all edges to the specified buffer and advance
+     * the buffer's position. The settings are unaffected.
      *
-     * @return the radius (in meters)
+     * @param storeIndices the destination buffer (not null, modified)
      */
     @Override
-    public float getVertexRadius() {
+    public void putEdgeIndices(IntBuffer storeIndices) {
         long settingsVa = targetVa();
-        float result = SoftBodySharedSettings.getVertexRadius(settingsVa);
+        int bufferPosition = storeIndices.position();
+        bufferPosition = SoftBodySharedSettings.putEdgeIndices(
+                settingsVa, bufferPosition, storeIndices);
+        storeIndices.position(bufferPosition);
+    }
 
-        return result;
+    /**
+     * Write the vertex indices of all faces to the specified buffer and advance
+     * the buffer's position. The settings are unaffected.
+     *
+     * @param storeIndices the destination buffer (not null, modified)
+     */
+    @Override
+    public void putFaceIndices(IntBuffer storeIndices) {
+        long settingsVa = targetVa();
+        int bufferPosition = storeIndices.position();
+        bufferPosition = SoftBodySharedSettings.putFaceIndices(
+                settingsVa, bufferPosition, storeIndices);
+        storeIndices.position(bufferPosition);
+    }
+
+    /**
+     * Write the state of this object to the specified stream, excluding the
+     * materials. The settings are unaffected.
+     *
+     * @param stream where to write objects (not {@code null})
+     */
+    @Override
+    public void saveBinaryState(StreamOut stream) {
+        long settingsVa = targetVa();
+        long streamVa = stream.va();
+        SoftBodySharedSettings.saveBinaryState(settingsVa, streamVa);
+    }
+
+    /**
+     * Write the state of this object to the specified stream. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not null)
+     * @param settingsMap track multiple uses of shared settings (not
+     * {@code null})
+     * @param materialMap track multiple uses of physics materials (not
+     * {@code null})
+     */
+    @Override
+    public void saveWithMaterials(StreamOut stream,
+            SharedSettingsToIdMap settingsMap, MaterialToIdMap materialMap) {
+        long settingsVa = targetVa();
+        long streamVa = stream.va();
+        long settingsMapVa = settingsMap.va();
+        long materialMapVa = materialMap.va();
+        SoftBodySharedSettings.saveWithMaterials(
+                settingsVa, streamVa, settingsMapVa, materialMapVa);
     }
     // *************************************************************************
     // Ref methods

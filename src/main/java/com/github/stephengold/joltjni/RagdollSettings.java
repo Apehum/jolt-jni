@@ -33,6 +33,14 @@ public class RagdollSettings extends JoltPhysicsObject implements RefTarget {
     // constructors
 
     /**
+     * Instantiate default settings.
+     */
+    public RagdollSettings() {
+        long settingsVa = createDefault();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+    }
+
+    /**
      * Instantiate with the specified native object assigned but not owned.
      *
      * @param settingsVa the virtual address of the native object to assign (not
@@ -43,6 +51,17 @@ public class RagdollSettings extends JoltPhysicsObject implements RefTarget {
     }
     // *************************************************************************
     // RagdollInterface methods
+
+    /**
+     * Add the specified constraint.
+     *
+     * @param constraint (not null)
+     */
+    public void addAdditionalConstraint(AdditionalConstraint constraint) {
+        long settingsVa = va();
+        long constraintVa = constraint.va();
+        addAdditionalConstraint(settingsVa, constraintVa);
+    }
 
     /**
      * Pre-calculate the map used by {@code getBodyIndexToConstraintIndex()}.
@@ -61,7 +80,7 @@ public class RagdollSettings extends JoltPhysicsObject implements RefTarget {
     }
 
     /**
-     * Generate a ragdoll instance from the settings.
+     * Generate a ragdoll instance from the settings, which are unaffected.
      *
      * @param groupId the collision group for the bodies
      * @param userData the desired user-data value
@@ -74,9 +93,23 @@ public class RagdollSettings extends JoltPhysicsObject implements RefTarget {
         long settingsVa = va();
         long systemVa = physicsSystem.va();
         long resultVa = createRagdoll(settingsVa, groupId, userData, systemVa);
-        Ragdoll result = new Ragdoll(resultVa);
 
+        Ragdoll result;
+        if (resultVa == 0L) {
+            result = null;
+        } else {
+            result = new Ragdoll(resultVa, physicsSystem);
+        }
         return result;
+    }
+
+    /**
+     * Create and add collision filters to all bodies in the ragdoll and
+     * configure them so parents and children don't collide.
+     */
+    public void disableParentChildCollisions() {
+        long settingsVa = va();
+        disableParentChildCollisions(settingsVa);
     }
 
     /**
@@ -107,6 +140,56 @@ public class RagdollSettings extends JoltPhysicsObject implements RefTarget {
         long settingsVa = va();
         long skeletonVa = getSkeleton(settingsVa);
         Skeleton result = new Skeleton(skeletonVa);
+
+        return result;
+    }
+
+    /**
+     * Resize the parts array.
+     *
+     * @param numParts the desired number of parts (&ge;0)
+     */
+    public void resizeParts(int numParts) {
+        long settingsVa = va();
+        resizeParts(settingsVa, numParts);
+    }
+
+    /**
+     * Save the settings to the specified binary stream. The settings are
+     * unaffected.
+     *
+     * @param stream the stream to write to (not null)
+     * @param saveShapes if true, save the shapes
+     * @param saveGroupFilter if true, save the group filter
+     */
+    public void saveBinaryState(
+            StreamOut stream, boolean saveShapes, boolean saveGroupFilter) {
+        long settingsVa = targetVa();
+        long streamVa = stream.va();
+        saveBinaryState(settingsVa, streamVa, saveShapes, saveGroupFilter);
+    }
+
+    /**
+     * Replace the skeleton. (native attribute: mSkeleton)
+     *
+     * @param skeleton the desired skeleton (not null)
+     */
+    public void setSkeleton(Skeleton skeleton) {
+        long settingsVa = va();
+        long skeletonVa = skeleton.va();
+        setSkeleton(settingsVa, skeletonVa);
+    }
+
+    /**
+     * Read a ragdoll from the specified input stream.
+     *
+     * @param stream the stream to read from (not null)
+     * @return the result of the read (not null)
+     */
+    public static RagdollResult sRestoreFromBinaryState(StreamIn stream) {
+        long streamVa = stream.va();
+        long resultVa = sRestoreFromBinaryState(streamVa);
+        RagdollResult result = new RagdollResult(resultVa, true);
 
         return result;
     }
@@ -164,12 +247,19 @@ public class RagdollSettings extends JoltPhysicsObject implements RefTarget {
     // *************************************************************************
     // native methods
 
+    native static void addAdditionalConstraint(
+            long settingsVa, long constraintVa);
+
     native static void calculateBodyIndexToConstraintIndex(long settingsVa);
 
     native static void calculateConstraintIndexToBodyIdxPair(long settingsVa);
 
+    native private static long createDefault();
+
     native static long createRagdoll(
             long settingsVa, int groupId, long userData, long systemVa);
+
+    native static void disableParentChildCollisions(long settingsVa);
 
     native static int getNumParts(long settingsVa);
 
@@ -179,7 +269,16 @@ public class RagdollSettings extends JoltPhysicsObject implements RefTarget {
 
     native static long getSkeleton(long settingsVa);
 
+    native static void resizeParts(long settingsVa, int numParts);
+
+    native static void saveBinaryState(long settingsVa, long streamVa,
+            boolean saveShapes, boolean saveGroupFilter);
+
     native private static void setEmbedded(long settingsVa);
+
+    native static void setSkeleton(long settingsVa, long skeletonVa);
+
+    native static long sRestoreFromBinaryState(long streamVa);
 
     native static boolean stabilize(long settingsVa);
 

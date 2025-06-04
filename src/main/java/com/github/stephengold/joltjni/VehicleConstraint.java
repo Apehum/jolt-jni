@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.ConstVehicleConstraintSettings;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
 
 /**
@@ -28,12 +29,14 @@ import com.github.stephengold.joltjni.readonly.Vec3Arg;
  *
  * @author Stephen Gold sgold@sonic.net
  */
-public class VehicleConstraint
-        extends Constraint
-        implements PhysicsStepListener {
+public class VehicleConstraint extends Constraint {
     // *************************************************************************
     // fields
 
+    /**
+     * cached reference to the vehicle body
+     */
+    final private Body body;
     /**
      * protect the collision tester (if any) from garbage collection
      */
@@ -47,12 +50,13 @@ public class VehicleConstraint
      * @param body the body to which the constraint will apply (not null)
      * @param settings the desired settings (not null, unaffected)
      */
-    public VehicleConstraint(Body body, VehicleConstraintSettings settings) {
+    public VehicleConstraint(
+            Body body, ConstVehicleConstraintSettings settings) {
+        this.body = body;
         long bodyVa = body.va();
-        long settingsVa = settings.va();
+        long settingsVa = settings.targetVa();
         long constraintVa = createConstraint(bodyVa, settingsVa);
-        setVirtualAddress(constraintVa, null);
-        // not the owner due to ref counting
+        setVirtualAddress(constraintVa); // not the owner due to ref counting
     }
 
     /**
@@ -64,6 +68,8 @@ public class VehicleConstraint
      */
     VehicleConstraint(long constraintVa) {
         super(constraintVa);
+        long bodyVa = getVehicleBody(constraintVa);
+        this.body = new Body(bodyVa);
     }
     // *************************************************************************
     // new methods exposed
@@ -95,16 +101,27 @@ public class VehicleConstraint
     }
 
     /**
+     * Access the vehicle's {@code PhysicsStepListener}. Since Java doesn't
+     * allow multiple inheritance, the listener is managed like a contained
+     * object.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    public VehicleStepListener getStepListener() {
+        long constraintVa = va();
+        long listenerVa = getStepListener(constraintVa);
+        VehicleStepListener result = new VehicleStepListener(this, listenerVa);
+
+        return result;
+    }
+
+    /**
      * Access the vehicle body.
      *
      * @return a new JVM object with the pre-existing native object assigned
      */
     public Body getVehicleBody() {
-        long constraintVa = va();
-        long bodyVa = getVehicleBody(constraintVa);
-        Body result = new Body(bodyVa);
-
-        return result;
+        return body;
     }
 
     /**
@@ -126,7 +143,7 @@ public class VehicleConstraint
         long constraintVa = va();
         long wheelVa = getWheel(constraintVa, wheelIndex);
         int ordinal = Constraint.getControllerType(constraintVa);
-        Wheel result = Wheel.newWheel(wheelVa, ordinal);
+        Wheel result = Wheel.newWheel(wheelVa, ordinal, this);
 
         return result;
     }
@@ -246,22 +263,7 @@ public class VehicleConstraint
         return result;
     }
     // *************************************************************************
-    // PhysicsStepListener methods
-
-    /**
-     * Callback invoked (by native code) each time the system is stepped.
-     *
-     * @param contextVa the virtual address of a
-     * {@code PhysicsStepListenerContext} {@code PhysicsStepListenerContext}
-     * (not zero)
-     */
-    @Override
-    public void onStep(long contextVa) {
-        long constraintVa = va();
-        onStep(constraintVa, contextVa);
-    }
-    // *************************************************************************
-    // native private methods
+    // native methods
 
     native private static int countWheels(long constraintVa);
 
@@ -269,26 +271,25 @@ public class VehicleConstraint
 
     native private static long getController(long constraintVa);
 
+    native private static long getStepListener(long constraintVa);
+
     native private static long getVehicleBody(long constraintVa);
 
     native private static long getWheel(long constraintVa, int wheelIndex);
 
-    native private static long getWheelWorldTransform(
-            long constraintVa, int wheelIndex, float rx, float ry, float rz,
-            float ux, float uy, float uz);
+    native static long getWheelWorldTransform(long constraintVa, int wheelIndex,
+            float rx, float ry, float rz, float ux, float uy, float uz);
 
-    native private static void onStep(long constraintVa, long contextVa);
+    native static float getWorldUpX(long constraintVa);
 
-    native private static float getWorldUpX(long constraintVa);
+    native static float getWorldUpY(long constraintVa);
 
-    native private static float getWorldUpY(long constraintVa);
+    native static float getWorldUpZ(long constraintVa);
 
-    native private static float getWorldUpZ(long constraintVa);
-
-    native private static void overrideGravity(
+    native static void overrideGravity(
             long constraintVa, float ax, float ay, float az);
 
-    native private static void resetGravityOverride(long constraintVa);
+    native static void resetGravityOverride(long constraintVa);
 
     native private static void setNumStepsBetweenCollisionTestActive(
             long constraintVa, int numSteps);

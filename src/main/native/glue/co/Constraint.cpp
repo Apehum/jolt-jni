@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@ SOFTWARE.
  * Author: Stephen Gold
  */
 #include "Jolt/Jolt.h"
+#include "Jolt/Physics/Body/BodyID.h"
 #include "Jolt/Physics/Constraints/Constraint.h"
 
 #include "auto/com_github_stephengold_joltjni_Constraint.h"
@@ -36,7 +37,8 @@ IMPLEMENT_REF(Constraint,
   Java_com_github_stephengold_joltjni_ConstraintRef_copy,
   Java_com_github_stephengold_joltjni_ConstraintRef_createEmpty,
   Java_com_github_stephengold_joltjni_ConstraintRef_free,
-  Java_com_github_stephengold_joltjni_ConstraintRef_getPtr)
+  Java_com_github_stephengold_joltjni_ConstraintRef_getPtr,
+  Java_com_github_stephengold_joltjni_ConstraintRef_toRefC)
 
 extern uint64 ctMask;
 extern uint32 ctShift;
@@ -163,16 +165,16 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Constraint_getType
 /*
  * Class:     com_github_stephengold_joltjni_Constraint
  * Method:    notifyShapeChanged
- * Signature: (JJFFF)V
+ * Signature: (JIFFF)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Constraint_notifyShapeChanged
-  (JNIEnv *, jclass, jlong constraintVa, jlong idVa,
+  (JNIEnv *, jclass, jlong constraintVa, jint bodyId,
   jfloat dx, jfloat dy, jfloat dz) {
     Constraint * const pConstraint
             = reinterpret_cast<Constraint *> (constraintVa);
-    const BodyID * const pId = reinterpret_cast<BodyID *> (idVa);
+    const BodyID id(bodyId);
     const Vec3 delta(dx, dy, dz);
-    pConstraint->NotifyShapeChanged(*pId, delta);
+    pConstraint->NotifyShapeChanged(id, delta);
 }
 
 /*

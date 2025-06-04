@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,26 +36,19 @@ using namespace JPH;
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Contact_free
-  (JNIEnv *, jclass, jlong contactVa) {
-    CharacterVirtual::Contact * const pContact
-            = reinterpret_cast<CharacterVirtual::Contact *> (contactVa);
-    TRACE_DELETE("Contact", pContact)
-    delete pContact;
-}
+  BODYOF_FREE(CharacterVirtual::Contact)
 
 /*
  * Class:     com_github_stephengold_joltjni_Contact
  * Method:    getBodyB
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Contact_getBodyB
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Contact_getBodyB
   (JNIEnv *, jclass, jlong contactVa) {
     const CharacterVirtual::Contact * const pContact
             = reinterpret_cast<CharacterVirtual::Contact *> (contactVa);
-    const BodyID id = pContact->mBodyB;
-    BodyID * const pResult = new BodyID(id);
-    TRACE_NEW("BodyID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const BodyID result = pContact->mBodyB;
+    return result.GetIndexAndSequenceNumber();
 }
 
 /*
@@ -80,7 +73,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Contact_getCharacter
   (JNIEnv *, jclass, jlong contactVa) {
     const CharacterVirtual::Contact * const pContact
             = reinterpret_cast<CharacterVirtual::Contact *> (contactVa);
-    CharacterVirtual * const pResult = pContact->mCharacterB;
+    const CharacterVirtual * const pResult = pContact->mCharacterB;
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -269,15 +262,14 @@ JNIEXPORT jdouble JNICALL Java_com_github_stephengold_joltjni_Contact_getPositio
 /*
  * Class:     com_github_stephengold_joltjni_Contact
  * Method:    getSubShapeIdB
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Contact_getSubShapeIdB
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Contact_getSubShapeIdB
   (JNIEnv *, jclass, jlong contactVa) {
     const CharacterVirtual::Contact * const pContact
             = reinterpret_cast<CharacterVirtual::Contact *> (contactVa);
-    SubShapeID * const pResult = new SubShapeID(pContact->mSubShapeIDB);
-    TRACE_NEW("SubShapeID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const SubShapeID result = pContact->mSubShapeIDB;
+    return result.GetValue();
 }
 
 /*

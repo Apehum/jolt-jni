@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +25,12 @@ import com.github.stephengold.joltjni.enumerate.EBodyType;
 import com.github.stephengold.joltjni.enumerate.EMotionType;
 import com.github.stephengold.joltjni.readonly.ConstAaBox;
 import com.github.stephengold.joltjni.readonly.ConstBody;
+import com.github.stephengold.joltjni.readonly.ConstCollisionGroup;
 import com.github.stephengold.joltjni.readonly.ConstShape;
 import com.github.stephengold.joltjni.readonly.QuatArg;
 import com.github.stephengold.joltjni.readonly.RVec3Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
+import java.nio.FloatBuffer;
 
 /**
  * An object with mass, position, and shape that can be added to a
@@ -38,14 +40,20 @@ import com.github.stephengold.joltjni.readonly.Vec3Arg;
  */
 public class Body extends NonCopyable implements ConstBody {
     // *************************************************************************
-    // fields
+    // constructors
 
     /**
-     * protect the collision group from garbage collection
+     * Instantiate with the specified container and native object.
+     *
+     * @param container the containing object, or {@code null} if none
+     * @param bodyVa the virtual address of the native object to assign (not
+     * zero)
      */
-    private CollisionGroup group;
-    // *************************************************************************
-    // constructors
+    Body(JoltPhysicsObject container, long bodyVa) {
+        super(container, bodyVa);
+        assert container instanceof PhysicsSystem
+                || container instanceof BodyManager;
+    }
 
     /**
      * Instantiate a body with the specified native object assigned but not
@@ -106,6 +114,21 @@ public class Body extends NonCopyable implements ConstBody {
         double locY = location.yy();
         double locZ = location.zz();
         addForce(bodyVa, fx, fy, fz, locX, locY, locZ);
+    }
+
+    /**
+     * Apply the specified impulse to the body's center of mass.
+     *
+     * @param jx the X component of the impulse (kilogram.meters per second in
+     * system coordinates)
+     * @param jy the Y component of the impulse (kilogram.meters per second in
+     * system coordinates)
+     * @param jz the Z component of the impulse (kilogram.meters per second in
+     * system coordinates)
+     */
+    public void addImpulse(float jx, float jy, float jz) {
+        long bodyVa = va();
+        addImpulse(bodyVa, jx, jy, jz);
     }
 
     /**
@@ -198,34 +221,6 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Access the body's collision group.
-     *
-     * @return the pre-existing group, or {@code null} if none
-     */
-    public CollisionGroup getCollisionGroup() {
-        return group;
-    }
-
-    /**
-     * Access the body's motion properties.
-     *
-     * @return a new JVM object with the pre-existing native object assigned, or
-     * {@code null} if none
-     */
-    public MotionProperties getMotionProperties() {
-        MotionProperties result;
-        long bodyVa = va();
-        if (isStatic(bodyVa)) {
-            result = null;
-        } else {
-            long propertiesVa = getMotionProperties(bodyVa);
-            result = new MotionProperties(propertiesVa);
-        }
-
-        return result;
-    }
-
-    /**
      * Reposition the body, assuming it's kinematic.
      *
      * @param location the desired location (in system coordinates, not null,
@@ -298,12 +293,11 @@ public class Body extends NonCopyable implements ConstBody {
     /**
      * Assign the body to the specified collision group.
      *
-     * @param group the group to assign (not null, alias created)
+     * @param group the group to assign (not null, unaffected)
      */
-    public void setCollisionGroup(CollisionGroup group) {
-        this.group = group;
+    public void setCollisionGroup(ConstCollisionGroup group) {
         long bodyVa = va();
-        long groupVa = group.va();
+        long groupVa = group.targetVa();
         setCollisionGroup(bodyVa, groupVa);
     }
 
@@ -380,7 +374,7 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Re-position the body and reset its sleep timer.
+     * Reposition the body and reset its sleep timer.
      *
      * @param location the desired location (in system coordinates, not null,
      * unaffected)
@@ -393,7 +387,7 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Re-position the body.
+     * Reposition the body.
      *
      * @param location the desired location (in system coordinates, not null,
      * unaffected)
@@ -466,7 +460,7 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Return the net force acting on the body. The body is unaffected.
+     * Copy the net force acting on the body. The body is unaffected.
      *
      * @return a new force vector (Newtons in system coordinates)
      */
@@ -482,7 +476,7 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Return the net torque acting on the body. The body is unaffected.
+     * Copy the net torque acting on the body. The body is unaffected.
      *
      * @return a new torque vector (Newton.meters in system coordinates)
      */
@@ -511,7 +505,7 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Return the body's angular velocity. The body is unaffected.
+     * Copy the body's angular velocity. The body is unaffected.
      *
      * @return a new velocity vector (radians per second in system coordinates)
      */
@@ -527,7 +521,7 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Convert the body to a {@code BodyCreationSettings} object. The body is
+     * Generate settings to reconstruct the (rigid) body. The body is
      * unaffected.
      *
      * @return a new object
@@ -595,6 +589,29 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
+     * Copy the location of the body's center of mass (which might not coincide
+     * with its origin). The body is unaffected.
+     *
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     */
+    @Override
+    public void getCenterOfMassPosition(RVec3 storeLocation) {
+        long bodyVa = va();
+
+        double xx = getCenterOfMassPositionX(bodyVa);
+        assert Double.isFinite(xx) : "xx = " + xx;
+
+        double yy = getCenterOfMassPositionY(bodyVa);
+        assert Double.isFinite(yy) : "yy = " + yy;
+
+        double zz = getCenterOfMassPositionZ(bodyVa);
+        assert Double.isFinite(zz) : "zz = " + zz;
+
+        storeLocation.set(xx, yy, zz);
+    }
+
+    /**
      * Copy the coordinate transform of the body's center of mass. The body is
      * unaffected.
      *
@@ -605,6 +622,21 @@ public class Body extends NonCopyable implements ConstBody {
         long bodyVa = va();
         long matrixVa = getCenterOfMassTransform(bodyVa);
         RMat44 result = new RMat44(matrixVa, true);
+
+        return result;
+    }
+
+    /**
+     * Access the body's collision group.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    @Override
+    public CollisionGroup getCollisionGroup() {
+        long bodyVa = va();
+        long groupVa = getCollisionGroup(bodyVa);
+        JoltPhysicsObject container = getContainingObject();
+        CollisionGroup result = new CollisionGroup(container, groupVa);
 
         return result;
     }
@@ -636,22 +668,36 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Copy the body's ID for use with {@code BodyInterface}. The body is
-     * unaffected.
+     * Return the body's ID for use with {@code BodyInterface}. The body is
+     * unaffected. (native method: GetID)
      *
-     * @return a new object
+     * @return the {@code BodyID} value
      */
     @Override
-    public BodyId getId() {
+    public int getId() {
         long bodyVa = va();
-        long bodyIdVa = getId(bodyVa);
-        BodyId result = new BodyId(bodyIdVa, true);
+        int result = getId(bodyVa);
 
         return result;
     }
 
     /**
-     * Return the body's linear velocity. The body is unaffected.
+     * Copy the inverse coordinate transform of the body's center of mass. The
+     * body is unaffected.
+     *
+     * @return a new transform matrix (relative to local coordinates)
+     */
+    @Override
+    public RMat44 getInverseCenterOfMassTransform() {
+        long bodyVa = va();
+        long matrixVa = getInverseCenterOfMassTransform(bodyVa);
+        RMat44 result = new RMat44(matrixVa, true);
+
+        return result;
+    }
+
+    /**
+     * Copy the body's linear velocity. The body is unaffected.
      *
      * @return a new velocity vector (meters per second in system coordinates)
      */
@@ -662,6 +708,31 @@ public class Body extends NonCopyable implements ConstBody {
         float vy = getLinearVelocityY(bodyVa);
         float vz = getLinearVelocityZ(bodyVa);
         Vec3 result = new Vec3(vx, vy, vz);
+
+        return result;
+    }
+
+    /**
+     * Access the body's motion properties.
+     *
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null} if none
+     */
+    @Override
+    public MotionProperties getMotionProperties() {
+        MotionProperties result;
+        long bodyVa = va();
+        if (isStatic(bodyVa)) {
+            result = null;
+        } else {
+            long propertiesVa = getMotionProperties(bodyVa);
+            JoltPhysicsObject container = getContainingObject();
+            if (isSoftBody(bodyVa)) {
+                result = new SoftBodyMotionProperties(container, propertiesVa);
+            } else {
+                result = new MotionProperties(container, propertiesVa);
+            }
+        }
 
         return result;
     }
@@ -694,8 +765,8 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Return the location of the body's origin (which might not coincide with
-     * its center of mass). The body is unaffected.
+     * Copy the location of the body's origin (which might not coincide with its
+     * center of mass). The body is unaffected.
      *
      * @return a new location vector (in system coordinates, all components
      * finite)
@@ -719,6 +790,31 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
+     * Copy the position of the body. The body is unaffected.
+     *
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
+     */
+    @Override
+    public void getPositionAndRotation(
+            RVec3 storeLocation, Quat storeOrientation) {
+        long bodyVa = va();
+
+        double xx = getPositionX(bodyVa);
+        double yy = getPositionY(bodyVa);
+        double zz = getPositionZ(bodyVa);
+        storeLocation.set(xx, yy, zz);
+
+        float qx = getRotationX(bodyVa);
+        float qy = getRotationY(bodyVa);
+        float qz = getRotationZ(bodyVa);
+        float qw = getRotationW(bodyVa);
+        storeOrientation.set(qx, qy, qz, qw);
+    }
+
+    /**
      * Return the body's restitution ratio. The body is unaffected.
      *
      * @return the value (typically &ge;0 and &le;1)
@@ -732,26 +828,7 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Return the surface normal of a particular sub shape and its world space
-     * surface position on this body.
-     *
-     * @param subShapeId the sub shape
-     * @param position the world position on the surface
-     *
-     * @return a new surface normal
-     */
-    @Override
-    public Vec3 getWorldSpaceSurfaceNormal(
-            SubShapeId subShapeId, RVec3Arg position) {
-        long bodyVa = va();
-        long subShapeIdVa = subShapeId.va();
-
-        return getWorldSpaceSurfaceNormal(bodyVa, subShapeIdVa,
-                position.xx(), position.yy(), position.zz());
-    }
-
-    /**
-     * Return the body's orientation. The body is unaffected.
+     * Copy the body's orientation. The body is unaffected.
      *
      * @return a new rotation quaternion (relative to the system axes)
      */
@@ -783,6 +860,36 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
+     * Generate settings to reconstruct the (soft) body. The body is unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public SoftBodyCreationSettings getSoftBodyCreationSettings() {
+        long bodyVa = va();
+        long settingsVa = getSoftBodyCreationSettings(bodyVa);
+        SoftBodyCreationSettings result
+                = new SoftBodyCreationSettings(settingsVa, true);
+
+        return result;
+    }
+
+    /**
+     * Convert the body to a {@code TransformedShape} object. The body is
+     * unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public TransformedShape getTransformedShape() {
+        long bodyVa = va();
+        long shapeVa = getTransformedShape(bodyVa);
+        TransformedShape result = new TransformedShape(shapeVa, true);
+
+        return result;
+    }
+
+    /**
      * Return the body's user data: can be used for anything. The body is
      * unaffected.
      *
@@ -809,6 +916,27 @@ public class Body extends NonCopyable implements ConstBody {
         JoltPhysicsObject container = getContainingObject();
         ConstAaBox result = new AaBox(container, boxVa);
 
+        return result;
+    }
+
+    /**
+     * Copy the surface normal of a particular sub shape at the specified
+     * location.
+     *
+     * @param subShapeId the ID of the sub-shape to use
+     * @param location the location to use (not null, unaffected)
+     * @return a new direction vector
+     */
+    @Override
+    public Vec3 getWorldSpaceSurfaceNormal(int subShapeId, RVec3Arg location) {
+        long bodyVa = va();
+        double xx = location.xx();
+        double yy = location.yy();
+        double zz = location.zz();
+        FloatBuffer storeFloats = Jolt.newDirectFloatBuffer(3);
+        getWorldSpaceSurfaceNormal(bodyVa, subShapeId, xx, yy, zz, storeFloats);
+
+        Vec3 result = new Vec3(storeFloats);
         return result;
     }
 
@@ -893,7 +1021,7 @@ public class Body extends NonCopyable implements ConstBody {
     }
 
     /**
-     * Test whether the body is a sensor. The body is unaffected.
+     * Test whether the body is a sensor. It is unaffected.
      *
      * @return {@code true} if a sensor, otherwise {@code false}
      */
@@ -901,6 +1029,19 @@ public class Body extends NonCopyable implements ConstBody {
     public boolean isSensor() {
         long bodyVa = va();
         boolean result = isSensor(bodyVa);
+
+        return result;
+    }
+
+    /**
+     * Test whether the body is soft. It is unaffected.
+     *
+     * @return {@code true} if soft, otherwise {@code false}
+     */
+    @Override
+    public boolean isSoftBody() {
+        long bodyVa = va();
+        boolean result = isSoftBody(bodyVa);
 
         return result;
     }
@@ -918,7 +1059,7 @@ public class Body extends NonCopyable implements ConstBody {
         return result;
     }
     // *************************************************************************
-    // native private methods
+    // native methods
 
     native private static void addAngularImpulse(
             long bodyVa, float x, float y, float z);
@@ -982,11 +1123,15 @@ public class Body extends NonCopyable implements ConstBody {
 
     native private static long getCenterOfMassTransform(long bodyVa);
 
+    native private static long getCollisionGroup(long bodyVa);
+
     native private static boolean getEnhancedInternalEdgeRemoval(long bodyVa);
 
     native private static float getFriction(long bodyVa);
 
-    native private static long getId(long bodyVa);
+    native static int getId(long bodyVa);
+
+    native private static long getInverseCenterOfMassTransform(long bodyVa);
 
     native private static float getLinearVelocityX(long bodyVa);
 
@@ -1008,10 +1153,6 @@ public class Body extends NonCopyable implements ConstBody {
 
     native private static float getRestitution(long bodyVa);
 
-    native private static Vec3 getWorldSpaceSurfaceNormal(
-            long bodyVa, long shapeIdVa,
-            double xx, double yy, double zz);
-
     native private static float getRotationX(long bodyVa);
 
     native private static float getRotationY(long bodyVa);
@@ -1022,9 +1163,17 @@ public class Body extends NonCopyable implements ConstBody {
 
     native private static long getShape(long bodyVa);
 
+    native private static long getSoftBodyCreationSettings(long bodyVa);
+
+    native private static long getTransformedShape(long bodyVa);
+
     native private static long getUserData(long bodyVa);
 
     native private static long getWorldSpaceBounds(long bodyVa);
+
+    native private static void getWorldSpaceSurfaceNormal(
+            long bodyVa, int subShapeId, double xx, double yy, double zz,
+            FloatBuffer storeFloats);
 
     native private static long getWorldTransform(long bodyVa);
 
@@ -1039,6 +1188,8 @@ public class Body extends NonCopyable implements ConstBody {
     native private static boolean isRigidBody(long bodyVa);
 
     native private static boolean isSensor(long bodyVa);
+
+    native private static boolean isSoftBody(long bodyVa);
 
     native private static boolean isStatic(long bodyVa);
 

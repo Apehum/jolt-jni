@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,45 +28,12 @@ SOFTWARE.
 
 /*
  * Class:     com_github_stephengold_joltjni_std_Std
- * Method:    acos
- * Signature: (F)F
- */
-JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_acos
-  (JNIEnv *, jclass, jfloat ratio) {
-    float result = std::acos(ratio);
-    return result;
-}
-
-/*
- * Class:     com_github_stephengold_joltjni_std_Std
- * Method:    atan
- * Signature: (F)F
- */
-JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_atan
-  (JNIEnv *, jclass, jfloat ratio) {
-    float result = std::atan(ratio);
-    return result;
-}
-
-/*
- * Class:     com_github_stephengold_joltjni_std_Std
- * Method:    cos
- * Signature: (F)F
- */
-JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_cos
-  (JNIEnv *, jclass, jfloat angle) {
-    float result = std::cos(angle);
-    return result;
-}
-
-/*
- * Class:     com_github_stephengold_joltjni_std_Std
  * Method:    exp
  * Signature: (F)F
  */
 JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_exp
   (JNIEnv *, jclass, jfloat value) {
-    float result = std::exp(value);
+    const float result = std::exp(value);
     return result;
 }
 
@@ -77,7 +44,18 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_exp
  */
 JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_fmod
   (JNIEnv *, jclass, jfloat numerator, jfloat denominator) {
-    float result = std::fmod(numerator, denominator);
+    const float result = std::fmod(numerator, denominator);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_std_Std
+ * Method:    hypot
+ * Signature: (FF)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_hypot
+  (JNIEnv *, jclass, jfloat opposite, jfloat adjacent) {
+    const float result = std::hypot(opposite, adjacent);
     return result;
 }
 
@@ -88,18 +66,7 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_fmod
  */
 JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_pow
   (JNIEnv *, jclass, jfloat base, jfloat exponent) {
-    float result = std::pow(base, exponent);
-    return result;
-}
-
-/*
- * Class:     com_github_stephengold_joltjni_std_Std
- * Method:    sin
- * Signature: (F)F
- */
-JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_sin
-  (JNIEnv *, jclass, jfloat angle) {
-    float result = std::sin(angle);
+    const float result = std::pow(base, exponent);
     return result;
 }
 
@@ -110,6 +77,29 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_sin
  */
 JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_std_Std_sqrt
   (JNIEnv *, jclass, jfloat value) {
-    float result = std::sqrt(value);
+    const float result = std::sqrt(value);
     return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_std_Std
+ * Method:    shuffle
+ * Signature: ([IJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_std_Std_shuffle
+  (JNIEnv *pEnv, jclass, jintArray indices, jlong generatorVa) {
+    jboolean isCopy;
+    jint * const pIndices = pEnv->GetIntArrayElements(indices, &isCopy);
+    const jsize numIndices = pEnv->GetArrayLength(indices);
+    JPH::Array<jint> arr(numIndices);
+    for (jsize i = 0; i < numIndices; ++i) {
+        arr[i] = pIndices[i];
+    }
+    std::default_random_engine * const pGenerator
+            = reinterpret_cast<std::default_random_engine *> (generatorVa);
+    std::shuffle(arr.begin(), arr.end(), *pGenerator);
+    for (jsize i = 0; i < numIndices; ++i) {
+        pIndices[i] = arr[i];
+    }
+    pEnv->ReleaseIntArrayElements(indices, pIndices, 0);
 }

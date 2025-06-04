@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -47,27 +47,32 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSett
 
 /*
  * Class:     com_github_stephengold_joltjni_VehicleConstraintSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSettings_createCopy
+  BODYOF_CREATE_COPY(VehicleConstraintSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleConstraintSettings
  * Method:    createDefault
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSettings_createDefault
-  (JNIEnv *, jclass) {
-    VehicleConstraintSettings * const pResult = new VehicleConstraintSettings();
-    TRACE_NEW("VehicleConstraintSettings", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(VehicleConstraintSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_VehicleConstraintSettings
- * Method:    getMaxPitchRollAngle
- * Signature: (J)F
+ * Method:    getAntiRollBar
+ * Signature: (JI)J
  */
-JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSettings_getMaxPitchRollAngle
-  (JNIEnv *, jclass, jlong settingsVa) {
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSettings_getAntiRollBar
+  (JNIEnv *, jclass, jlong settingsVa, jint index) {
     VehicleConstraintSettings * const pSettings
             = reinterpret_cast<VehicleConstraintSettings *> (settingsVa);
-    const float result = pSettings->mMaxPitchRollAngle;
-    return result;
+    VehicleAntiRollBar * const pResult
+            = &pSettings->mAntiRollBars[index];
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*
@@ -106,6 +111,32 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSe
     const VehicleConstraintSettings * const pSettings
             = reinterpret_cast<VehicleConstraintSettings *> (settingsVa);
     const float result = pSettings->mForward.GetZ();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleConstraintSettings
+ * Method:    getMaxPitchRollAngle
+ * Signature: (J)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSettings_getMaxPitchRollAngle
+  (JNIEnv *, jclass, jlong settingsVa) {
+    const VehicleConstraintSettings * const pSettings
+            = reinterpret_cast<VehicleConstraintSettings *> (settingsVa);
+    const float result = pSettings->mMaxPitchRollAngle;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleConstraintSettings
+ * Method:    getNumAntiRollBars
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSettings_getNumAntiRollBars
+  (JNIEnv *, jclass, jlong settingsVa) {
+    const VehicleConstraintSettings * const pSettings
+            = reinterpret_cast<VehicleConstraintSettings *> (settingsVa);
+    const size_t result = pSettings->mAntiRollBars.size();
     return result;
 }
 
@@ -186,6 +217,18 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSett
     VehicleConstraintSettings * const pSettings
             = reinterpret_cast<VehicleConstraintSettings *> (settingsVa);
     pSettings->mMaxPitchRollAngle = angle;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_VehicleConstraintSettings
+ * Method:    setNumAntiRollBars
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_VehicleConstraintSettings_setNumAntiRollBars
+  (JNIEnv *, jclass, jlong settingsVa, jint count) {
+    VehicleConstraintSettings * const pSettings
+            = reinterpret_cast<VehicleConstraintSettings *> (settingsVa);
+    pSettings->mAntiRollBars.resize(count);
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,6 +41,14 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_assign
     const RMat44 * const pSource = reinterpret_cast<RMat44 *> (sourceVa);
     *pTarget = *pSource;
 }
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_createCopy
+  BODYOF_CREATE_COPY(RMat44)
 
 /*
  * Class:     com_github_stephengold_joltjni_RMat44
@@ -89,6 +97,20 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_createIdentit
 
 /*
  * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    createRotation
+ * Signature: (FFFF)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_createRotation
+  (JNIEnv *, jclass, jfloat rx, jfloat ry, jfloat rz, jfloat rw) {
+    const Quat quat(rx, ry, rz, rw);
+    RMat44 * const pResult = new RMat44();
+    TRACE_NEW("RMat44", pResult)
+    *pResult = RMat44::sRotation(quat);
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
  * Method:    createRotationTranslation
  * Signature: (FFFFDDD)J
  */
@@ -100,6 +122,20 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_createRotatio
     const RMat44 matrix = RMat44::sRotationTranslation(rotation, offset);
     RMat44 * const pResult = new RMat44(matrix);
     TRACE_NEW("RMat44", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    createScale
+ * Signature: (FFF)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_createScale
+  (JNIEnv *, jclass, jfloat sx, jfloat sy, jfloat sz) {
+    const Vec3 factors(sx, sy, sz);
+    RMat44 * const pResult = new RMat44();
+    TRACE_NEW("RMat44", pResult)
+    *pResult = RMat44::sScale(factors);
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -123,11 +159,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_createTransla
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_createUninitialized
-  (JNIEnv *, jclass) {
-    RMat44 * const pResult = new RMat44();
-    TRACE_NEW("RMat44", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(RMat44)
 
 /*
  * Class:     com_github_stephengold_joltjni_RMat44
@@ -160,11 +192,7 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_RMat44_equals
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_free
-  (JNIEnv *, jclass, jlong matrixVa) {
-    RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
-    TRACE_DELETE("RMat44", pMatrix)
-    delete pMatrix;
-}
+  BODYOF_FREE(RMat44)
 
 /*
  * Class:     com_github_stephengold_joltjni_RMat44
@@ -174,7 +202,16 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_free
 JNIEXPORT jdouble JNICALL Java_com_github_stephengold_joltjni_RMat44_getElement
   (JNIEnv *, jclass, jlong matrixVa, jint row, jint column) {
     const RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
-    const Real result = pMatrix->GetColumn4(column)[row];
+    Real result;
+    if (column == 3) {
+        if (row == 3) {
+            result = 1;
+        } else {
+            result = pMatrix->GetTranslation()[row];
+        }
+    } else {
+        result = pMatrix->GetColumn4(column)[row];
+    }
     return result;
 }
 
@@ -249,16 +286,65 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_inversed
 
 /*
  * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    inversedRotationTranslation
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_inversedRotationTranslation
+  (JNIEnv *, jclass, jlong currentVa) {
+    const RMat44 * const pCurrent = reinterpret_cast<RMat44 *> (currentVa);
+    RMat44 * const pResult = new RMat44();
+    TRACE_NEW("RMat44", pResult)
+    *pResult = pCurrent->InversedRotationTranslation();
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    isIdentity
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_RMat44_isIdentity
+  (JNIEnv *, jclass, jlong matrixVa) {
+    const RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
+    const bool result = (*pMatrix == RMat44::sIdentity());
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    leftMultiplyInPlace
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_leftMultiplyInPlace
+  (JNIEnv *, jclass, jlong currentVa, jlong leftVa) {
+    RMat44 * const pCurrent = reinterpret_cast<RMat44 *> (currentVa);
+    const RMat44 * const pLeft = reinterpret_cast<RMat44 *> (leftVa);
+    *pCurrent = (*pLeft) * (*pCurrent);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    loadIdentity
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_loadIdentity
+  (JNIEnv *, jclass, jlong matrixVa) {
+    RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
+    *pMatrix = RMat44::sIdentity();
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
  * Method:    multiply
  * Signature: (JJ)J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_multiply
-  (JNIEnv *, jclass, jlong m1Va, jlong m2Va) {
-    const RMat44 * const pM1 = reinterpret_cast<RMat44 *> (m1Va);
-    const RMat44 * const pM2 = reinterpret_cast<RMat44 *> (m2Va);
+  (JNIEnv *, jclass, jlong leftVa, jlong rightVa) {
+    const RMat44 * const pLeft = reinterpret_cast<RMat44 *> (leftVa);
+    const RMat44 * const pRight = reinterpret_cast<RMat44 *> (rightVa);
     RMat44 * const pResult = new RMat44();
     TRACE_NEW("RMat44", pResult)
-    *pResult = (*pM1) * (*pM2);
+    *pResult = (*pLeft) * (*pRight);
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -306,16 +392,16 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_multiply3x3Tra
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_multiply3x4
   (JNIEnv *pEnv, jclass, jlong matrixVa, jfloat x, jfloat y, jfloat z,
-  jdoubleArray array) {
+  jdoubleArray storeDoubles) {
     const RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
     jboolean isCopy;
-    jdouble * const pArray = pEnv->GetDoubleArrayElements(array, &isCopy);
+    jdouble * const pArray = pEnv->GetDoubleArrayElements(storeDoubles, &isCopy);
     const Vec3 v(x, y, z);
     const RVec3 result = (*pMatrix) * v;
     pArray[0] = result.GetX();
     pArray[1] = result.GetY();
     pArray[2] = result.GetZ();
-    pEnv->ReleaseDoubleArrayElements(array, pArray, 0);
+    pEnv->ReleaseDoubleArrayElements(storeDoubles, pArray, 0);
 }
 
 /*
@@ -339,25 +425,172 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_multiply3x4r
 
 /*
  * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    multiplyBySp
+ * Signature: (JJ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_multiplyBySp
+  (JNIEnv *, jclass, jlong leftVa, jlong rightVa) {
+    const RMat44 * const pLeft = reinterpret_cast<RMat44 *> (leftVa);
+    const Mat44 * const pRight = reinterpret_cast<Mat44 *> (rightVa);
+    RMat44 * const pResult = new RMat44();
+    TRACE_NEW("RMat44", pResult)
+    *pResult = (*pLeft) * (*pRight);
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    postTranslated
+ * Signature: (JDDD)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_postTranslated
+  (JNIEnv *, jclass, jlong matrixVa, jdouble xx, jdouble yy, jdouble zz) {
+    const RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
+    const RVec3 offset(xx, yy, zz);
+    RMat44 * const pResult = new RMat44();
+    TRACE_NEW("RMat44", pResult)
+    *pResult = pMatrix->PostTranslated(offset);
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    postTranslatedSp
+ * Signature: (JFFF)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_postTranslatedSp
+  (JNIEnv *, jclass, jlong matrixVa, jfloat x, jfloat y, jfloat z) {
+    const RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
+    const Vec3 offset(x, y, z);
+    RMat44 * const pResult = new RMat44();
+    TRACE_NEW("RMat44", pResult)
+    *pResult = pMatrix->PostTranslated(offset);
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    put3x3ColumnMajor
+ * Signature: (JILjava/nio/FloatBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_put3x3ColumnMajor
+  (JNIEnv *pEnv, jclass, jlong matrixVa, jint position, jobject storeBuffer) {
+    const Mat44 * const pMatrix = reinterpret_cast<Mat44 *> (matrixVa);
+    jfloat * const pBuffer
+            = (jfloat *) pEnv->GetDirectBufferAddress(storeBuffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(storeBuffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    for (size_t c = 0; c < 3; ++c) {
+        const size_t baseIndex = position + 3 * c;
+        for (size_t r = 0; r < 3; ++r) {
+            if (baseIndex + r >= capacityFloats) {
+                break;
+            }
+            pBuffer[baseIndex + r] = (*pMatrix)(r, c);
+        }
+    }
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    putColumnMajor
+ * Signature: (JILjava/nio/FloatBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_putColumnMajor
+  (JNIEnv *pEnv, jclass, jlong matrixVa, jint position, jobject storeBuffer) {
+    const Mat44 * const pMatrix = reinterpret_cast<Mat44 *> (matrixVa);
+    jfloat * const pBuffer
+            = (jfloat *) pEnv->GetDirectBufferAddress(storeBuffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(storeBuffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    for (size_t c = 0; c < 4; ++c) {
+        const size_t baseIndex = position + 4 * c;
+        for (size_t r = 0; r < 4; ++r) {
+            if (baseIndex + r >= capacityFloats) {
+                break;
+            }
+            pBuffer[baseIndex + r] = (*pMatrix)(r, c);
+        }
+    }
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    rightMultiplyInPlace
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_rightMultiplyInPlace
+  (JNIEnv *, jclass, jlong currentVa, jlong rightVa) {
+    RMat44 * const pCurrent = reinterpret_cast<RMat44 *> (currentVa);
+    const RMat44 * const pRight = reinterpret_cast<RMat44 *> (rightVa);
+    *pCurrent = (*pCurrent) * (*pRight);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    setAxisX
+ * Signature: (JFFF)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_setAxisX
+  (JNIEnv *, jclass, jlong matrixVa, jfloat x , jfloat y, jfloat z) {
+    RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
+    const Vec3 vec(x, y, z);
+    pMatrix->SetAxisX(vec);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    setAxisY
+ * Signature: (JFFF)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_setAxisY
+  (JNIEnv *, jclass, jlong matrixVa, jfloat x , jfloat y, jfloat z) {
+    RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
+    const Vec3 vec(x, y, z);
+    pMatrix->SetAxisY(vec);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
+ * Method:    setAxisZ
+ * Signature: (JFFF)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_setAxisZ
+  (JNIEnv *, jclass, jlong matrixVa, jfloat x , jfloat y, jfloat z) {
+    RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
+    const Vec3 vec(x, y, z);
+    pMatrix->SetAxisZ(vec);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RMat44
  * Method:    setElement
  * Signature: (JIID)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_setElement
   (JNIEnv *, jclass, jlong matrixVa, jint row, jint column, jdouble value) {
     RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
-    pMatrix->GetColumn4(column)[row] = value;
+    if (column == 3) {
+        if (row < 3) {
+            RVec3 copy = pMatrix->GetTranslation();
+            copy.SetComponent(row, value);
+            pMatrix->SetTranslation(copy);
+        }
+    } else {
+        pMatrix->GetColumn4(column)[row] = value;
+    }
 }
 
 /*
  * Class:     com_github_stephengold_joltjni_RMat44
- * Method:    sRotation
- * Signature: (FFFF)J
+ * Method:    setTranslation
+ * Signature: (JDDD)V
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RMat44_sRotation
-  (JNIEnv *, jclass, jfloat rx, jfloat ry, jfloat rz, jfloat rw) {
-    const Quat quat(rx, ry, rz, rw);
-    RMat44 * const pResult = new RMat44();
-    TRACE_NEW("RMat44", pResult)
-    *pResult = RMat44::sRotation(quat);
-    return reinterpret_cast<jlong> (pResult);
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RMat44_setTranslation
+  (JNIEnv *, jclass, jlong matrixVa, jdouble xx, jdouble yy, jdouble zz) {
+    RMat44 * const pMatrix = reinterpret_cast<RMat44 *> (matrixVa);
+    const RVec3 offset(xx, yy, zz);
+    pMatrix->SetTranslation(offset);
 }

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,20 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_MotorSettings
+ * Method:    createLimited
+ * Signature: (FFFF)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MotorSettings_createLimited
+  (JNIEnv *, jclass, jfloat frequency, jfloat damping, jfloat forceLimit,
+  jfloat torqueLimit) {
+    MotorSettings * const pResult
+            = new MotorSettings(frequency, damping, forceLimit, torqueLimit);
+    TRACE_NEW("MotorSettings", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_MotorSettings
  * Method:    createUnlimited
  * Signature: (FF)J
  */
@@ -48,12 +62,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MotorSettings_create
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_MotorSettings_free
-  (JNIEnv *, jclass, jlong settingsVa) {
-    MotorSettings * const pSettings
-            = reinterpret_cast<MotorSettings *> (settingsVa);
-    TRACE_DELETE("MotorSettings", pSettings)
-    delete pSettings;
-}
+  BODYOF_FREE(MotorSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_MotorSettings

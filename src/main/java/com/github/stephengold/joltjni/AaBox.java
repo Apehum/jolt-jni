@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.readonly.ConstAaBox;
+import com.github.stephengold.joltjni.readonly.RVec3Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
 
 /**
@@ -37,7 +38,7 @@ final public class AaBox extends JoltPhysicsObject implements ConstAaBox {
      * Instantiate an invalid box.
      */
     public AaBox() {
-        long boxVa = createAaBox();
+        long boxVa = createDefault();
         setVirtualAddress(boxVa, () -> free(boxVa));
     }
 
@@ -63,6 +64,38 @@ final public class AaBox extends JoltPhysicsObject implements ConstAaBox {
     AaBox(long boxVa, boolean owner) {
         Runnable freeingAction = owner ? () -> free(boxVa) : null;
         setVirtualAddress(boxVa, freeingAction);
+    }
+
+    /**
+     * Instantiate a box with the specified minimum and maximum coordinates.
+     *
+     * @param minimum the desired minimum coordinates (not null, unaffected)
+     * @param maximum the desired maximum coordinates (not null, unaffected)
+     */
+    public AaBox(RVec3Arg minimum, RVec3Arg maximum) {
+        float minX = minimum.x();
+        float minY = minimum.y();
+        float minZ = minimum.z();
+        float maxX = maximum.x();
+        float maxY = maximum.y();
+        float maxZ = maximum.z();
+        long boxVa = createAaBox(minX, minY, minZ, maxX, maxY, maxZ);
+        setVirtualAddress(boxVa, () -> free(boxVa));
+    }
+
+    /**
+     * Instantiate a cubic box with the specified center coordinates and half
+     * extent.
+     *
+     * @param center the desired center coordinates (not null, unaffected)
+     * @param halfExtent the desired half extent
+     */
+    public AaBox(Vec3Arg center, float halfExtent) {
+        float cx = center.getX();
+        float cy = center.getY();
+        float cz = center.getZ();
+        long boxVa = createCubic(cx, cy, cz, halfExtent);
+        setVirtualAddress(boxVa, () -> free(boxVa));
     }
 
     /**
@@ -117,7 +150,7 @@ final public class AaBox extends JoltPhysicsObject implements ConstAaBox {
      * @return a new JVM object with a new native object assigned
      */
     public static AaBox sBiggest() {
-        long boxVa = sBiggest(true);
+        long boxVa = createBiggest();
         AaBox result = new AaBox(boxVa, true);
 
         return result;
@@ -157,6 +190,19 @@ final public class AaBox extends JoltPhysicsObject implements ConstAaBox {
         float y = min.getY();
         float z = min.getZ();
         setMin(boxVa, x, y, z);
+    }
+
+    /**
+     * Move by the specified offset.
+     *
+     * @param offset the amount to move (not null, unaffected)
+     */
+    public void translate(Vec3Arg offset) {
+        long boxVa = va();
+        float x = offset.getX();
+        float y = offset.getY();
+        float z = offset.getZ();
+        translate(boxVa, x, y, z);
     }
     // *************************************************************************
     // ConstAaBox methods
@@ -292,10 +338,15 @@ final public class AaBox extends JoltPhysicsObject implements ConstAaBox {
     native private static boolean contains(
             long boxVa, float x, float y, float z);
 
-    native private static long createAaBox();
-
     native private static long createAaBox(float minX, float minY, float minZ,
             float maxX, float maxY, float maxZ);
+
+    native private static long createBiggest();
+
+    native private static long createCubic(
+            float centerX, float centerY, float centerZ, float halfExtent);
+
+    native private static long createDefault();
 
     native private static void encapsulate(
             long boxVa, float locX, float locY, float locZ);
@@ -339,11 +390,11 @@ final public class AaBox extends JoltPhysicsObject implements ConstAaBox {
 
     native private static boolean isValid(long boxVa);
 
-    native private static long sBiggest(boolean unused);
-
     native private static void setEmpty(long boxVa);
 
     native private static void setMax(long boxVa, float x, float y, float z);
 
     native private static void setMin(long boxVa, float x, float y, float z);
+
+    native private static void translate(long boxVa, float x, float y, float z);
 }

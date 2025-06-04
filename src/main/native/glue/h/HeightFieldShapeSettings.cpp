@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,22 @@ SOFTWARE.
 #include "glue/glue.h"
 
 using namespace JPH;
+
+/*
+ * Class:     com_github_stephengold_joltjni_HeightFieldShapeSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_HeightFieldShapeSettings_createCopy
+  BODYOF_CREATE_COPY(HeightFieldShapeSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_HeightFieldShapeSettings
+ * Method:    createDefault
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_HeightFieldShapeSettings_createDefault
+  BODYOF_CREATE_DEFAULT(HeightFieldShapeSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_HeightFieldShapeSettings
@@ -73,6 +89,10 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_HeightFieldShapeSett
   jbyteArray materialIndices, jlong listVa) {
     const float * const pFloats
             = (float *) pEnv->GetDirectBufferAddress(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    JPH_ASSERT(capacityFloats >= sampleCount * sampleCount);
     const Vec3 offset(offsetX, offsetY, offsetZ);
     const Vec3 scale(scaleX, scaleY, scaleZ);
     jboolean isCopy;

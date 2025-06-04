@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +68,7 @@ public class CharacterBaseSettings
     }
 
     /**
-     * Alter the maximum slope on which the character can walk. (native
+     * Alter the maximum slope that the character can walk on. (native
      * attribute: mMaxSlopeAngle)
      *
      * @param angle (in radians, default=5*Pi/18)
@@ -81,7 +81,7 @@ public class CharacterBaseSettings
     /**
      * Replace the shape. (native attribute: mShape)
      *
-     * @param shape the desired shape (not null, unaffected)
+     * @param shape the desired shape (not null, unaffected, default=null)
      */
     public void setShape(ConstShape shape) {
         long settingsVa = va();
@@ -90,19 +90,10 @@ public class CharacterBaseSettings
     }
 
     /**
-     * Replace the shape. (native attribute: mShape)
-     *
-     * @param shapeRef a reference to the desired shape (not null)
-     */
-    public void setShape(ShapeRefC shapeRef) {
-        ConstShape shape = shapeRef.getPtr();
-        setShape(shape);
-    }
-
-    /**
      * Alter the supporting volume. (native attribute: mSupportingVolume)
      *
-     * @param plane (not null, default={(0,1,0),-1e10})
+     * @param plane the desired plane of support (not null, unaffected,
+     * default={(0,1,0),-1e10})
      */
     public void setSupportingVolume(ConstPlane plane) {
         long settingsVa = va();
@@ -145,8 +136,8 @@ public class CharacterBaseSettings
     }
 
     /**
-     * Return the maximum slope on which the character can walk. The settings
-     * are unaffected. (native attribute: mMaxSlopeAngle)
+     * Return the maximum slope that the character can walk on. The settings are
+     * unaffected. (native attribute: mMaxSlopeAngle)
      *
      * @return the angle (in radians)
      */
@@ -159,8 +150,7 @@ public class CharacterBaseSettings
     }
 
     /**
-     * Acquire read-only access to the {@code Shape}. The settings are
-     * unaffected. (native attribute: mShape)
+     * Access the {@code Shape}. (native attribute: mShape)
      *
      * @return a new JVM object with the pre-existing native object assigned, or
      * {@code null}
@@ -175,10 +165,10 @@ public class CharacterBaseSettings
     }
 
     /**
-     * Return the supporting volume. The settings are unaffected. (native
+     * Copy the supporting volume. The settings are unaffected. (native
      * attribute: mSupportingVolume)
      *
-     * @return a new JVM object with the pre-existing native object assigned
+     * @return a new object
      */
     @Override
     public Plane getSupportingVolume() {
@@ -193,8 +183,8 @@ public class CharacterBaseSettings
     }
 
     /**
-     * Return the character's "up" direction. The settings are unaffected.
-     * (native attribute: mUp)
+     * Copy the character's "up" direction. The settings are unaffected. (native
+     * attribute: mUp)
      *
      * @return a new direction vector (in system coordinates)
      */

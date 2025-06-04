@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,16 +33,14 @@ using namespace JPH;
 /*
  * Class:     com_github_stephengold_joltjni_CollideShapeResult
  * Method:    getBodyId2
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_getBodyId2
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_getBodyId2
   (JNIEnv *, jclass, jlong shapeResultVa) {
     const CollideShapeResult * const pShapeResult
             = reinterpret_cast<CollideShapeResult *> (shapeResultVa);
-    const BodyID id = pShapeResult->mBodyID2;
-    BodyID * const pResult = new BodyID(id);
-    TRACE_NEW("BodyID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const BodyID result = pShapeResult->mBodyID2;
+    return result.GetIndexAndSequenceNumber();
 }
 
 /*
@@ -177,28 +175,52 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_
 
 /*
  * Class:     com_github_stephengold_joltjni_CollideShapeResult
- * Method:    getSubShapeId1
+ * Method:    getShape1Face
  * Signature: (J)J
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_getSubShapeId1
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_getShape1Face
+  (JNIEnv *, jclass, jlong shapeResultVa) {
+    CollideShapeResult * const pShapeResult
+            = reinterpret_cast<CollideShapeResult *> (shapeResultVa);
+    CollideShapeResult::Face& result = pShapeResult->mShape1Face;
+    return reinterpret_cast<jlong> (&result);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_CollideShapeResult
+ * Method:    getShape2Face
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_getShape2Face
+  (JNIEnv *, jclass, jlong shapeResultVa) {
+    CollideShapeResult * const pShapeResult
+            = reinterpret_cast<CollideShapeResult *> (shapeResultVa);
+    CollideShapeResult::Face& result = pShapeResult->mShape2Face;
+    return reinterpret_cast<jlong> (&result);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_CollideShapeResult
+ * Method:    getSubShapeId1
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_getSubShapeId1
   (JNIEnv *, jclass, jlong shapeResultVa) {
     const CollideShapeResult * const pShapeResult
             = reinterpret_cast<CollideShapeResult *> (shapeResultVa);
-    SubShapeID * const pResult = new SubShapeID(pShapeResult->mSubShapeID1);
-    TRACE_NEW("SubShapeID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const SubShapeID result = pShapeResult->mSubShapeID1;
+    return result.GetValue();
 }
 
 /*
  * Class:     com_github_stephengold_joltjni_CollideShapeResult
  * Method:    getSubShapeId2
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_getSubShapeId2
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_CollideShapeResult_getSubShapeId2
   (JNIEnv *, jclass, jlong shapeResultVa) {
     const CollideShapeResult * const pShapeResult
             = reinterpret_cast<CollideShapeResult *> (shapeResultVa);
-    SubShapeID * const pResult = new SubShapeID(pShapeResult->mSubShapeID2);
-    TRACE_NEW("SubShapeID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const SubShapeID result = pShapeResult->mSubShapeID2;
+    return result.GetValue();
 }

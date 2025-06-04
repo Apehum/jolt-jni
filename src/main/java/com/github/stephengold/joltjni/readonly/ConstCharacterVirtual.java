@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,11 +21,12 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni.readonly;
 
-import com.github.stephengold.joltjni.BodyId;
-import com.github.stephengold.joltjni.ContactList;
+import com.github.stephengold.joltjni.CharacterVirtualRefC;
+import com.github.stephengold.joltjni.CharacterVirtualSettings;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RMat44;
 import com.github.stephengold.joltjni.RVec3;
+import com.github.stephengold.joltjni.TransformedShape;
 import com.github.stephengold.joltjni.Vec3;
 
 /**
@@ -35,9 +36,6 @@ import com.github.stephengold.joltjni.Vec3;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstCharacterVirtual extends ConstCharacterBase {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Convert the specified velocity to one that won't climb steep slopes. The
      * character is unaffected.
@@ -59,11 +57,11 @@ public interface ConstCharacterVirtual extends ConstCharacterBase {
     boolean canWalkStairs(Vec3Arg desiredVelocity);
 
     /**
-     * Access the list of contacts. The character is unaffected.
+     * Copy the list of active contacts. The character is unaffected.
      *
-     * @return a new JVM object with the pre-existing native object assigned
+     * @return a new array of new objects
      */
-    ContactList getActiveContacts();
+    ConstContact[] getActiveContacts();
 
     /**
      * Calculate the location of the character's center of mass. The character
@@ -90,6 +88,14 @@ public interface ConstCharacterVirtual extends ConstCharacterBase {
     float getCharacterPadding();
 
     /**
+     * Generate settings to reconstruct the character. The character is
+     * unaffected.
+     *
+     * @return a new object
+     */
+    CharacterVirtualSettings getCharacterVirtualSettings();
+
+    /**
      * Test whether enhanced internal edge removal is enabled. The character is
      * unaffected.
      *
@@ -107,14 +113,21 @@ public interface ConstCharacterVirtual extends ConstCharacterBase {
     float getHitReductionCosMaxAngle();
 
     /**
-     * Return the ID of the inner body. The character is unaffected.
+     * Return the character's ID. The character is unaffected.
      *
-     * @return the ID, or {@code null} if none
+     * @return a {@code CharacterId} value
      */
-    BodyId getInnerBodyId();
+    int getId();
 
     /**
-     * Return the linear velocity of the character. The character is unaffected.
+     * Return the ID of the inner body. The character is unaffected.
+     *
+     * @return the {@code BodyID} value
+     */
+    int getInnerBodyId();
+
+    /**
+     * Copy the linear velocity of the character. The character is unaffected.
      *
      * @return a new velocity vector (meters per second in system coordinates)
      */
@@ -166,6 +179,16 @@ public interface ConstCharacterVirtual extends ConstCharacterBase {
     RVec3 getPosition();
 
     /**
+     * Copy the position of the character. The character is unaffected.
+     *
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
+     */
+    void getPositionAndRotation(RVec3 storeLocation, Quat storeOrientation);
+
+    /**
      * Copy the orientation of the character. The character is unaffected.
      *
      * @return a new rotation quaternion (in system coordinates)
@@ -178,6 +201,14 @@ public interface ConstCharacterVirtual extends ConstCharacterBase {
      * @return a new offset vector (in local coordinates)
      */
     Vec3 getShapeOffset();
+
+    /**
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character. The character is unaffected.
+     *
+     * @return a new object
+     */
+    TransformedShape getTransformedShape();
 
     /**
      * Return the character's user data: can be used for anything. The character
@@ -200,18 +231,26 @@ public interface ConstCharacterVirtual extends ConstCharacterBase {
      * specified body during the previous time step. The character is
      * unaffected.
      *
-     * @param bodyId the ID of the body to test against (not null, unaffected)
+     * @param bodyId the ID of the body to test against
      * @return {@code true} if contact or collision, otherwise {@code false}
      */
-    boolean hasCollidedWith(ConstBodyId bodyId);
+    boolean hasCollidedWith(int bodyId);
 
     /**
      * Test whether the character is in contact with or has collided with the
      * specified character during the previous time step. The current character
      * is unaffected.
      *
-     * @param other the character to test against (not null, unaffected)
+     * @param otherCharacter the character to test against (not null,
+     * unaffected)
      * @return {@code true} if contact or collision, otherwise {@code false}
      */
-    boolean hasCollidedWith(ConstCharacterVirtual other);
+    boolean hasCollidedWith(ConstCharacterVirtual otherCharacter);
+
+    /**
+     * Create a counted reference to the native {@code CharacterVirtual}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
+    CharacterVirtualRefC toRefC();
 }

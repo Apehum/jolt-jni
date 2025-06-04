@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,17 @@ public class GroupFilterTable extends GroupFilter {
     }
 
     /**
+     * Instantiate a copy of the specified filter.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public GroupFilterTable(GroupFilterTable original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not the owner due to ref counting
+    }
+
+    /**
      * Create a default filter with the specified number of subgroups.
      * Collisions will be enabled except when the sub-group IDs are equal.
      *
@@ -66,8 +77,12 @@ public class GroupFilterTable extends GroupFilter {
      *
      * @param subGroup1 the ID of the first subgroup
      * @param subGroup2 the ID of the 2nd subgroup
+     * @throws IllegalArgumentException if {@code subGroup1 == subGroup2}
      */
     public void disableCollision(int subGroup1, int subGroup2) {
+        if (subGroup1 == subGroup2) {
+            throw new IllegalArgumentException("subgroups must be distinct");
+        }
         long filterVa = va();
         disableCollision(filterVa, subGroup1, subGroup2);
     }
@@ -77,8 +92,12 @@ public class GroupFilterTable extends GroupFilter {
      *
      * @param subGroup1 the ID of the first subgroup
      * @param subGroup2 the ID of the 2nd subgroup
+     * @throws IllegalArgumentException if {@code subGroup1 == subGroup2}
      */
     public void enableCollision(int subGroup1, int subGroup2) {
+        if (subGroup1 == subGroup2) {
+            throw new IllegalArgumentException("subgroups must be distinct");
+        }
         long filterVa = va();
         enableCollision(filterVa, subGroup1, subGroup2);
     }
@@ -100,6 +119,8 @@ public class GroupFilterTable extends GroupFilter {
     }
     // *************************************************************************
     // native methods
+
+    native private static long createCopy(long originalVa);
 
     native private static long createFilter(int numSubGroups);
 

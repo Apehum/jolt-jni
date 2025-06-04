@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@ SOFTWARE.
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Body/Body.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
+#include "Jolt/Physics/Collision/Shape/SubShapeID.h"
+#include "Jolt/Physics/SoftBody/SoftBodyCreationSettings.h"
 
 #include "auto/com_github_stephengold_joltjni_Body.h"
 #include "glue/glue.h"
@@ -324,7 +326,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Body_getBroadPhaseLay
   (JNIEnv *, jclass, jlong bodyVa) {
     const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
     BroadPhaseLayer layer = pBody->GetBroadPhaseLayer();
-    jint result = layer.GetValue();
+    const jint result = layer.GetValue();
     return result;
 }
 
@@ -386,6 +388,18 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Body_getCenterOfMass
 
 /*
  * Class:     com_github_stephengold_joltjni_Body
+ * Method:    getCollisionGroup
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Body_getCollisionGroup
+  (JNIEnv *, jclass, jlong bodyVa) {
+    Body * const pBody = reinterpret_cast<Body *> (bodyVa);
+    CollisionGroup * const pResult = &pBody->GetCollisionGroup();
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Body
  * Method:    getEnhancedInternalEdgeRemoval
  * Signature: (J)Z
  */
@@ -411,14 +425,26 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_Body_getFriction
 /*
  * Class:     com_github_stephengold_joltjni_Body
  * Method:    getId
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Body_getId
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Body_getId
   (JNIEnv *, jclass, jlong bodyVa) {
     const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
-    const BodyID &id = pBody->GetID();
-    BodyID * pResult = new BodyID(id);
-    TRACE_NEW("BodyID", pResult)
+    const BodyID result = pBody->GetID();
+    return result.GetIndexAndSequenceNumber();
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Body
+ * Method:    getInverseCenterOfMassTransform
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Body_getInverseCenterOfMassTransform
+  (JNIEnv *, jclass, jlong bodyVa) {
+    const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
+    const RMat44& transform = pBody->GetInverseCenterOfMassTransform();
+    const RMat44 * const pResult = new RMat44(transform);
+    TRACE_NEW("RMat44", pResult)
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -641,6 +667,34 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Body_getShape
 
 /*
  * Class:     com_github_stephengold_joltjni_Body
+ * Method:    getSoftBodyCreationSettings
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Body_getSoftBodyCreationSettings
+  (JNIEnv *, jclass, jlong bodyVa) {
+    const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
+    SoftBodyCreationSettings * const pResult = new SoftBodyCreationSettings();
+    TRACE_NEW("SoftBodyCreationSettings", pResult)
+    *pResult = pBody->GetSoftBodyCreationSettings();
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Body
+ * Method:    getTransformedShape
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Body_getTransformedShape
+  (JNIEnv *, jclass, jlong bodyVa) {
+    const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
+    const TransformedShape& shape = pBody->GetTransformedShape();
+    TransformedShape * const pResult = new TransformedShape(shape);
+    TRACE_NEW("TransformedShape", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Body
  * Method:    getUserData
  * Signature: (J)J
  */
@@ -661,6 +715,30 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Body_getWorldSpaceBo
     const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
     const AABox& result = pBody->GetWorldSpaceBounds();
     return reinterpret_cast<jlong> (&result);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Body
+ * Method:    getWorldSpaceSurfaceNormal
+ * Signature: (JIDDDLjava/nio/FloatBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Body_getWorldSpaceSurfaceNormal
+  (JNIEnv *pEnv, jclass, jlong bodyVa, jint subShapeId, jdouble xx, jdouble yy,
+  jdouble zz, jobject storeFloats) {
+    const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
+    SubShapeID id;
+    id.SetValue(subShapeId);
+    const RVec3 location(xx, yy, zz);
+    jfloat * const pFloats
+            = (jfloat *) pEnv->GetDirectBufferAddress(storeFloats);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(storeFloats);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    JPH_ASSERT(capacityFloats >= 3);
+    const Vec3 result = pBody->GetWorldSpaceSurfaceNormal(id, location);
+    pFloats[0] = result.GetX();
+    pFloats[1] = result.GetY();
+    pFloats[2] = result.GetZ();
 }
 
 /*
@@ -746,6 +824,18 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_Body_isSensor
   (JNIEnv *, jclass, jlong bodyVa) {
     const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
     const bool result = pBody->IsSensor();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Body
+ * Method:    isSoftBody
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_Body_isSoftBody
+  (JNIEnv *, jclass, jlong bodyVa) {
+    const Body * const pBody = reinterpret_cast<Body *> (bodyVa);
+    const bool result = pBody->IsSoftBody();
     return result;
 }
 

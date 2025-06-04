@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,8 @@ import com.github.stephengold.joltjni.BodyCreationSettings;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RMat44;
 import com.github.stephengold.joltjni.RVec3;
-import com.github.stephengold.joltjni.SubShapeId;
+import com.github.stephengold.joltjni.SoftBodyCreationSettings;
+import com.github.stephengold.joltjni.TransformedShape;
 import com.github.stephengold.joltjni.Vec3;
 import com.github.stephengold.joltjni.enumerate.EBodyType;
 import com.github.stephengold.joltjni.enumerate.EMotionType;
@@ -36,9 +37,6 @@ import com.github.stephengold.joltjni.enumerate.EMotionType;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstBody extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Test whether the body could be made kinematic or dynamic. The body is
      * unaffected.
@@ -48,14 +46,14 @@ public interface ConstBody extends ConstJoltPhysicsObject {
     boolean canBeKinematicOrDynamic();
 
     /**
-     * Return the net force acting on the body. The body is unaffected.
+     * Copy the net force acting on the body. The body is unaffected.
      *
      * @return a new force vector (Newtons in system coordinates)
      */
     Vec3 getAccumulatedForce();
 
     /**
-     * Return the net torque acting on the body. The body is unaffected.
+     * Copy the net torque acting on the body. The body is unaffected.
      *
      * @return a new torque vector (Newton.meters in system coordinates)
      */
@@ -69,7 +67,7 @@ public interface ConstBody extends ConstJoltPhysicsObject {
     boolean getAllowSleeping();
 
     /**
-     * Return the body's angular velocity. The body is unaffected.
+     * Copy the body's angular velocity. The body is unaffected.
      *
      * @return a new velocity vector (radians per second in system coordinates)
      */
@@ -107,12 +105,28 @@ public interface ConstBody extends ConstJoltPhysicsObject {
     RVec3 getCenterOfMassPosition();
 
     /**
+     * Copy the location of the body's center of mass (which might not coincide
+     * with its origin). The body is unaffected.
+     *
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     */
+    void getCenterOfMassPosition(RVec3 storeLocation);
+
+    /**
      * Copy the coordinate transform of the body's center of mass. The body is
      * unaffected.
      *
      * @return a new transform matrix (relative to system coordinates)
      */
     RMat44 getCenterOfMassTransform();
+
+    /**
+     * Access the body's collision group.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    ConstCollisionGroup getCollisionGroup();
 
     /**
      * Test whether extra effort should be made to remove ghost contacts. The
@@ -130,20 +144,35 @@ public interface ConstBody extends ConstJoltPhysicsObject {
     float getFriction();
 
     /**
-     * Copy the body's ID for use with {@code BodyInterface}. The body is
+     * Return the body's ID for use with {@code BodyInterface}. The body is
      * unaffected.
      *
-     * @return a new immutable JVM object with the pre-existing native object
-     * assigned
+     * @return the {@code BodyID} value
      */
-    ConstBodyId getId();
+    int getId();
 
     /**
-     * Return the body's linear velocity. The body is unaffected.
+     * Copy the inverse coordinate transform of the body's center of mass. The
+     * body is unaffected.
+     *
+     * @return a new transform matrix (relative to local coordinates)
+     */
+    RMat44 getInverseCenterOfMassTransform();
+
+    /**
+     * Copy the body's linear velocity. The body is unaffected.
      *
      * @return a new velocity vector (meters per second in system coordinates)
      */
     Vec3 getLinearVelocity();
+
+    /**
+     * Access the body's motion properties.
+     *
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null} if none
+     */
+    ConstMotionProperties getMotionProperties();
 
     /**
      * Return the body's motion type. The body is unaffected.
@@ -160,13 +189,23 @@ public interface ConstBody extends ConstJoltPhysicsObject {
     int getObjectLayer();
 
     /**
-     * Return the location of the body's origin (which might not coincide with
-     * its center of mass). The body is unaffected.
+     * Copy the location of the body's origin (which might not coincide with its
+     * center of mass). The body is unaffected.
      *
      * @return a new location vector (in system coordinates, all components
      * finite)
      */
     RVec3 getPosition();
+
+    /**
+     * Copy the position of the body. The body is unaffected.
+     *
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
+     */
+    void getPositionAndRotation(RVec3 storeLocation, Quat storeOrientation);
 
     /**
      * Return the body's restitution ratio. The body is unaffected.
@@ -176,18 +215,7 @@ public interface ConstBody extends ConstJoltPhysicsObject {
     float getRestitution();
 
     /**
-     * Return the surface normal of a particular sub shape and its world space
-     * surface position on this body.
-     *
-     * @param subShapeId the sub shape
-     * @param position the world position on the surface
-     *
-     * @return a new surface normal
-     */
-    Vec3 getWorldSpaceSurfaceNormal(SubShapeId subShapeId, RVec3Arg position);
-
-    /**
-     * Return the body's orientation. The body is unaffected.
+     * Copy the body's orientation. The body is unaffected.
      *
      * @return a new rotation quaternion (relative to the system axes)
      */
@@ -200,6 +228,22 @@ public interface ConstBody extends ConstJoltPhysicsObject {
      * assigned, or {@code null} if none
      */
     ConstShape getShape();
+
+    /**
+     * Convert the body to a {@code SoftBodyCreationSettings} object. The body
+     * is unaffected.
+     *
+     * @return a new object
+     */
+    SoftBodyCreationSettings getSoftBodyCreationSettings();
+
+    /**
+     * Convert the body to a {@code TransformedShape} object. The body is
+     * unaffected.
+     *
+     * @return a new object
+     */
+    TransformedShape getTransformedShape();
 
     /**
      * Return the body's user data: can be used for anything. The body is
@@ -216,6 +260,16 @@ public interface ConstBody extends ConstJoltPhysicsObject {
      * assigned
      */
     ConstAaBox getWorldSpaceBounds();
+
+    /**
+     * Copy the surface normal of the specified sub-shape at the specified
+     * location. The body is unaffected.
+     *
+     * @param subShapeId the ID of the sub-shape to use
+     * @param location the location to use (not null, unaffected)
+     * @return a new direction vector
+     */
+    Vec3 getWorldSpaceSurfaceNormal(int subShapeId, RVec3Arg location);
 
     /**
      * Copy the world transform. The body is unaffected.
@@ -261,11 +315,18 @@ public interface ConstBody extends ConstJoltPhysicsObject {
     boolean isRigidBody();
 
     /**
-     * Test whether the body is a sensor. The body is unaffected.
+     * Test whether the body is a sensor. It is unaffected.
      *
      * @return {@code true} if a sensor, otherwise {@code false}
      */
     boolean isSensor();
+
+    /**
+     * Test whether the body is soft. It is unaffected.
+     *
+     * @return {@code true} if soft, otherwise {@code false}
+     */
+    boolean isSoftBody();
 
     /**
      * Test whether the body is static (non-moving). It is unaffected.

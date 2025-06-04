@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,17 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.ConstCollisionGroup;
+import com.github.stephengold.joltjni.readonly.ConstGroupFilter;
+
 /**
  * Restrict which bodies can collide.
  *
  * @author Stephen Gold sgold@sonic.net
  */
-public class CollisionGroup extends JoltPhysicsObject {
+public class CollisionGroup
+        extends JoltPhysicsObject
+        implements ConstCollisionGroup {
     // *************************************************************************
     // constants
 
@@ -91,12 +96,46 @@ public class CollisionGroup extends JoltPhysicsObject {
     // new methods exposed
 
     /**
+     * Replace the group filter.
+     *
+     * @param filter the desired filter (not null, alias created)
+     */
+    public void setGroupFilter(GroupFilter filter) {
+        long groupVa = va();
+        long filterVa = filter.va();
+        setGroupFilter(groupVa, filterVa);
+    }
+
+    /**
+     * Alter the main group ID. (native method: SetGroupID)
+     *
+     * @param id the desired ID (default=cInvalidGroup)
+     */
+    public void setGroupId(int id) {
+        long groupVa = va();
+        setGroupId(groupVa, id);
+    }
+
+    /**
+     * Alter the sub-group ID. (native method: SetSubGroupID)
+     *
+     * @param id the desired ID (default=cInvalidSubGroup)
+     */
+    public void setSubGroupId(int id) {
+        long groupVa = va();
+        setSubGroupId(groupVa, id);
+    }
+    // *************************************************************************
+    // ConstCollisionGroup methods
+
+    /**
      * Access the group filter.
      *
      * @return a new JVM object with the pre-existing native object assigned, or
      * {@code null} if none
      */
-    public GroupFilter getGroupFilter() {
+    @Override
+    public ConstGroupFilter getGroupFilter() {
         long groupVa = va();
         long filterVa = getGroupFilter(groupVa);
         GroupFilter result;
@@ -110,10 +149,12 @@ public class CollisionGroup extends JoltPhysicsObject {
     }
 
     /**
-     * Return the main group ID. The group is unaffected.
+     * Return the main group ID. The group is unaffected. (native method:
+     * GetGroupID)
      *
-     * @return the ID value or {@code cInvalidGroup}
+     * @return the {@code GroupID} value
      */
+    @Override
     public int getGroupId() {
         long groupVa = va();
         int result = getGroupId(groupVa);
@@ -122,46 +163,17 @@ public class CollisionGroup extends JoltPhysicsObject {
     }
 
     /**
-     * Return the sub-group ID. The group is unaffected.
+     * Return the sub-group ID. The group is unaffected. (native method:
+     * GetSubGroupID)
      *
-     * @return the ID value or {@code cInvalidSubGroup}
+     * @return the {@code SubGroupID} value
      */
+    @Override
     public int getSubGroupId() {
         long groupVa = va();
         int result = getSubGroupId(groupVa);
 
         return result;
-    }
-
-    /**
-     * Replace the group filter.
-     *
-     * @param filter the desired filter (not null, alias created)
-     */
-    public void setGroupFilter(GroupFilter filter) {
-        long groupVa = va();
-        long filterVa = filter.va();
-        setGroupFilter(groupVa, filterVa);
-    }
-
-    /**
-     * Alter the main group ID.
-     *
-     * @param id the desired ID (default=cInvalidGroup)
-     */
-    public void setGroupId(int id) {
-        long groupVa = va();
-        setGroupId(groupVa, id);
-    }
-
-    /**
-     * Alter the sub-group ID.
-     *
-     * @param id the desired ID (default=cInvalidSubGroup)
-     */
-    public void setSubGroupId(int id) {
-        long groupVa = va();
-        setSubGroupId(groupVa, id);
     }
     // *************************************************************************
     // native private methods

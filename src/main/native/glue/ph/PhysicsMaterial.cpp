@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,22 @@ IMPLEMENT_REF(PhysicsMaterial,
   Java_com_github_stephengold_joltjni_PhysicsMaterialRef_copy,
   Java_com_github_stephengold_joltjni_PhysicsMaterialRef_createEmpty,
   Java_com_github_stephengold_joltjni_PhysicsMaterialRef_free,
-  Java_com_github_stephengold_joltjni_PhysicsMaterialRef_getPtr)
+  Java_com_github_stephengold_joltjni_PhysicsMaterialRef_getPtr,
+  Java_com_github_stephengold_joltjni_PhysicsMaterialRef_toRefC)
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsMaterial
+ * Method:    getDebugColor
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterial_getDebugColor
+  (JNIEnv *, jclass, jlong materialVa) {
+    const PhysicsMaterial * const pMaterial
+            = reinterpret_cast<PhysicsMaterial *> (materialVa);
+    const Color color = pMaterial->GetDebugColor();
+    const uint32 result = color.GetUInt32();
+    return result;
+}
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsMaterial
@@ -67,6 +82,19 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterial_getRe
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsMaterial
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterial_saveBinaryState
+  (JNIEnv *, jclass, jlong materialVa, jlong streamVa) {
+    const PhysicsMaterial * const pMaterial
+            = reinterpret_cast<PhysicsMaterial *> (materialVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pMaterial->SaveBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsMaterial
  * Method:    sDefault
  * Signature: (Z)J
  */
@@ -90,6 +118,21 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterial_setEm
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsMaterial
+ * Method:    sRestoreFromBinaryState
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterial_sRestoreFromBinaryState
+  (JNIEnv *, jclass, jlong streamVa) {
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    PhysicsMaterial::PhysicsMaterialResult * const pResult
+            = new PhysicsMaterial::PhysicsMaterialResult();
+    TRACE_NEW("PhysicsMaterial::PhysicsMaterialResult", pResult);
+    *pResult = PhysicsMaterial::sRestoreFromBinaryState(*pStream);
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsMaterial
  * Method:    toRef
  * Signature: (J)J
  */
@@ -99,5 +142,20 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterial_toRe
             = reinterpret_cast<PhysicsMaterial *> (materialVa);
     Ref<PhysicsMaterial> * const pResult = new Ref<PhysicsMaterial>(pMaterial);
     TRACE_NEW("Ref<PhysicsMaterial>", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_PhysicsMaterial
+ * Method:    toRefC
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsMaterial_toRefC
+  (JNIEnv *, jclass, jlong materialVa) {
+    const PhysicsMaterial * const pMaterial
+            = reinterpret_cast<PhysicsMaterial *> (materialVa);
+    RefConst<PhysicsMaterial> * const pResult
+            = new RefConst<PhysicsMaterial>(pMaterial);
+    TRACE_NEW("RefConst<PhysicsMaterial>", pResult)
     return reinterpret_cast<jlong> (pResult);
 }

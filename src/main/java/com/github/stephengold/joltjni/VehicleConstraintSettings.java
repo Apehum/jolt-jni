@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.enumerate.EConstraintSubType;
+import com.github.stephengold.joltjni.readonly.ConstVehicleConstraintSettings;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
 import com.github.stephengold.joltjni.template.Ref;
 import com.github.stephengold.joltjni.template.RefTarget;
@@ -33,7 +34,9 @@ import java.util.List;
  *
  * @author Stephen Gold sgold@sonic.net
  */
-public class VehicleConstraintSettings extends ConstraintSettings {
+public class VehicleConstraintSettings
+        extends ConstraintSettings
+        implements ConstVehicleConstraintSettings {
     // *************************************************************************
     // fields
 
@@ -54,7 +57,19 @@ public class VehicleConstraintSettings extends ConstraintSettings {
      */
     public VehicleConstraintSettings() {
         long settingsVa = createDefault();
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EConstraintSubType.Vehicle);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public VehicleConstraintSettings(ConstVehicleConstraintSettings original) {
+        long originalVa = original.targetVa();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
         setSubType(EConstraintSubType.Vehicle);
     }
 
@@ -87,94 +102,10 @@ public class VehicleConstraintSettings extends ConstraintSettings {
     }
 
     /**
-     * Access the controller settings.
-     *
-     * @return a new JVM object with the pre-existing native object assigned
-     */
-    public VehicleControllerSettings getController() {
-        VehicleControllerSettings result = controllerRef.getPtr();
-        return result;
-    }
-
-    /**
-     * Copy the "forward" vector. The settings are unaffected. (native
-     * attribute: mForward)
-     *
-     * @return a new direction vector
-     */
-    public Vec3 getForward() {
-        long settingsVa = va();
-        float dx = getForwardX(settingsVa);
-        float dy = getForwardY(settingsVa);
-        float dz = getForwardZ(settingsVa);
-        Vec3 result = new Vec3(dx, dy, dz);
-
-        return result;
-    }
-
-    /**
-     * Return the vehicle's maximum pitch/roll angle. The settings are
-     * unaffected. (native attribute: mMaxPitchRollAngle)
-     *
-     * @return the angle (in radians)
-     */
-    public float getMaxPitchRollAngle() {
-        long constraintSettingsVa = va();
-        float result = getMaxPitchRollAngle(constraintSettingsVa);
-
-        return result;
-    }
-
-    /**
-     * Count the wheels. The settings are unaffected. (native attribute:
-     * mWheels)
-     *
-     * @return the count (&ge;0)
-     */
-    public int getNumWheels() {
-        int result = wheelRefs.size();
-        return result;
-    }
-
-    /**
-     * Enumerate the wheel settings. The settings are unaffected. (native
-     * attribute: mWheels)
-     *
-     * @return a new array of pre-existing objects
-     */
-    public WheelSettings[] getWheels() {
-        int numWheels = wheelRefs.size();
-        WheelSettings[] result = new WheelSettings[numWheels];
-        for (int i = 0; i < numWheels; ++i) {
-            Ref r = wheelRefs.get(i);
-            RefTarget t = r.getPtr();
-            result[i] = (WheelSettings) t;
-        }
-
-        return result;
-    }
-
-    /**
-     * Copy the "up" vector. The settings are unaffected. (native attribute:
-     * mUp)
-     *
-     * @return a new direction vector
-     */
-    public Vec3 getUp() {
-        long settingsVa = va();
-        float dx = getUpX(settingsVa);
-        float dy = getUpY(settingsVa);
-        float dz = getUpZ(settingsVa);
-        Vec3 result = new Vec3(dx, dy, dz);
-
-        return result;
-    }
-
-    /**
-     * Alter how the the vehicle accelerates and decelerates. (native attribute:
+     * Alter how the vehicle accelerates and decelerates. (native attribute:
      * mController)
      *
-     * @param controllerSettings the desired settings (not null)
+     * @param controllerSettings the desired settings (not null, default=null)
      */
     public void setController(VehicleControllerSettings controllerSettings) {
         this.controllerRef = controllerSettings.toRef();
@@ -205,11 +136,21 @@ public class VehicleConstraintSettings extends ConstraintSettings {
      * Alter the vehicle's maximum pitch/roll angle. (native attribute:
      * mMaxPitchRollAngle)
      *
-     * @param angle the desired limit (in radians, default=Pi)
+     * @param angle the desired limit angle (in radians, default=Pi)
      */
     public void setMaxPitchRollAngle(float angle) {
-        long constraintSettingsVa = va();
-        setMaxPitchRollAngle(constraintSettingsVa, angle);
+        long settingsVa = va();
+        setMaxPitchRollAngle(settingsVa, angle);
+    }
+
+    /**
+     * Alter the number of anti-roll bars. (native attribute: mAntiRollBars)
+     *
+     * @param count the desired number (&ge;0, default=0)
+     */
+    public void setNumAntiRollBars(int count) {
+        long settingsVa = va();
+        setNumAntiRollBars(settingsVa, count);
     }
 
     /**
@@ -226,20 +167,169 @@ public class VehicleConstraintSettings extends ConstraintSettings {
         setUp(settingsVa, dx, dy, dz);
     }
     // *************************************************************************
+    // ConstVehicleConstraintsSettings methods
+
+    /**
+     * Access the settings for the specified anti-roll bar. (native field:
+     * mAntiRollBars)
+     *
+     * @param barIndex the index of the anti-roll bar to access (&ge;0,
+     * &lt;numBars)
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    @Override
+    public VehicleAntiRollBar getAntiRollBar(int barIndex) {
+        long settingsVa = va();
+        long barVa = getAntiRollBar(settingsVa, barIndex);
+        VehicleAntiRollBar result = new VehicleAntiRollBar(this, barVa);
+
+        return result;
+    }
+
+    /**
+     * Access the controller settings.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    @Override
+    public VehicleControllerSettings getController() {
+        VehicleControllerSettings result;
+        if (controllerRef == null) {
+            result = null;
+        } else {
+            result = controllerRef.getPtr();
+        }
+
+        return result;
+    }
+
+    /**
+     * Copy the "forward" vector. The settings are unaffected. (native
+     * attribute: mForward)
+     *
+     * @return a new direction vector
+     */
+    @Override
+    public Vec3 getForward() {
+        long settingsVa = va();
+        float dx = getForwardX(settingsVa);
+        float dy = getForwardY(settingsVa);
+        float dz = getForwardZ(settingsVa);
+        Vec3 result = new Vec3(dx, dy, dz);
+
+        return result;
+    }
+
+    /**
+     * Return the vehicle's maximum pitch/roll angle. The settings are
+     * unaffected. (native attribute: mMaxPitchRollAngle)
+     *
+     * @return the limit angle (in radians)
+     */
+    @Override
+    public float getMaxPitchRollAngle() {
+        long settingsVa = va();
+        float result = getMaxPitchRollAngle(settingsVa);
+
+        return result;
+    }
+
+    /**
+     * Count the anti-roll bars. The settings are unaffected. (native attribute:
+     * mAntiRollBars)
+     *
+     * @return the count (&ge;0)
+     */
+    @Override
+    public int getNumAntiRollBars() {
+        long settingsVa = va();
+        int result = getNumAntiRollBars(settingsVa);
+
+        return result;
+    }
+
+    /**
+     * Count the wheels. The settings are unaffected. (native attribute:
+     * mWheels)
+     *
+     * @return the count (&ge;0)
+     */
+    @Override
+    public int getNumWheels() {
+        int result = wheelRefs.size();
+        return result;
+    }
+
+    /**
+     * Copy the "up" vector. The settings are unaffected. (native attribute:
+     * mUp)
+     *
+     * @return a new direction vector
+     */
+    @Override
+    public Vec3 getUp() {
+        long settingsVa = va();
+        float dx = getUpX(settingsVa);
+        float dy = getUpY(settingsVa);
+        float dz = getUpZ(settingsVa);
+        Vec3 result = new Vec3(dx, dy, dz);
+
+        return result;
+    }
+
+    /**
+     * Access the settings of the specified wheel. (native attribute: mWheels)
+     *
+     * @param wheelIndex which wheel (&ge;0, &lt;numWheels)
+     * @return the pre-existing object
+     */
+    @Override
+    public WheelSettings getWheel(int wheelIndex) {
+        Ref r = wheelRefs.get(wheelIndex);
+        WheelSettings result = (WheelSettings) r.getPtr();
+
+        return result;
+    }
+
+    /**
+     * Enumerate all wheel settings. The settings are unaffected. (native
+     * attribute: mWheels)
+     *
+     * @return a new array of pre-existing objects
+     */
+    @Override
+    public WheelSettings[] getWheels() {
+        int numWheels = wheelRefs.size();
+        WheelSettings[] result = new WheelSettings[numWheels];
+        for (int i = 0; i < numWheels; ++i) {
+            Ref r = wheelRefs.get(i);
+            RefTarget t = r.getPtr();
+            result[i] = (WheelSettings) t;
+        }
+
+        return result;
+    }
+    // *************************************************************************
     // native private methods
 
     native private static void addWheel(
             long constraintSettingsVa, long wheelSettingsVa);
 
+    native private static long createCopy(long originalVa);
+
     native private static long createDefault();
 
-    native private static float getMaxPitchRollAngle(long constraintSettingsVa);
+    native private static long getAntiRollBar(long settingsVa, int index);
 
     native private static float getForwardX(long settingsVa);
 
     native private static float getForwardY(long settingsVa);
 
     native private static float getForwardZ(long settingsVa);
+
+    native private static float getMaxPitchRollAngle(long settingsVa);
+
+    native private static int getNumAntiRollBars(long settingsVa);
 
     native private static float getUpX(long settingsVa);
 
@@ -254,7 +344,9 @@ public class VehicleConstraintSettings extends ConstraintSettings {
             long settingsVa, float dx, float dy, float dz);
 
     native private static void setMaxPitchRollAngle(
-            long constraintSettingsVa, float angle);
+            long settingsVa, float angle);
+
+    native private static void setNumAntiRollBars(long settingsVa, int count);
 
     native private static void setUp(
             long settingsVa, float dx, float dy, float dz);

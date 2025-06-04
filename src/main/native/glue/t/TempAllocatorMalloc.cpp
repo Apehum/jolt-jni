@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,10 @@ SOFTWARE.
  */
 #include "Jolt/Jolt.h"
 #include "Jolt/Core/TempAllocator.h"
+
 #include "auto/com_github_stephengold_joltjni_TempAllocatorMalloc.h"
 #include "glue/glue.h"
+#include <iostream>
 
 using namespace JPH;
 
@@ -37,7 +39,14 @@ using namespace JPH;
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_TempAllocatorMalloc_create
   (JNIEnv *, jclass) {
-    NonCopyable * const pResult = new TempAllocatorMalloc();
+#if defined(JPH_DEBUG) && !defined(JPH_DISABLE_CUSTOM_ALLOCATOR)
+    if (!Allocate) {
+        std::cerr << "Can't create a TempAllocatorMalloc because no default allocator is registered!"
+                << std::endl;
+        return 0;
+    }
+#endif
+    TempAllocatorMalloc * const pResult = new TempAllocatorMalloc();
     TRACE_NEW("TempAllocatorMalloc", pResult)
     return reinterpret_cast<jlong> (pResult);
 }
@@ -49,8 +58,8 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_TempAllocatorMalloc_
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_TempAllocatorMalloc_free
   (JNIEnv *, jclass, jlong allocatorVa) {
-    const NonCopyable * const pAllocator
-            = reinterpret_cast<NonCopyable *> (allocatorVa);
+    const TempAllocatorMalloc * const pAllocator
+            = reinterpret_cast<TempAllocatorMalloc *> (allocatorVa);
     TRACE_DELETE("TempAllocatorMalloc", pAllocator)
 #ifndef WIN32
     // Attempting to delete a TempAllocatorMalloc on Windows causes deadlock!

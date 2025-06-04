@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,14 +33,14 @@ using namespace JPH;
 /*
  * Class:     com_github_stephengold_joltjni_BodyLockWrite
  * Method:    createBodyLockWrite
- * Signature: (JJ)J
+ * Signature: (JI)J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyLockWrite_createBodyLockWrite
-  (JNIEnv *, jclass, jlong lockVa, jlong idVa) {
+  (JNIEnv *, jclass, jlong lockVa, jint bodyId) {
     const BodyLockInterface * const pInterface
             = reinterpret_cast<BodyLockInterface *> (lockVa);
-    const BodyID * const pId = reinterpret_cast<BodyID *> (idVa);
-    BodyLockWrite * const pResult = new BodyLockWrite(*pInterface, *pId);
+    const BodyID id(bodyId);
+    BodyLockWrite * const pResult = new BodyLockWrite(*pInterface, id);
     TRACE_NEW("BodyLockWrite", pResult)
     return reinterpret_cast<jlong> (pResult);
 }
@@ -51,11 +51,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyLockWrite_create
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BodyLockWrite_free
-  (JNIEnv *, jclass, jlong lockVa) {
-    BodyLockWrite * const pLock = reinterpret_cast<BodyLockWrite *> (lockVa);
-    TRACE_DELETE("BodyLockWrite", pLock)
-    delete pLock;
-}
+  BODYOF_FREE(BodyLockWrite)
 
 /*
  * Class:     com_github_stephengold_joltjni_BodyLockWrite
@@ -66,7 +62,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BodyLockWrite_getBod
   (JNIEnv *, jclass, jlong lockVa) {
     const BodyLockWrite * const pLock
             = reinterpret_cast<BodyLockWrite *> (lockVa);
-    const Body &result = pLock->GetBody();
+    const Body& result = pLock->GetBody();
     return reinterpret_cast<jlong> (&result);
 }
 

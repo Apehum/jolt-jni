@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,10 +34,20 @@ import static com.github.stephengold.joltjni.operator.Op.*;
  * https://github.com/jrouwe/JoltPhysics/blob/master/Samples/Utils/SoftBodyCreator.cpp
  */
 public class SoftBodyCreator {
-static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX,int inGridSizeZ,float inGridSpacing,BiFunction<Integer,Integer,Float>inVertexGetInvMass) {
-    return CreateCloth(inGridSizeX,inGridSizeZ,inGridSpacing,inVertexGetInvMass,(Integer a,Integer b)->new Vec3(),EBendType.None,new VertexAttributes(1e-5f, 1e-5f, 1e-5f));}
+public static SoftBodySharedSettingsRef CreateCloth(){return CreateCloth(30);}
+public static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX){return CreateCloth(inGridSizeX,30);}
+public static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX,int inGridSizeZ){
+    return CreateCloth(inGridSizeX,inGridSizeZ,0.75f);}
+public static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX,int inGridSizeZ,float inGridSpacing){
+    return CreateCloth(inGridSizeX,inGridSizeZ,inGridSpacing,(Integer a,Integer b)->1f);}
+public static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX,int inGridSizeZ,float inGridSpacing,BiFunction<Integer,Integer,Float>inVertexGetInvMass) {
+    return CreateCloth(inGridSizeX,inGridSizeZ,inGridSpacing,inVertexGetInvMass,(Integer a,Integer b)->new Vec3());}
+public static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX,int inGridSizeZ,float inGridSpacing,BiFunction<Integer,Integer,Float>inVertexGetInvMass,BiFunction<Integer,Integer,Vec3> inVertexPerturbation) {
+    return CreateCloth(inGridSizeX,inGridSizeZ,inGridSpacing,inVertexGetInvMass,inVertexPerturbation,EBendType.None);}
+public static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX,int inGridSizeZ,float inGridSpacing,BiFunction<Integer,Integer,Float>inVertexGetInvMass,BiFunction<Integer,Integer,Vec3> inVertexPerturbation, EBendType inBendType) {
+    return CreateCloth(inGridSizeX,inGridSizeZ,inGridSpacing,inVertexGetInvMass,inVertexPerturbation,inBendType,new VertexAttributes(1e-5f,1e-5f,1e-5f));}
 
-static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX, int inGridSizeZ, float inGridSpacing,  BiFunction<Integer, Integer,Float> inVertexGetInvMass, BiFunction<Integer, Integer,Vec3> inVertexPerturbation, EBendType inBendType, ConstVertexAttributes inVertexAttributes)
+public static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX, int inGridSizeZ, float inGridSpacing,  BiFunction<Integer, Integer,Float> inVertexGetInvMass, BiFunction<Integer, Integer,Vec3> inVertexPerturbation, EBendType inBendType, ConstVertexAttributes inVertexAttributes)
 {
 	final float cOffsetX = -0.5f * inGridSpacing * (inGridSizeX - 1);
 	final float cOffsetZ = -0.5f * inGridSpacing * (inGridSizeZ - 1);
@@ -84,6 +94,9 @@ static SoftBodySharedSettingsRef CreateCloth(int inGridSizeX, int inGridSizeZ, f
 	return settings.toRef();
 }
 
+public static SoftBodySharedSettingsRef CreateClothWithFixatedCorners(){return CreateClothWithFixatedCorners(30);}
+public static SoftBodySharedSettingsRef CreateClothWithFixatedCorners(int inGridSizeX){return CreateClothWithFixatedCorners(inGridSizeX,30);}
+public static SoftBodySharedSettingsRef CreateClothWithFixatedCorners(int inGridSizeX,int inGridSizeZ){return CreateClothWithFixatedCorners(inGridSizeX,inGridSizeZ,0.75f);}
 public static SoftBodySharedSettingsRef CreateClothWithFixatedCorners(int inGridSizeX, int inGridSizeZ, float inGridSpacing)
 {
 	BiFunction<Integer,Integer,Float> inv_mass = (Integer inX, Integer inZ)-> {
@@ -239,7 +252,11 @@ public static SoftBodySharedSettingsRef CreateCube(int inGridSize, float inGridS
 	return settings.toRef();
 }
 
-public static SoftBodySharedSettingsRef CreateSphere(float inRadius){return CreateSphere(inRadius,10,20,EBendType.None,new VertexAttributes(1e-4f,1e-4f,1e-3f));}
+public static SoftBodySharedSettingsRef CreateSphere(){return CreateSphere(1);}
+public static SoftBodySharedSettingsRef CreateSphere(float inRadius){return CreateSphere(inRadius,10);}
+public static SoftBodySharedSettingsRef CreateSphere(float inRadius,int inNumTheta){return CreateSphere(inRadius,inNumTheta,20);}
+public static SoftBodySharedSettingsRef CreateSphere(float inRadius,int inNumTheta,int inNumPhi){return CreateSphere(inRadius,inNumTheta,inNumPhi,EBendType.None);}
+public static SoftBodySharedSettingsRef CreateSphere(float inRadius,int inNumTheta,int inNumPhi,EBendType inBendType){return CreateSphere(inRadius,inNumTheta,inNumPhi,inBendType,new VertexAttributes(1e-4f,1e-4f,1e-3f));}
 static SoftBodySharedSettingsRef CreateSphere(float inRadius, int inNumTheta, int inNumPhi, EBendType inBendType, ConstVertexAttributes inVertexAttributes)
 {
 	// Create settings

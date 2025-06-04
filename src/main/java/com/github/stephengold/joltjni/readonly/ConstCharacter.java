@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,12 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni.readonly;
 
-import com.github.stephengold.joltjni.BodyId;
+import com.github.stephengold.joltjni.CharacterRefC;
+import com.github.stephengold.joltjni.CharacterSettings;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RMat44;
 import com.github.stephengold.joltjni.RVec3;
+import com.github.stephengold.joltjni.TransformedShape;
 import com.github.stephengold.joltjni.Vec3;
 
 /**
@@ -33,19 +35,16 @@ import com.github.stephengold.joltjni.Vec3;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstCharacter extends ConstCharacterBase {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Return the ID of the body associated with this character. The character
      * is unaffected.
      *
-     * @return a new ID
+     * @return the {@code BodyID} value
      */
-    BodyId getBodyId();
+    int getBodyId();
 
     /**
-     * Return the location of the rigid body's center of mass using the locking
+     * Copy the location of the rigid body's center of mass using the locking
      * body interface. The character is unaffected.
      *
      * @return a new location vector (in system coordinates)
@@ -53,7 +52,7 @@ public interface ConstCharacter extends ConstCharacterBase {
     RVec3 getCenterOfMassPosition();
 
     /**
-     * Return the location of the rigid body's center of mass. The character is
+     * Copy the location of the rigid body's center of mass. The character is
      * unaffected.
      *
      * @param lockBodies {@code true} &rarr; use the locking body interface,
@@ -61,6 +60,23 @@ public interface ConstCharacter extends ConstCharacterBase {
      * @return a new location vector (in system coordinates)
      */
     RVec3 getCenterOfMassPosition(boolean lockBodies);
+
+    /**
+     * Generate settings to reconstruct the character, using the locking body
+     * interface. The character is unaffected.
+     *
+     * @return a new object
+     */
+    CharacterSettings getCharacterSettings();
+
+    /**
+     * Generate settings to reconstruct the character. The character is
+     * unaffected.
+     *
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * @return a new object
+     */
+    CharacterSettings getCharacterSettings(boolean lockBodies);
 
     /**
      * Return the character's object layer, using the locking body interface.
@@ -117,20 +133,20 @@ public interface ConstCharacter extends ConstCharacterBase {
      * Copy the position of the associated body using the locking body
      * interface. The character is unaffected.
      *
-     * @param storeLocation the desired location (in system coordinates, not
-     * null, unaffected)
-     * @param storeOrientation the desired orientation (in system coordinates,
-     * not null, unaffected)
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
      */
     void getPositionAndRotation(RVec3 storeLocation, Quat storeOrientation);
 
     /**
      * Copy the position of the associated body. The character is unaffected.
      *
-     * @param storeLocation the desired location (in system coordinates, not
-     * null, unaffected)
-     * @param storeOrientation the desired orientation (in system coordinates,
-     * not null, unaffected)
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
      * @param lockBodies {@code true} &rarr; use the locking body interface,
      * {@code false} &rarr; use the non-locking body interface (default=true)
      */
@@ -155,6 +171,24 @@ public interface ConstCharacter extends ConstCharacterBase {
     Quat getRotation(boolean lockBodies);
 
     /**
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character, using the locking body interface. The character is unaffected.
+     *
+     * @return a new object
+     */
+    TransformedShape getTransformedShape();
+
+    /**
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character. The character is unaffected.
+     *
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * {@code false} &rarr; use the non-locking body interface (default=true)
+     * @return a new object
+     */
+    TransformedShape getTransformedShape(boolean lockBodies);
+
+    /**
      * Calculate the character's local-to-system coordinate transform using the
      * locking body interface. The character is unaffected.
      *
@@ -171,4 +205,11 @@ public interface ConstCharacter extends ConstCharacterBase {
      * @return a new transform matrix
      */
     RMat44 getWorldTransform(boolean lockBodies);
+
+    /**
+     * Create a counted reference to the native {@code Character}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
+    CharacterRefC toRefC();
 }

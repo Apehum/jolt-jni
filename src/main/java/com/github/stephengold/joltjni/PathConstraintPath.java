@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -103,7 +103,7 @@ public class PathConstraintPath
         long pathVa = va();
         float[] storeFloats = new float[12];
         getPointOnPath(pathVa, amount, storeFloats);
-        storeLocation.set(storeFloats[0], storeFloats[1], storeFloats[2]);
+        storeLocation.set(storeFloats);
         storeTangent.set(storeFloats[3], storeFloats[4], storeFloats[5]);
         storeNormal.set(storeFloats[6], storeFloats[7], storeFloats[8]);
         storeBinormal.set(storeFloats[9], storeFloats[10], storeFloats[11]);
@@ -122,6 +122,17 @@ public class PathConstraintPath
     }
 
     /**
+     * Save the path to the specified binary stream. The path is unaffected.
+     *
+     * @param stream the stream to write to (not null)
+     */
+    public void saveBinaryState(StreamOut stream) {
+        long pathVa = va();
+        long streamVa = stream.va();
+        saveBinaryState(pathVa, streamVa);
+    }
+
+    /**
      * Alter whether the path is looping.
      *
      * @param setting {@code true} for looping, or {@code false} for no looping
@@ -130,6 +141,20 @@ public class PathConstraintPath
     public void setIsLooping(boolean setting) {
         long pathVa = va();
         setIsLooping(pathVa, setting);
+    }
+
+    /**
+     * Read a path from the specified binary stream.
+     *
+     * @param stream where to read objects (not null)
+     * @return a new object
+     */
+    public static PathResult sRestoreFromBinaryState(StreamIn stream) {
+        long streamVa = stream.va();
+        long resultVa = sRestoreFromBinaryState(streamVa);
+        PathResult result = new PathResult(resultVa, true);
+
+        return result;
     }
     // *************************************************************************
     // RefTarget methods
@@ -185,9 +210,13 @@ public class PathConstraintPath
 
     native private static boolean isLooping(long pathVa);
 
+    native private static void saveBinaryState(long pathVa, long streamVa);
+
     native private static void setEmbedded(long pathVa);
 
     native private static void setIsLooping(long pathVa, boolean setting);
+
+    native private static long sRestoreFromBinaryState(long streamVa);
 
     native private static long toRef(long materialVa);
 }

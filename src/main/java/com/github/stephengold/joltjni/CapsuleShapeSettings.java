@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,27 @@ public class CapsuleShapeSettings extends ConvexShapeSettings {
     // constructors
 
     /**
+     * Instantiate default settings.
+     */
+    public CapsuleShapeSettings() {
+        long settingsVa = createDefault();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Capsule);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public CapsuleShapeSettings(CapsuleShapeSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Capsule);
+    }
+
+    /**
      * Instantiate with the specified native object assigned but not owned.
      *
      * @param settingsVa the virtual address of the native object to assign (not
@@ -64,7 +85,7 @@ public class CapsuleShapeSettings extends ConvexShapeSettings {
             float halfHeight, float radius, PhysicsMaterial material) {
         long materialVa = (material == null) ? 0L : material.va();
         long settingsVa = createShapeSettings(halfHeight, radius, materialVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.Capsule);
     }
     // *************************************************************************
@@ -119,6 +140,10 @@ public class CapsuleShapeSettings extends ConvexShapeSettings {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
+
+    native private static long createDefault();
 
     native private static long createShapeSettings(
             float halfHeight, float radius, long materialVa);

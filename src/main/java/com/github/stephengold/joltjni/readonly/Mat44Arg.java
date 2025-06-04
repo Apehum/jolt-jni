@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@ package com.github.stephengold.joltjni.readonly;
 import com.github.stephengold.joltjni.Mat44;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.Vec3;
+import java.nio.FloatBuffer;
 
 /**
  * Read-only access to a {@code Mat44}. (native type: const Mat44)
@@ -31,9 +32,6 @@ import com.github.stephengold.joltjni.Vec3;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface Mat44Arg extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Copy the first column to a {@code Vec3}. The matrix is unaffected.
      *
@@ -54,6 +52,13 @@ public interface Mat44Arg extends ConstJoltPhysicsObject {
      * @return a new vector
      */
     Vec3 getAxisZ();
+
+    /**
+     * Copy the diagonal elements to a {@code Vec3}. The matrix is unaffected.
+     *
+     * @return a new vector
+     */
+    Vec3 getDiagonal3();
 
     /**
      * Return the specified element. The matrix is unaffected.
@@ -93,6 +98,15 @@ public interface Mat44Arg extends ConstJoltPhysicsObject {
     Mat44 inversed3x3();
 
     /**
+     * Return the inverse of the current matrix, assuming the current matrix
+     * consists entirely of rotation and translation. The current matrix is
+     * unaffected.
+     *
+     * @return a new matrix
+     */
+    Mat44 inversedRotationTranslation();
+
+    /**
      * Test whether the current matrix is equal to the argument. The current
      * matrix is unaffected.
      *
@@ -102,25 +116,33 @@ public interface Mat44Arg extends ConstJoltPhysicsObject {
     boolean isEqual(Mat44Arg m2);
 
     /**
-     * Multiply the current matrix by the specified matrix. The current matrix
-     * is unaffected.
+     * Test whether the current matrix is an identity matrix. The matrix is
+     * unaffected.
      *
-     * @param m2 the right factor (not null, unaffected)
+     * @return {@code true} if exactly equal, otherwise {@code false}
+     */
+    boolean isIdentity();
+
+    /**
+     * Multiply the current matrix by the argument. The current matrix is
+     * unaffected.
+     *
+     * @param right the right factor (not null, unaffected)
      * @return a new matrix
      */
-    Mat44 multiply(Mat44Arg m2);
+    Mat44 multiply(Mat44Arg right);
 
     /**
      * Multiply the current 3x3 matrix by the specified 3x3 matrix. The current
      * matrix is unaffected.
      *
-     * @param arg the factor (not null, unaffected)
+     * @param right the right factor (not null, unaffected)
      * @return a new matrix
      */
-    Mat44 multiply3x3(Mat44Arg arg);
+    Mat44 multiply3x3(Mat44Arg right);
 
     /**
-     * Multiply the 3x3 matrix by the specified vector. The matrix is
+     * Multiply the 3x3 matrix by the specified column vector. The matrix is
      * unaffected.
      *
      * @param vec3Arg the right factor (not null, unaffected)
@@ -129,8 +151,8 @@ public interface Mat44Arg extends ConstJoltPhysicsObject {
     Vec3 multiply3x3(Vec3Arg vec3Arg);
 
     /**
-     * Multiply the transpose of the 3x3 matrix by the specified vector. The
-     * matrix is unaffected.
+     * Multiply the transpose of the 3x3 matrix by the specified column vector.
+     * The matrix is unaffected.
      *
      * @param vec3Arg the right factor (not null, unaffected)
      * @return a new vector
@@ -151,8 +173,16 @@ public interface Mat44Arg extends ConstJoltPhysicsObject {
      * Post multiply by the specified translation vector. The current matrix is
      * unaffected.
      *
-     * @param vecArg the left factor (not null, unaffected)
+     * @param vec3 the left factor (not null, unaffected)
      * @return a new matrix
      */
-    Mat44 postTranslated(Vec3Arg vecArg);
+    Mat44 postTranslated(Vec3Arg vec3);
+
+    /**
+     * Write all 16 components to the specified buffer in column-major order and
+     * advance the buffer's position by 16. The matrix is unaffected.
+     *
+     * @param storeBuffer the destination buffer (not null)
+     */
+    void putColumnMajor(FloatBuffer storeBuffer);
 }

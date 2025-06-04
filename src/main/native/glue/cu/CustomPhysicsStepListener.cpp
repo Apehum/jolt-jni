@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -50,9 +50,9 @@ public:
         JPH_ASSERT(!pEnv->ExceptionCheck());
     }
 
-    void OnStep(const PhysicsStepListenerContext &inContext) {
+    void OnStep(const PhysicsStepListenerContext& inContext) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong contextVa = reinterpret_cast<jlong> (&inContext);
@@ -63,7 +63,7 @@ public:
 
     ~CustomPhysicsStepListener() {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         pAttachEnv->DeleteGlobalRef(mJavaObject);
@@ -91,9 +91,4 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CustomPhysicsStepLis
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_CustomPhysicsStepListener_free
-  (JNIEnv *, jobject, jlong listenerVa) {
-    CustomPhysicsStepListener * const pListener
-            = reinterpret_cast<CustomPhysicsStepListener *> (listenerVa);
-    TRACE_DELETE("CustomPhysicsStepListener", pListener)
-    delete pListener;
-}
+  BODYOF_FREE(CustomPhysicsStepListener)

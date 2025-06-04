@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,27 @@ public class ConeConstraintSettings extends TwoBodyConstraintSettings {
     // constructors
 
     /**
+     * Instantiate default settings.
+     */
+    public ConeConstraintSettings() {
+        long settingsVa = createConeConstraintSettings();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EConstraintSubType.Cone);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public ConeConstraintSettings(ConeConstraintSettings original) {
+        long originalVa = original.targetVa();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+        setSubType(EConstraintSubType.Cone);
+    }
+
+    /**
      * Instantiate with the specified native object assigned but not owned.
      *
      * @param settingsVa the virtual address of the native object to assign (not
@@ -43,15 +64,6 @@ public class ConeConstraintSettings extends TwoBodyConstraintSettings {
      */
     ConeConstraintSettings(long settingsVa) {
         super(settingsVa);
-        setSubType(EConstraintSubType.Cone);
-    }
-
-    /**
-     * Instantiate default settings.
-     */
-    public ConeConstraintSettings() {
-        long settingsVa = createConeConstraintSettings();
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
         setSubType(EConstraintSubType.Cone);
     }
     // *************************************************************************
@@ -242,6 +254,8 @@ public class ConeConstraintSettings extends TwoBodyConstraintSettings {
     // native private methods
 
     native private static long createConeConstraintSettings();
+
+    native private static long createCopy(long originalVa);
 
     native private static float getHalfConeAngle(long settingsVa);
 

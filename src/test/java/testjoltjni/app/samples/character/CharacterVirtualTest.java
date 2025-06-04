@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -76,13 +76,13 @@ public void Initialize()
 	mCharacterVsCharacterCollision.add(mCharacter);
 
 	// Install contact listener for all characters
-	for (CharacterVirtual character : mCharacterVsCharacterCollision.getCharactersAsList())
-		character.setListener(new CustomCharacterContactListener() {
-		    public void onContactAdded(long characterVa, long bodyId2Va, long subShapeId2Va, double contactLocationX, double contactLocationY,
+	for (CharacterVirtualRef character : mCharacterVsCharacterCollision.getCharacters())
+		character.getPtr().setListener(new CustomCharacterContactListener() {
+		    public void onContactAdded(long characterVa, int bodyId2, int subShapeId2, double contactLocationX, double contactLocationY,
 			   double contactLocationZ, float contactNormalX, float contactNormalY, float contactNormalZ, long settingsVa) {
 			RVec3Arg inContactPosition=new RVec3(contactLocationX,contactLocationY,contactLocationZ);
 			Vec3Arg inContactNormal=new Vec3(contactNormalX,contactNormalY,contactNormalZ);
-			CharacterVirtualTest.this.OnContactAdded(new CharacterVirtual(characterVa), new BodyId(bodyId2Va), new SubShapeId(subShapeId2Va), inContactPosition, inContactNormal, new CharacterContactSettings(settingsVa));
+			CharacterVirtualTest.this.OnContactAdded(new CharacterVirtual(characterVa, mPhysicsSystem), bodyId2, subShapeId2, inContactPosition, inContactNormal, new CharacterContactSettings(settingsVa));
 		    }});
 }
 
@@ -281,7 +281,7 @@ void OnAdjustBodyVelocity( ConstCharacterVirtual inCharacter, ConstBody inBody2,
 		plusEquals(ioLinearVelocity ,new Vec3(0, 0, 2));
 }
 
-void OnContactAdded( ConstCharacterVirtual inCharacter, ConstBodyId inBodyID2, ConstSubShapeId inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, CharacterContactSettings ioSettings)
+void OnContactAdded( ConstCharacterVirtual inCharacter, int inBodyID2, int inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, CharacterContactSettings ioSettings)
 {
 	// Draw a box around the character when it enters the sensor
 	if (inBodyID2 == mSensorBody)
@@ -306,7 +306,7 @@ void OnContactAdded( ConstCharacterVirtual inCharacter, ConstBodyId inBodyID2, C
 		mAllowSliding = true;
 }
 
-void OnCharacterContactAdded( ConstCharacterVirtual inCharacter, ConstCharacterVirtual inOtherCharacter, ConstSubShapeId inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, CharacterContactSettings ioSettings)
+void OnCharacterContactAdded( ConstCharacterVirtual inCharacter, ConstCharacterVirtual inOtherCharacter, int inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, CharacterContactSettings ioSettings)
 {
 	// Characters can only be pushed in their own update
 	if (sPlayerCanPushOtherCharacters)
@@ -321,7 +321,7 @@ void OnCharacterContactAdded( ConstCharacterVirtual inCharacter, ConstCharacterV
 		mAllowSliding = true;
 }
 
-void OnContactSolve( ConstCharacterVirtual inCharacter, ConstBodyId inBodyID2, ConstSubShapeId inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, Vec3Arg inContactVelocity, ConstPhysicsMaterial inContactMaterial, Vec3Arg inCharacterVelocity, Vec3 ioNewCharacterVelocity)
+void OnContactSolve( ConstCharacterVirtual inCharacter, int inBodyID2, int inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, Vec3Arg inContactVelocity, ConstPhysicsMaterial inContactMaterial, Vec3Arg inCharacterVelocity, Vec3 ioNewCharacterVelocity)
 {
 	// Ignore callbacks for other characters than the player
 	if (inCharacter != mCharacter.getPtr())

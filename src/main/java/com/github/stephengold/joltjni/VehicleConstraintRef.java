@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.Vec3Arg;
 import com.github.stephengold.joltjni.template.Ref;
 
 /**
@@ -52,6 +53,71 @@ final public class VehicleConstraintRef extends Ref {
     VehicleConstraintRef(long refVa, boolean owner) {
         Runnable freeingAction = owner ? () -> free(refVa) : null;
         setVirtualAddress(refVa, freeingAction);
+    }
+    // *************************************************************************
+    // new methods exposed
+
+    /**
+     * Copy the world transform of the specified wheel. The constraint is
+     * unaffected.
+     *
+     * @param wheelIndex the index of the wheel to query (&ge;0)
+     * @param right the wheel's axis of rotation (a unit vector in the wheel's
+     * model space)
+     * @param up the "up" direction (a unit vector in the wheel's model space)
+     * @return a new coordinate transform matrix
+     */
+    public RMat44 getWheelWorldTransform(
+            int wheelIndex, Vec3Arg right, Vec3Arg up) {
+        long constraintVa = targetVa();
+        float rx = right.getX();
+        float ry = right.getY();
+        float rz = right.getZ();
+        float ux = up.getX();
+        float uy = up.getY();
+        float uz = up.getZ();
+        long matrixVa = VehicleConstraint.getWheelWorldTransform(
+                constraintVa, wheelIndex, rx, ry, rz, ux, uy, uz);
+        RMat44 result = new RMat44(matrixVa, true);
+
+        return result;
+    }
+
+    /**
+     * Copy the "up" direction based on gravity. The constraint is unaffected.
+     *
+     * @return a new direction vector (in system coordinates)
+     */
+    public Vec3 getWorldUp() {
+        long constraintVa = targetVa();
+        float dx = VehicleConstraint.getWorldUpX(constraintVa);
+        float dy = VehicleConstraint.getWorldUpY(constraintVa);
+        float dz = VehicleConstraint.getWorldUpZ(constraintVa);
+        Vec3 result = new Vec3(dx, dy, dz);
+
+        return result;
+    }
+
+    /**
+     * Override the vehicle's gravity vector.
+     *
+     * @param acceleration the desired acceleration vector (not null,
+     * unaffected)
+     */
+    public void overrideGravity(Vec3Arg acceleration) {
+        long constraintVa = targetVa();
+        float ax = acceleration.getX();
+        float ay = acceleration.getY();
+        float az = acceleration.getZ();
+        VehicleConstraint.overrideGravity(constraintVa, ax, ay, az);
+    }
+
+    /**
+     * Remove the gravity override, if any.
+     */
+    public void resetGravityOverride() {
+        long constraintVa = targetVa();
+        VehicleConstraint.resetGravityOverride(constraintVa);
     }
     // *************************************************************************
     // Ref methods

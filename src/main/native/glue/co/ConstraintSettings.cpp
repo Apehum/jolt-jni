@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,8 @@ IMPLEMENT_REF(ConstraintSettings,
   Java_com_github_stephengold_joltjni_ConstraintSettingsRef_copy,
   Java_com_github_stephengold_joltjni_ConstraintSettingsRef_createEmpty,
   Java_com_github_stephengold_joltjni_ConstraintSettingsRef_free,
-  Java_com_github_stephengold_joltjni_ConstraintSettingsRef_getPtr)
+  Java_com_github_stephengold_joltjni_ConstraintSettingsRef_getPtr,
+  Java_com_github_stephengold_joltjni_ConstraintSettingsRef_toRefC)
 
 // The constraint subtype occupies the 2 least-significant bytes of mUserData.
 uint64 cstMask = 0xffff;
@@ -151,6 +152,19 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_ConstraintSettings_ge
 
 /*
  * Class:     com_github_stephengold_joltjni_ConstraintSettings
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ConstraintSettings_saveBinaryState
+  (JNIEnv *, jclass, jlong settingsVa, jlong streamVa) {
+    const ConstraintSettings * const pSettings
+            = reinterpret_cast<ConstraintSettings *> (settingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pSettings->SaveBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_ConstraintSettings
  * Method:    setConstraintPriority
  * Signature: (JI)V
  */
@@ -245,6 +259,21 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ConstraintSettings_se
     ConstraintSettings * const pSettings
             = reinterpret_cast<ConstraintSettings *> (settingsVa);
     pSettings->mNumVelocityStepsOverride = setting;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_ConstraintSettings
+ * Method:    sRestoreFromBinaryState
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ConstraintSettings_sRestoreFromBinaryState
+  (JNIEnv *, jclass, jlong streamVa) {
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    ConstraintSettings::ConstraintResult * const pResult
+            = new ConstraintSettings::ConstraintResult();
+    TRACE_NEW("ConstraintSettings::ConstraintResult", pResult);
+    *pResult = ConstraintSettings::sRestoreFromBinaryState(*pStream);
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,8 +36,15 @@ using namespace JPH;
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_StreamOut_free
-  (JNIEnv *, jclass, jlong streamVa) {
+    BODYOF_FREE(StreamOut)
+
+/*
+ * Class:     com_github_stephengold_joltjni_StreamOut
+ * Method:    writeInt
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_StreamOut_writeInt
+  (JNIEnv *, jclass, jlong streamVa, jint iValue) {
     StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
-    TRACE_DELETE("StreamOut", pStream)
-    delete pStream;
+    pStream->Write(iValue);
 }

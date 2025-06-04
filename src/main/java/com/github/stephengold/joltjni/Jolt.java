@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,15 +21,24 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.QuatArg;
+import com.github.stephengold.joltjni.readonly.RVec3Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Utility methods providing JNI access to Jolt Physics and the C++ {@code std}
- * namespace.
+ * Utility methods providing JNI access to Jolt Physics.
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -38,13 +47,25 @@ final public class Jolt {
     // constants
 
     /**
-     * padding around bodies (in meters)
+     * default rounding of corners in convex shapes (in meters)
      */
     final public static float cDefaultConvexRadius = 0.05f;
     /**
      * single-precision value of Pi
      */
     final public static float JPH_PI = (float) Math.PI;
+    /**
+     * empty sub-shape ID
+     * <p>
+     * value should match Jolt/Physics/Collision/Shape/SubShapeID.h
+     */
+    final public static int cEmptySubShapeId = 0xffffffff;
+    /**
+     * invalid body ID
+     * <p>
+     * value should match Jolt/Physics/Body/BodyID.h
+     */
+    final public static int cInvalidBodyId = 0xffffffff;
     /**
      * standard 2nd argument to the {@code JobSystemThreadPool} constructor
      * <p>
@@ -85,11 +106,45 @@ final public class Jolt {
     // new methods exposed
 
     /**
-     * Return the jolt-jni build-type string.
+     * Return the inverse cosine of the specified single-precision ratio.
+     *
+     * @param ratio the input cosine ratio (&ge;-1, &le;1)
+     * @return the angle (in radians)
+     */
+    native public static float aCos(float ratio);
+
+    /**
+     * Return the inverse tangent of the specified single-precision ratio.
+     *
+     * @param ratio the input tangent ratio
+     * @return the angle (in radians)
+     */
+    native public static float aTan(float ratio);
+
+    /**
+     * Return the angle of the specified single-precision right triangle.
+     *
+     * @param opposite the signed length of the opposite side
+     * @param adjacent the signed length of the adjacent side
+     * @return the angle (in radians)
+     */
+    native public static float aTan2(float opposite, float adjacent);
+
+    /**
+     * Return the Jolt-JNI build-type string that's hard-coded in the native
+     * library.
      *
      * @return either "Debug" or "Release"
      */
     native public static String buildType();
+
+    /**
+     * Return the cosine of the specified single-precision angle.
+     *
+     * @param angle the input angle (in radians)
+     * @return the cosine ratio
+     */
+    native public static float cos(float angle);
 
     /**
      * Convert the specified angle from degrees to radians.
@@ -139,7 +194,7 @@ final public class Jolt {
      * @param oldHash the old hash code
      * @return the new hash code
      */
-    public static long hashBytes(Quat quaternion, long oldHash) {
+    public static long hashBytes(QuatArg quaternion, long oldHash) {
         float qw = quaternion.getW();
         float qx = quaternion.getX();
         float qy = quaternion.getY();
@@ -156,11 +211,61 @@ final public class Jolt {
      * @param oldHash the old hash code
      * @return the new hash code
      */
-    public static long hashBytes(RVec3 vector, long oldHash) {
+    public static long hashBytes(RVec3Arg vector, long oldHash) {
         double xx = vector.xx();
         double yy = vector.yy();
         double zz = vector.zz();
         long result = hashBytes(xx, yy, zz, oldHash);
+
+        return result;
+    }
+
+    /**
+     * Combine the specified 32-bit integer with the specified hash code.
+     *
+     * @param oldHash the old hash code
+     * @param iValue the integer value to combine
+     * @return the new hash code
+     */
+    native public static long hashCombine(long oldHash, int iValue);
+
+    /**
+     * Combine the specified 64-bit integer with the specified hash code.
+     *
+     * @param oldHash the old hash code
+     * @param lValue the integer value to combine
+     * @return the new hash code
+     */
+    native public static long hashCombine(long oldHash, long lValue);
+
+    /**
+     * Combine the specified location vector with the specified hash code.
+     *
+     * @param vector the vector to combine (not null, unaffected)
+     * @param oldHash the old hash code
+     * @return the new hash code
+     */
+    public static long hashCombine(long oldHash, RVec3Arg vector) {
+        double xx = vector.xx();
+        double yy = vector.yy();
+        double zz = vector.zz();
+        long result = hashCombineRVec3(oldHash, xx, yy, zz);
+
+        return result;
+    }
+
+    /**
+     * Combine the specified vector with the specified hash code.
+     *
+     * @param vec the vector to combine (not null, unaffected)
+     * @param oldHash the old hash code
+     * @return the new hash code
+     */
+    public static long hashCombine(long oldHash, Vec3Arg vec) {
+        float x = vec.getX();
+        float y = vec.getY();
+        float z = vec.getZ();
+        long result = hashCombineVec3(oldHash, x, y, z);
 
         return result;
     }
@@ -200,6 +305,50 @@ final public class Jolt {
     native public static boolean isDoublePrecision();
 
     /**
+     * List all classes in the specified Jolt-JNI package.
+     *
+     * @param packageName the name of the package (must start with
+     * "com.github.stephengold.joltjni")
+     * @return a new collection
+     */
+    public static Set<Class> listClasses(String packageName) {
+        ClassLoader loader = Jolt.class.getClassLoader();
+        String resourcePath = packageName.replaceAll("[.]", "/");
+        InputStream stream = loader.getResourceAsStream(resourcePath);
+        if (stream == null) {
+            System.err.println("resourcePath = " + resourcePath);
+            System.exit(1);
+        }
+        InputStreamReader isr = new InputStreamReader(stream);
+        BufferedReader reader = new BufferedReader(isr);
+
+        Set<Class> result = new HashSet<>();
+        while (true) {
+            try {
+                String line = reader.readLine();
+                if (line == null) {
+                    break;
+
+                } else if (line.endsWith(".class")) {
+                    int dotPos = line.lastIndexOf('.');
+                    String className = line.substring(0, dotPos);
+                    try {
+                        Class cl = Class.forName(packageName + "." + className);
+                        result.add(cl);
+                    } catch (ClassNotFoundException exception) {
+                        System.err.println("className = " + className);
+                        System.exit(0);
+                    }
+                }
+            } catch (IOException exception) {
+                throw new RuntimeException(exception);
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * Create a direct {@code ByteBuffer} with the specified capacity.
      *
      * @param numBytes the desired capacity (in bytes)
@@ -235,6 +384,25 @@ final public class Jolt {
     }
 
     /**
+     * Create a direct {@code DoubleBuffer} with native byte order and the
+     * specified capacity.
+     *
+     * @param numDoubles the desired capacity (in doubles)
+     * @return a new direct buffer, zeroed and rewound but not flipped
+     */
+    public static DoubleBuffer newDirectDoubleBuffer(int numDoubles) {
+        ByteBuffer byteBuffer
+                = ByteBuffer.allocateDirect(numDoubles * Double.BYTES);
+        byteBuffer.order(ByteOrder.nativeOrder());
+        DoubleBuffer result = byteBuffer.asDoubleBuffer();
+
+        assert result.capacity() == numDoubles : result.capacity();
+        assert result.limit() == numDoubles : result.limit();
+        assert result.position() == 0 : result.position();
+        return result;
+    }
+
+    /**
      * Create a direct {@code IntBuffer} with native byte order and the
      * specified capacity.
      *
@@ -249,6 +417,25 @@ final public class Jolt {
 
         assert result.capacity() == numInts : result.capacity();
         assert result.limit() == numInts : result.limit();
+        assert result.position() == 0 : result.position();
+        return result;
+    }
+
+    /**
+     * Create a direct {@code ShortBuffer} with native byte order and the
+     * specified capacity.
+     *
+     * @param numShorts the desired capacity (in ints)
+     * @return a new direct buffer, zeroed and rewound but not flipped
+     */
+    public static ShortBuffer newDirectShortBuffer(int numShorts) {
+        ByteBuffer byteBuffer
+                = ByteBuffer.allocateDirect(numShorts * Short.BYTES);
+        byteBuffer.order(ByteOrder.nativeOrder());
+        ShortBuffer result = byteBuffer.asShortBuffer();
+
+        assert result.capacity() == numShorts : result.capacity();
+        assert result.limit() == numShorts : result.limit();
         assert result.position() == 0 : result.position();
         return result;
     }
@@ -297,9 +484,10 @@ final public class Jolt {
     /**
      * Create a factory for deserialization of saved data.
      *
+     * @return {@code true} if successful, otherwise {@code false}
      * @see #destroyFactory()
      */
-    native public static void newFactory();
+    native public static boolean newFactory();
 
     /**
      * Convert the specified angle from radians to degrees.
@@ -376,6 +564,14 @@ final public class Jolt {
     }
 
     /**
+     * Return the sine of the specified single-precision angle.
+     *
+     * @param angle the input angle (in radians)
+     * @return the sine ratio
+     */
+    native public static float sin(float angle);
+
+    /**
      * Return the square of the specified single-precision value.
      *
      * @param value the input value
@@ -398,12 +594,35 @@ final public class Jolt {
     }
 
     /**
+     * Set the next available character ID to 1.
+     *
+     */
+    public static void sSetNextCharacterId() {
+        sSetNextCharacterId(1);
+    }
+
+    /**
+     * Set the next available character ID to the specified value.
+     *
+     * @param nextValue the desired next ID
+     */
+    native public static void sSetNextCharacterId(int nextValue);
+
+    /**
      * Test whether the native library supports the ObjectStream format. (native
      * macro: JPH_OBJECT_STREAM)
      *
      * @return {@code true} if supported, otherwise {@code false}
      */
     native public static boolean supportsObjectStream();
+
+    /**
+     * Return the tangent ratio of the specified single-precision angle.
+     *
+     * @param angle the input angle (in radians)
+     * @return the tangent ratio
+     */
+    native public static float tan(float angle);
 
     /**
      * Unregister all physics types with the factory.
@@ -413,7 +632,8 @@ final public class Jolt {
     native public static void unregisterTypes();
 
     /**
-     * Return the jolt-jni version string.
+     * Return the Jolt-JNI version string that's hard-coded in the native
+     * library.
      *
      * @return the version string (not null, not empty)
      */
@@ -426,6 +646,12 @@ final public class Jolt {
 
     native private static long hashBytes(
             float qx, float qy, float qz, float qw, long oldHash);
+
+    native private static long hashCombineRVec3(
+            long oldHash, double xx, double yy, double zz);
+
+    native private static long hashCombineVec3(
+            long oldHash, float x, float y, float z);
 
     native private static boolean rayAaBoxHits(float startX, float startY,
             float startZ, float offsetX, float offsetY, float offsetZ,

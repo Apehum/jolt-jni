@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,16 @@ IMPLEMENT_REF(WheelSettingsWV,
   Java_com_github_stephengold_joltjni_WheelSettingsWvRef_copy,
   Java_com_github_stephengold_joltjni_WheelSettingsWvRef_createEmpty,
   Java_com_github_stephengold_joltjni_WheelSettingsWvRef_free,
-  Java_com_github_stephengold_joltjni_WheelSettingsWvRef_getPtr)
+  Java_com_github_stephengold_joltjni_WheelSettingsWvRef_getPtr,
+  Java_com_github_stephengold_joltjni_WheelSettingsWvRef_toRefC)
+
+/*
+ * Class:     com_github_stephengold_joltjni_WheelSettingsWv
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_WheelSettingsWv_createCopy
+  BODYOF_CREATE_COPY(WheelSettingsWV)
 
 /*
  * Class:     com_github_stephengold_joltjni_WheelSettingsWv
@@ -44,11 +53,7 @@ IMPLEMENT_REF(WheelSettingsWV,
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_WheelSettingsWv_createDefault
-  (JNIEnv *, jclass) {
-    const WheelSettingsWV * const pSettings = new WheelSettingsWV();
-    TRACE_NEW("WheelSettingsWV", pSettings)
-    return reinterpret_cast<jlong> (pSettings);
-}
+  BODYOF_CREATE_DEFAULT(WheelSettingsWV)
 
 /*
  * Class:     com_github_stephengold_joltjni_WheelSettingsWv

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,27 @@ public class FixedConstraintSettings extends TwoBodyConstraintSettings {
     // constructors
 
     /**
+     * Instantiate default settings.
+     */
+    public FixedConstraintSettings() {
+        long settingsVa = createFixedConstraintSettings();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EConstraintSubType.Fixed);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public FixedConstraintSettings(FixedConstraintSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+        setSubType(EConstraintSubType.Fixed);
+    }
+
+    /**
      * Instantiate with the specified native object assigned but not owned.
      *
      * @param settingsVa the virtual address of the native object to assign (not
@@ -43,15 +64,6 @@ public class FixedConstraintSettings extends TwoBodyConstraintSettings {
      */
     FixedConstraintSettings(long settingsVa) {
         super(settingsVa);
-        setSubType(EConstraintSubType.Fixed);
-    }
-
-    /**
-     * Instantiate default settings.
-     */
-    public FixedConstraintSettings() {
-        long settingsVa = createFixedConstraintSettings();
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
         setSubType(EConstraintSubType.Fixed);
     }
     // *************************************************************************
@@ -252,13 +264,16 @@ public class FixedConstraintSettings extends TwoBodyConstraintSettings {
      *
      * @param location the desired location (not null, unaffected,
      * default=(0,0,0))
+     * @return the argument, for chaining
      */
-    public void setPoint1(RVec3Arg location) {
+    public RVec3Arg setPoint1(RVec3Arg location) {
         long settingsVa = va();
         double x = location.xx();
         double y = location.yy();
         double z = location.zz();
         setPoint1(settingsVa, x, y, z);
+
+        return location;
     }
 
     /**
@@ -266,13 +281,16 @@ public class FixedConstraintSettings extends TwoBodyConstraintSettings {
      *
      * @param location the desired location (not null, unaffected,
      * default=(0,0,0))
+     * @return the argument, for chaining
      */
-    public void setPoint2(RVec3Arg location) {
+    public RVec3Arg setPoint2(RVec3Arg location) {
         long settingsVa = va();
         double x = location.xx();
         double y = location.yy();
         double z = location.zz();
         setPoint2(settingsVa, x, y, z);
+
+        return location;
     }
 
     /**
@@ -288,6 +306,8 @@ public class FixedConstraintSettings extends TwoBodyConstraintSettings {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
 
     native private static long createFixedConstraintSettings();
 

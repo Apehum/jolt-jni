@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,11 @@ package testjoltjni.junit;
 import com.github.stephengold.joltjni.AaBox;
 import com.github.stephengold.joltjni.BodyIdVector;
 import com.github.stephengold.joltjni.BodyInterface;
+import com.github.stephengold.joltjni.BroadPhaseLayerInterfaceTable;
 import com.github.stephengold.joltjni.CombineFunction;
-import com.github.stephengold.joltjni.MapObj2Bp;
 import com.github.stephengold.joltjni.ObjVsBpFilter;
 import com.github.stephengold.joltjni.ObjVsObjFilter;
+import com.github.stephengold.joltjni.ObjectLayerPairFilterTable;
 import com.github.stephengold.joltjni.PhysicsSettings;
 import com.github.stephengold.joltjni.PhysicsSystem;
 import com.github.stephengold.joltjni.Vec3;
@@ -37,7 +38,7 @@ import org.junit.Test;
 import testjoltjni.TestUtils;
 
 /**
- * Automated JUnit4 tests for jolt-jni object creation, destruction, accessors,
+ * Automated JUnit4 tests for Jolt-JNI object creation, destruction, accessors,
  * and defaults.
  *
  * @author Stephen Gold sgold@sonic.net
@@ -55,20 +56,41 @@ public class Test004 {
         TestUtils.loadNativeLibrary();
         TestUtils.initializeNativeLibrary();
 
-        int numBpLayers = 2;
-        int numObjLayers = 3;
-        MapObj2Bp mapObj2Bp = new MapObj2Bp(numObjLayers, numBpLayers);
+        final int numBpLayers = 2;
+        final int numObjLayers = 3;
+
+        // Test ObjectLayerPairFilterTable, but don't use it:
+        ObjectLayerPairFilterTable tab
+                = new ObjectLayerPairFilterTable(numObjLayers);
+        for (int oLayer = 0; oLayer < numObjLayers; ++oLayer) {
+            Assert.assertFalse(tab.shouldCollide(oLayer, 0));
+            Assert.assertFalse(tab.shouldCollide(oLayer, 1));
+            Assert.assertFalse(tab.shouldCollide(oLayer, 2));
+        }
+        tab.enableCollision(1, 2);
+        Assert.assertTrue(tab.shouldCollide(1, 2));
+        Assert.assertTrue(tab.shouldCollide(2, 1));
+
+        BroadPhaseLayerInterfaceTable mapObj2Bp
+                = new BroadPhaseLayerInterfaceTable(numObjLayers, numBpLayers);
         Assert.assertEquals(numBpLayers, mapObj2Bp.getNumBroadPhaseLayers());
-        Assert.assertEquals(255, mapObj2Bp.getBroadPhaseLayer(0));
-        Assert.assertEquals(255, mapObj2Bp.getBroadPhaseLayer(1));
-        Assert.assertEquals(255, mapObj2Bp.getBroadPhaseLayer(2));
+        Assert.assertEquals(0, mapObj2Bp.getBroadPhaseLayer(0));
+        Assert.assertEquals(0, mapObj2Bp.getBroadPhaseLayer(1));
+        Assert.assertEquals(0, mapObj2Bp.getBroadPhaseLayer(2));
 
         ObjVsBpFilter objVsBpFilter
                 = new ObjVsBpFilter(numObjLayers, numBpLayers);
-        Assert.assertTrue(objVsBpFilter.shouldCollide(2, 1));
+        for (int oLayer = 0; oLayer < numObjLayers; ++oLayer) {
+            Assert.assertTrue(objVsBpFilter.shouldCollide(oLayer, 0));
+            Assert.assertTrue(objVsBpFilter.shouldCollide(oLayer, 1));
+        }
 
         ObjVsObjFilter objVsObjFilter = new ObjVsObjFilter(numObjLayers);
-        Assert.assertTrue(objVsObjFilter.shouldCollide(2, 2));
+        for (int oLayer = 0; oLayer < numObjLayers; ++oLayer) {
+            Assert.assertTrue(objVsObjFilter.shouldCollide(oLayer, 0));
+            Assert.assertTrue(objVsObjFilter.shouldCollide(oLayer, 1));
+            Assert.assertTrue(objVsObjFilter.shouldCollide(oLayer, 2));
+        }
 
         int maxBodies = 1_800;
         int numBodyMutexes = 0; // 0 means "use the default value"

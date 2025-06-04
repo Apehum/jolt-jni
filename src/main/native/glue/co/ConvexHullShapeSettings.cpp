@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,11 +49,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_ConvexHullShapeSettin
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ConvexHullShapeSettings_createDefault
-  (JNIEnv *, jclass) {
-    ConvexHullShapeSettings * const pResult = new ConvexHullShapeSettings();
-    TRACE_NEW("ConvexHullShapeSettings", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(ConvexHullShapeSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_ConvexHullShapeSettings
@@ -64,6 +60,10 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ConvexHullShapeSetti
   (JNIEnv *pEnv, jclass, jint numPoints, jobject buffer, jfloat maxConvexRadius, jlong materialVa) {
     const jfloat * const pFloats
             = (jfloat *) pEnv->GetDirectBufferAddress(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    JPH_ASSERT(capacityFloats >= 3 * numPoints);
     Vec3 * const pPoints = new Vec3[numPoints];
     TRACE_NEW("Vec3[]", pPoints)
     for (jint i = 0; i < numPoints; ++i) {
@@ -78,7 +78,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ConvexHullShapeSetti
             pPoints, numPoints, maxConvexRadius, pMaterial);
     TRACE_NEW("ConvexHullShapeSettings", pResult)
     TRACE_DELETE("Vec3[]", pPoints)
-    delete pPoints;
+    delete[] pPoints;
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -170,6 +170,10 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ConvexHullShapeSettin
     pSettings->mPoints.reserve(numPoints);
     const jfloat * const pFloats
             = (jfloat *) pEnv->GetDirectBufferAddress(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    JPH_ASSERT(capacityFloats >= 3 * numPoints);
     for (jint i = 0; i < numPoints; ++i) {
         const float x = pFloats[3 * i];
         const float y = pFloats[3 * i + 1];

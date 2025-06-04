@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,6 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni.readonly;
 
-import com.github.stephengold.joltjni.BodyId;
-import com.github.stephengold.joltjni.SubShapeId;
 import com.github.stephengold.joltjni.Vec3;
 
 /**
@@ -32,15 +30,12 @@ import com.github.stephengold.joltjni.Vec3;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstCollideShapeResult extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Identify the body to which shape 2 belongs. The object is unaffected.
      *
-     * @return a new ID
+     * @return the {@code BodyID} value
      */
-    BodyId getBodyId2();
+    int getBodyId2();
 
     /**
      * Copy the contact location on the surface of shape 1. The object is
@@ -78,15 +73,15 @@ public interface ConstCollideShapeResult extends ConstJoltPhysicsObject {
      * Identify the face on shape 1 where the collision occurred. The object is
      * unaffected.
      *
-     * @return a new ID
+     * @return a {@code SubShapeID} value
      */
-    SubShapeId getSubShapeId1();
+    int getSubShapeId1();
 
     /**
      * Identify the face on shape 2 where the collision occurred. The object is
      * unaffected.
      *
-     * @return a new ID
+     * @return a {@code SubShapeID} value
      */
-    SubShapeId getSubShapeId2();
+    int getSubShapeId2();
 }

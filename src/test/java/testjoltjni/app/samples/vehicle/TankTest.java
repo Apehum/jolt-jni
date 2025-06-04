@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,6 @@ import testjoltjni.app.samples.*;
 import testjoltjni.app.testframework.*;
 import static com.github.stephengold.joltjni.Jolt.*;
 import static com.github.stephengold.joltjni.operator.Op.*;
-import static com.github.stephengold.joltjni.std.Std.*;
 /**
  * A line-for-line Java translation of the Jolt Physics tank test.
  * <p>
@@ -134,7 +133,7 @@ if (implementsDebugRendering()){
 	((TrackedVehicleController )(mVehicleConstraint.getController())).setRpmMeter(new Vec3(0, 2, 0), 0.5f);
 } // JPH_DEBUG_RENDERER
 	mPhysicsSystem.addConstraint(mVehicleConstraint);
-	mPhysicsSystem.addStepListener(mVehicleConstraint);
+	mPhysicsSystem.addStepListener(mVehicleConstraint.getStepListener());
 
 	// Create turret
 	RVec3 turret_position = plus(body_position , new Vec3(0, half_vehicle_height + half_turret_height, 0));
@@ -325,12 +324,12 @@ public void PrePhysicsUpdate(PreUpdateParams inParams)
 	}
 }
 
-public void SaveState(StateRecorder inStream)
+protected void SaveState(StateRecorder inStream)
 {
 	inStream.write(mReloadTime);
 }
 
-public void RestoreState(StateRecorder inStream)
+protected void RestoreState(StateRecorder inStream)
 {
 	mReloadTime=inStream.readFloat(mReloadTime);
 }

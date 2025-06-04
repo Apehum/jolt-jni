@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,25 @@ IMPLEMENT_REF(GroupFilter,
   Java_com_github_stephengold_joltjni_GroupFilterRef_copy,
   Java_com_github_stephengold_joltjni_GroupFilterRef_createEmpty,
   Java_com_github_stephengold_joltjni_GroupFilterRef_free,
-  Java_com_github_stephengold_joltjni_GroupFilterRef_getPtr)
+  Java_com_github_stephengold_joltjni_GroupFilterRef_getPtr,
+  Java_com_github_stephengold_joltjni_GroupFilterRef_toRefC)
+
+/*
+ * Class:     com_github_stephengold_joltjni_GroupFilter
+ * Method:    canCollide
+ * Signature: (JJJ)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_GroupFilter_canCollide
+  (JNIEnv *, jclass, jlong filterVa, jlong group1Va, jlong group2Va) {
+    const GroupFilter * const pFilter
+            = reinterpret_cast<GroupFilter *> (filterVa);
+    const CollisionGroup * const pGroup1
+            = reinterpret_cast<CollisionGroup *> (group1Va);
+    const CollisionGroup * const pGroup2
+            = reinterpret_cast<CollisionGroup *> (group2Va);
+    const bool result = pFilter->CanCollide(*pGroup1, *pGroup2);
+    return result;
+}
 
 /*
  * Class:     com_github_stephengold_joltjni_GroupFilter
@@ -53,6 +71,19 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_GroupFilter_getRefCou
 
 /*
  * Class:     com_github_stephengold_joltjni_GroupFilter
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_GroupFilter_saveBinaryState
+  (JNIEnv *, jclass, jlong filterVa, jlong streamVa) {
+    const GroupFilter * const pFilter
+            = reinterpret_cast<GroupFilter *> (filterVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pFilter->SaveBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_GroupFilter
  * Method:    setEmbedded
  * Signature: (J)V
  */
@@ -60,6 +91,20 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_GroupFilter_setEmbedd
   (JNIEnv *, jclass, jlong filterVa) {
     GroupFilter * const pFilter = reinterpret_cast<GroupFilter *> (filterVa);
     pFilter->SetEmbedded();
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_GroupFilter
+ * Method:    sRestoreFromBinaryState
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_GroupFilter_sRestoreFromBinaryState
+  (JNIEnv *, jclass, jlong streamVa) {
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    Result<Ref<GroupFilter>> * const pResult = new Result<Ref<GroupFilter>>();
+    TRACE_NEW("Result<Ref<GroupFilter>>", pResult);
+    *pResult = GroupFilter::sRestoreFromBinaryState(*pStream);
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*

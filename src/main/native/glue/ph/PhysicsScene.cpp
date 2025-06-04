@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,8 @@ IMPLEMENT_REF(PhysicsScene,
   Java_com_github_stephengold_joltjni_PhysicsSceneRef_copy,
   Java_com_github_stephengold_joltjni_PhysicsSceneRef_createEmpty,
   Java_com_github_stephengold_joltjni_PhysicsSceneRef_free,
-  Java_com_github_stephengold_joltjni_PhysicsSceneRef_getPtr)
+  Java_com_github_stephengold_joltjni_PhysicsSceneRef_getPtr,
+  Java_com_github_stephengold_joltjni_PhysicsSceneRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsScene
@@ -98,11 +99,7 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_PhysicsScene_crea
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsScene_createDefaultScene
-  (JNIEnv *, jclass) {
-    PhysicsScene * const pScene = new PhysicsScene();
-    TRACE_NEW("PhysicsScene", pScene)
-    return reinterpret_cast<jlong> (pScene);
-}
+  BODYOF_CREATE_DEFAULT(PhysicsScene)
 
 /*
  * Class:     com_github_stephengold_joltjni_PhysicsScene
@@ -226,7 +223,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_PhysicsScene_setEmbed
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_PhysicsScene_sRestoreFromBinaryState
   (JNIEnv *, jclass, jlong streamVa) {
     StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
-    PhysicsScene::PhysicsSceneResult *pResult
+    PhysicsScene::PhysicsSceneResult * const pResult
             = new PhysicsScene::PhysicsSceneResult();
     TRACE_NEW("PhysicsScene::PhysicsSceneResult", pResult)
     *pResult = PhysicsScene::sRestoreFromBinaryState(*pStream);

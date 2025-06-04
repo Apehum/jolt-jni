@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,25 +36,19 @@ using namespace JPH;
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_BroadPhaseCastResult_free
-  (JNIEnv *, jclass, jlong castResultVa) {
-    BroadPhaseCastResult * const pCastResult
-            = reinterpret_cast<BroadPhaseCastResult *> (castResultVa);
-    TRACE_DELETE("BroadPhaseCastResult", pCastResult)
-    delete pCastResult;
-}
+  BODYOF_FREE(BroadPhaseCastResult)
 
 /*
  * Class:     com_github_stephengold_joltjni_BroadPhaseCastResult
  * Method:    getBodyId
- * Signature: (J)J
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_BroadPhaseCastResult_getBodyId
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_BroadPhaseCastResult_getBodyId
   (JNIEnv *, jclass, jlong castResultVa) {
     const BroadPhaseCastResult * const pCastResult
             = reinterpret_cast<BroadPhaseCastResult *> (castResultVa);
-    BodyID * pResult = new BodyID(pCastResult->mBodyID);
-    TRACE_NEW("BodyID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const BodyID result = pCastResult->mBodyID;
+    return result.GetIndexAndSequenceNumber();
 }
 
 /*

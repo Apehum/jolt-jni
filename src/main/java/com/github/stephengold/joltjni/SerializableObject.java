@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ package com.github.stephengold.joltjni;
  *
  * @author Stephen Gold sgold@sonic.net
  */
-abstract public class SerializableObject extends NonCopyable {
+abstract public class SerializableObject extends JoltPhysicsObject {
     // *************************************************************************
     // constructors
 
@@ -55,17 +55,5 @@ abstract public class SerializableObject extends NonCopyable {
      */
     SerializableObject(long virtualAddress) {
         super(virtualAddress);
-    }
-    // *************************************************************************
-    // protected methods
-
-    /**
-     * Assign a native object, assuming there's none already assigned.
-     *
-     * @param virtualAddress the virtual address of the native object to assign
-     * (not zero)
-     */
-    final void setVirtualAddress(long virtualAddress) {
-        setVirtualAddress(virtualAddress, null);
     }
 }

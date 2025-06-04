@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,22 @@ IMPLEMENT_REF(RagdollSettings,
   Java_com_github_stephengold_joltjni_RagdollSettingsRef_copy,
   Java_com_github_stephengold_joltjni_RagdollSettingsRef_createEmpty,
   Java_com_github_stephengold_joltjni_RagdollSettingsRef_free,
-  Java_com_github_stephengold_joltjni_RagdollSettingsRef_getPtr)
+  Java_com_github_stephengold_joltjni_RagdollSettingsRef_getPtr,
+  Java_com_github_stephengold_joltjni_RagdollSettingsRef_toRefC)
+
+/*
+ * Class:     com_github_stephengold_joltjni_RagdollSettings
+ * Method:    addAdditionalConstraint
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_addAdditionalConstraint
+  (JNIEnv *, jclass, jlong settingsVa, jlong constraintVa) {
+    RagdollSettings * const pSettings
+            = reinterpret_cast<RagdollSettings *> (settingsVa);
+    RagdollSettings::AdditionalConstraint * const pConstraint =
+            reinterpret_cast<RagdollSettings::AdditionalConstraint *> (constraintVa);
+    pSettings->mAdditionalConstraints.push_back(*pConstraint);
+}
 
 /*
  * Class:     com_github_stephengold_joltjni_RagdollSettings
@@ -64,6 +79,14 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_calcu
 
 /*
  * Class:     com_github_stephengold_joltjni_RagdollSettings
+ * Method:    createDefault
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_createDefault
+  BODYOF_CREATE_DEFAULT(RagdollSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_RagdollSettings
  * Method:    createRagdoll
  * Signature: (JIJJ)J
  */
@@ -76,6 +99,18 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_crea
     Ragdoll * const pResult
             = pSettings->CreateRagdoll(group, userData, pSystem);
     return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RagdollSettings
+ * Method:    disableParentChildCollisions
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_disableParentChildCollisions
+  (JNIEnv *, jclass, jlong settingsVa) {
+    RagdollSettings * const pSettings
+            = reinterpret_cast<RagdollSettings *> (settingsVa);
+    pSettings->DisableParentChildCollisions();
 }
 
 /*
@@ -133,6 +168,32 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_getS
 
 /*
  * Class:     com_github_stephengold_joltjni_RagdollSettings
+ * Method:    resizeParts
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_resizeParts
+  (JNIEnv *, jclass, jlong settingsVa, jint numParts) {
+    RagdollSettings * const pSettings
+            = reinterpret_cast<RagdollSettings *> (settingsVa);
+    pSettings->mParts.resize(numParts);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RagdollSettings
+ * Method:    saveBinaryState
+ * Signature: (JJZZ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_saveBinaryState
+  (JNIEnv *, jclass, jlong settingsVa, jlong streamVa, jboolean saveShapes,
+  jboolean saveGroupFilter) {
+    const RagdollSettings * const pSettings
+            = reinterpret_cast<RagdollSettings *> (settingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pSettings->SaveBinaryState(*pStream, saveShapes, saveGroupFilter);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RagdollSettings
  * Method:    setEmbedded
  * Signature: (J)V
  */
@@ -141,6 +202,34 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_setEm
     RagdollSettings * const pSettings
             = reinterpret_cast<RagdollSettings *> (settingsVa);
     pSettings->SetEmbedded();
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RagdollSettings
+ * Method:    setSkeleton
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_setSkeleton
+  (JNIEnv *, jclass, jlong settingsVa, jlong skeletonVa) {
+    RagdollSettings * const pSettings
+            = reinterpret_cast<RagdollSettings *> (settingsVa);
+    Skeleton * const pSkeleton = reinterpret_cast<Skeleton *> (skeletonVa);
+    pSettings->mSkeleton = pSkeleton;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_RagdollSettings
+ * Method:    sRestoreFromBinaryState
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_RagdollSettings_sRestoreFromBinaryState
+  (JNIEnv *, jclass, jlong streamVa) {
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    RagdollSettings::RagdollResult * const pResult
+            = new RagdollSettings::RagdollResult();
+    TRACE_NEW("RagdollSettings::RagdollResult", pResult)
+    *pResult = RagdollSettings::sRestoreFromBinaryState(*pStream);
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*

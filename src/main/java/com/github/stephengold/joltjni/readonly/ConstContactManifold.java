@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,6 @@ SOFTWARE.
 package com.github.stephengold.joltjni.readonly;
 
 import com.github.stephengold.joltjni.RVec3;
-import com.github.stephengold.joltjni.SubShapeId;
 import com.github.stephengold.joltjni.Vec3;
 
 /**
@@ -32,11 +31,8 @@ import com.github.stephengold.joltjni.Vec3;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstContactManifold extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
-     * Return the location from which all contact points are measured. The
+     * Copy the location from which all contact points are measured. The
      * manifold is unaffected.
      *
      * @return a new location vector
@@ -52,23 +48,23 @@ public interface ConstContactManifold extends ConstJoltPhysicsObject {
     float getPenetrationDepth();
 
     /**
-     * Return the ID of the first subshape that formed the manifold. The
+     * Return the ID of the first sub-shape that formed the manifold. The
      * manifold is unaffected.
      *
-     * @return a new object
+     * @return a {@code SubShapeID} value
      */
-    SubShapeId getSubShapeId1();
+    int getSubShapeId1();
 
     /**
-     * Return the ID of the 2nd subshape that formed the manifold. The manifold
+     * Return the ID of the 2nd sub-shape that formed the manifold. The manifold
      * is unaffected.
      *
-     * @return a new object
+     * @return a {@code SubShapeID} value
      */
-    SubShapeId getSubShapeId2();
+    int getSubShapeId2();
 
     /**
-     * Return the normal: the direction to move body 2 out of collision. The
+     * Copy the normal: the direction to move body 2 out of collision. The
      * manifold is unaffected.
      *
      * @return a new direction vector (in system coordinates)

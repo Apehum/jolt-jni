@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@ package com.github.stephengold.joltjni;
 
 /**
  * Render settings for debug visualization. (native type:
- * SkeletonPose::DrawSettings)
+ * {@code SkeletonPose::DrawSettings})
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -38,8 +38,21 @@ public class SkeletonPoseDrawSettings extends JoltPhysicsObject {
         long settingsVa = createDrawSettings();
         setVirtualAddress(settingsVa, () -> free(settingsVa));
     }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public SkeletonPoseDrawSettings(SkeletonPoseDrawSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa, () -> free(copyVa));
+    }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
 
     native private static long createDrawSettings();
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,11 @@ package com.github.stephengold.joltjni;
 import com.github.stephengold.joltjni.enumerate.EBodyType;
 import com.github.stephengold.joltjni.enumerate.EStateRecorderState;
 import com.github.stephengold.joltjni.readonly.ConstBroadPhaseLayerInterface;
+import com.github.stephengold.joltjni.readonly.ConstConstraint;
 import com.github.stephengold.joltjni.readonly.ConstObjectLayerPairFilter;
 import com.github.stephengold.joltjni.readonly.ConstObjectVsBroadPhaseLayerFilter;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -51,10 +51,6 @@ public class PhysicsSystem extends NonCopyable {
      */
     final private BodyInterface bodyInterfaceNoLock;
     /**
-     * protect the contact listener (if any) from garbage collection
-     */
-    private ContactListener contactListener;
-    /**
      * protect the BroadPhaseLayerInterface from garbage collection
      */
     private ConstBroadPhaseLayerInterface layerMap;
@@ -67,9 +63,14 @@ public class PhysicsSystem extends NonCopyable {
      */
     private ConstObjectVsBroadPhaseLayerFilter ovbFilter;
     /**
-     * protect the step listeners from garbage collection
+     * protect the contact listener (if any) from garbage collection
      */
-    final private List<PhysicsStepListener> stepListeners = new ArrayList<>();
+    private ContactListener contactListener;
+    /**
+     * protect the step listeners (if any) from garbage collection
+     */
+    final private Map<Long, PhysicsStepListener> stepListeners
+            = new HashMap<>(16);
     /**
      * map virtual address to system
      */
@@ -82,6 +83,10 @@ public class PhysicsSystem extends NonCopyable {
      * cached reference to the system's no-lock {@code NarrowPhaseQuery}
      */
     final private NarrowPhaseQuery narrowPhaseQueryNoLock;
+    /**
+     * protect the soft-body contact listener (if any) from garbage collection
+     */
+    private SoftBodyContactListener softBodyContactListener;
     // *************************************************************************
     // constructors
 
@@ -133,18 +138,32 @@ public class PhysicsSystem extends NonCopyable {
 
     /**
      * Add the specified step listener to the system.
+     * <p>
+     * Step listeners are limited in what actions they can perform.
      *
      * @param listener the listener to add (not null, alias created)
      */
     public void addStepListener(PhysicsStepListener listener) {
-        stepListeners.add(listener);
         long systemVa = va();
         long listenerVa = listener.targetVa();
+        stepListeners.put(listenerVa, listener);
         addStepListener(systemVa, listenerVa);
     }
 
     /**
-     * Render the state of the system, for debugging purposes.
+     * Remove and destroy all bodies in the system.
+     *
+     * @return the number of bodies destroyed (&ge;0)
+     */
+    public int destroyAllBodies() {
+        long systemVa = va();
+        int result = destroyAllBodies(systemVa);
+
+        return result;
+    }
+
+    /**
+     * Render the bodies in the system, for debugging purposes.
      *
      * @param settings the settings to use (not null)
      * @param renderer the renderer to use (not null)
@@ -155,6 +174,56 @@ public class PhysicsSystem extends NonCopyable {
         long settingsVa = settings.va();
         long rendererVa = renderer.va();
         drawBodies(systemVa, settingsVa, rendererVa);
+    }
+
+    /**
+     * Render all constraints in the system, for debugging purposes.
+     *
+     * @param renderer the renderer to use (not null)
+     */
+    public void drawConstraints(DebugRenderer renderer) {
+        long systemVa = va();
+        long rendererVa = renderer.va();
+        drawConstraints(systemVa, rendererVa);
+    }
+
+    /**
+     * Render the limits of all constraints in the system, for debugging
+     * purposes.
+     *
+     * @param renderer the renderer to use (not null)
+     */
+    public void drawConstraintLimits(DebugRenderer renderer) {
+        long systemVa = va();
+        long rendererVa = renderer.va();
+        drawConstraintLimits(systemVa, rendererVa);
+    }
+
+    /**
+     * Render the reference frames of all constraints in the system, for
+     * debugging purposes.
+     *
+     * @param renderer the renderer to use (not null)
+     */
+    public void drawConstraintReferenceFrame(DebugRenderer renderer) {
+        long systemVa = va();
+        long rendererVa = renderer.va();
+        drawConstraintReferenceFrame(systemVa, rendererVa);
+    }
+
+    /**
+     * Test whether the system contains the specified constraint. The system is
+     * unaffected.
+     *
+     * @param constraint the constraint to search for (not null, unaffected)
+     * @return {@code true} if found, otherwise {@code false}
+     */
+    public boolean containsConstraint(ConstConstraint constraint) {
+        long systemVa = va();
+        long constraintVa = constraint.targetVa();
+        boolean result = containsConstraint(systemVa, constraintVa);
+
+        return result;
     }
 
     /**
@@ -169,7 +238,7 @@ public class PhysicsSystem extends NonCopyable {
     }
 
     /**
-     * Enumerate bodies of the specified type to the specified vector.
+     * Enumerate all bodies of the specified type to the specified vector.
      *
      * @param bodyType (not null)
      * @param storeResult storage for the result (not null)
@@ -264,7 +333,7 @@ public class PhysicsSystem extends NonCopyable {
 
     /**
      * Return a bounding box that contains all the bodies in the system. The
-     * physics system is unaffected.
+     * system is unaffected.
      *
      * @return a new box
      */
@@ -289,8 +358,8 @@ public class PhysicsSystem extends NonCopyable {
     /**
      * Access the system's interface for coarse collision queries.
      *
-     * @return the pre-existing JVM object, or null if the system hasn't been
-     * initialized yet
+     * @return the pre-existing JVM object, or {@code null} if the system hasn't
+     * been initialized yet
      */
     public BroadPhaseQuery getBroadPhaseQuery() {
         long systemVa = va();
@@ -332,8 +401,7 @@ public class PhysicsSystem extends NonCopyable {
     }
 
     /**
-     * Enumerate the constraints in the system. The physics system is
-     * unaffected.
+     * Enumerate all constraints in the system. The system is unaffected.
      *
      * @return a new object
      */
@@ -382,10 +450,10 @@ public class PhysicsSystem extends NonCopyable {
     }
 
     /**
-     * Copy the gravity vector. The physics system is unaffected.
+     * Copy the gravity vector. The system is unaffected.
      *
-     * @return a new acceleration vector (meters per second squared in
-     * physics-system coordinates)
+     * @return a new acceleration vector (meters per second squared in system
+     * coordinates)
      */
     public Vec3 getGravity() {
         long systemVa = va();
@@ -398,8 +466,8 @@ public class PhysicsSystem extends NonCopyable {
     }
 
     /**
-     * Return the maximum number of bodies the system supports. The physics
-     * system is unaffected.
+     * Return the maximum number of bodies the system supports. The system is
+     * unaffected.
      *
      * @return the count (&ge;0)
      */
@@ -431,7 +499,7 @@ public class PhysicsSystem extends NonCopyable {
 
     /**
      * Count how many active bodies of the specified type there are in the body
-     * manager. The physics system is unaffected.
+     * manager. The system is unaffected.
      *
      * @param bodyType which type of body to count (not null)
      * @return the count (&ge;0, &le;maxBodies)
@@ -445,8 +513,8 @@ public class PhysicsSystem extends NonCopyable {
     }
 
     /**
-     * Count how many bodies there are in the body manager. The physics system
-     * is unaffected.
+     * Count how many bodies there are in the body manager. The system is
+     * unaffected.
      *
      * @return the count (&ge;0, &le;maxBodies)
      */
@@ -478,7 +546,7 @@ public class PhysicsSystem extends NonCopyable {
     }
 
     /**
-     * Copy the system's settings. The physics system is unaffected.
+     * Copy the system's settings. The system is unaffected.
      *
      * @return a new JVM object with a new native object assigned
      *
@@ -493,7 +561,16 @@ public class PhysicsSystem extends NonCopyable {
     }
 
     /**
-     * Initialize the physics system with the specified limits.
+     * Access the (application-provided) soft-body contact listener.
+     *
+     * @return the pre-existing instance, or {@code null} if none
+     */
+    public SoftBodyContactListener getSoftBodyContactListener() {
+        return softBodyContactListener;
+    }
+
+    /**
+     * Initialize the system with the specified limits.
      *
      * @param maxBodies the desired maximum number of rigid bodies that can be
      * added
@@ -531,6 +608,31 @@ public class PhysicsSystem extends NonCopyable {
     }
 
     /**
+     * Remove all bodies from the system, but don't destroy them.
+     *
+     * @return the number of bodies removed (&ge;0)
+     * @see com.github.stephengold.joltjni.BodyInterface#removeBody(int)
+     */
+    public int removeAllBodies() {
+        long systemVa = va();
+        int result = removeAllBodies(systemVa);
+
+        return result;
+    }
+
+    /**
+     * Remove all constraints from the system.
+     *
+     * @return the number of constraints removed (&ge;0)
+     */
+    public int removeAllConstraints() {
+        long systemVa = va();
+        int result = removeAllConstraints(systemVa);
+
+        return result;
+    }
+
+    /**
      * Remove the specified constraint from the system.
      *
      * @param constraint the constraint to remove (not null)
@@ -539,6 +641,18 @@ public class PhysicsSystem extends NonCopyable {
         long systemVa = va();
         long constraintVa = constraint.va();
         removeConstraint(systemVa, constraintVa);
+    }
+
+    /**
+     * Remove the specified step listener from the system.
+     *
+     * @param listener the listener to remove (not null)
+     */
+    public void removeStepListener(PhysicsStepListener listener) {
+        long systemVa = va();
+        long listenerVa = listener.targetVa();
+        stepListeners.remove(listenerVa, listener);
+        removeStepListener(systemVa, listenerVa);
     }
 
     /**
@@ -603,7 +717,7 @@ public class PhysicsSystem extends NonCopyable {
     /**
      * Replace the combining function for friction.
      *
-     * @param function the desired function (not null)
+     * @param function the desired function (not null, default=geometricMean)
      */
     public void setCombineFriction(CombineFunction function) {
         long systemVa = va();
@@ -614,7 +728,7 @@ public class PhysicsSystem extends NonCopyable {
     /**
      * Replace the combining function for restitutions.
      *
-     * @param function the desired function (not null)
+     * @param function the desired function (not null, default=max)
      */
     public void setCombineRestitution(CombineFunction function) {
         long systemVa = va();
@@ -637,8 +751,23 @@ public class PhysicsSystem extends NonCopyable {
     /**
      * Alter the system's gravity vector.
      *
+     * @param x the X component of the desired acceleration vector (in system
+     * coordinates)
+     * @param y the Y component of the desired acceleration vector (in system
+     * coordinates)
+     * @param z the Z component of the desired acceleration vector (in system
+     * coordinates)
+     */
+    public void setGravity(float x, float y, float z) {
+        long systemVa = va();
+        setGravity(systemVa, x, y, z);
+    }
+
+    /**
+     * Alter the system's gravity vector.
+     *
      * @param gravity the desired acceleration vector (in system coordinates,
-     * not null, unaffected)
+     * not null, unaffected, default=(0,-9.81,0))
      */
     public void setGravity(Vec3Arg gravity) {
         long systemVa = va();
@@ -659,6 +788,18 @@ public class PhysicsSystem extends NonCopyable {
         long systemVa = va();
         long settingsVa = settings.va();
         setPhysicsSettings(systemVa, settingsVa);
+    }
+
+    /**
+     * Replace the system's soft-body contact listener.
+     *
+     * @param listener the desired listener
+     */
+    public void setSoftBodyContactListener(SoftBodyContactListener listener) {
+        this.softBodyContactListener = listener;
+        long systemVa = va();
+        long listenerVa = listener.va();
+        setSoftBodyContactListener(systemVa, listenerVa);
     }
 
     /**
@@ -704,10 +845,23 @@ public class PhysicsSystem extends NonCopyable {
 
     native private static void addStepListener(long systemVa, long listenerVa);
 
+    native private static boolean containsConstraint(
+            long systemVa, long constraintVa);
+
     native private static long createPhysicsSystem();
+
+    native private static int destroyAllBodies(long systemVa);
 
     native private static void drawBodies(
             long systemVa, long settingsVa, long rendererVa);
+
+    native private static void drawConstraints(long systemVa, long rendererVa);
+
+    native private static void drawConstraintLimits(
+            long systemVa, long rendererVa);
+
+    native private static void drawConstraintReferenceFrame(
+            long systemVa, long rendererVa);
 
     native private static void free(long systemVa);
 
@@ -761,8 +915,15 @@ public class PhysicsSystem extends NonCopyable {
 
     native private static void optimizeBroadPhase(long systemVa);
 
+    native private static int removeAllBodies(long systemVa);
+
+    native private static int removeAllConstraints(long systemVa);
+
     native private static void removeConstraint(
             long systemVa, long constraintVa);
+
+    native private static void removeStepListener(
+            long systemVa, long listenerVa);
 
     native private static boolean restoreState(long systemVa, long recorderVa);
 
@@ -786,6 +947,9 @@ public class PhysicsSystem extends NonCopyable {
 
     native private static void setPhysicsSettings(
             long systemVa, long settingsVa);
+
+    native private static void setSoftBodyContactListener(
+            long systemVa, long listenerVa);
 
     native private static int update(long physicsSystemVa, float deltaTime,
             int collisionSteps, long allocatorVa, long jobSystemVa);

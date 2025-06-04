@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,13 @@ import com.github.stephengold.joltjni.template.RefTarget;
  */
 public class Ragdoll extends NonCopyable implements RefTarget {
     // *************************************************************************
+    // fields
+
+    /**
+     * where to add the bodies and constraints (not null)
+     */
+    final private PhysicsSystem system;
+    // *************************************************************************
     // constructors
 
     /**
@@ -39,9 +46,11 @@ public class Ragdoll extends NonCopyable implements RefTarget {
      *
      * @param ragdollVa the virtual address of the native object to assign (not
      * zero)
+     * @param physicsSystem where to add the bodies and constraints (not null)
      */
-    Ragdoll(long ragdollVa) {
+    Ragdoll(long ragdollVa, PhysicsSystem physicsSystem) {
         super(ragdollVa);
+        this.system = physicsSystem;
     }
     // *************************************************************************
     // new methods exposed
@@ -59,6 +68,30 @@ public class Ragdoll extends NonCopyable implements RefTarget {
     }
 
     /**
+     * Drive the ragdoll to the specified pose by setting velocities.
+     *
+     * @param pose the desired pose
+     * @param time time to achieve the pose (in seconds)
+     */
+    public void driveToPoseUsingKinematics(SkeletonPose pose, float time) {
+        driveToPoseUsingKinematics(pose, time, true);
+    }
+
+    /**
+     * Drive the ragdoll to the specified pose by setting velocities.
+     *
+     * @param pose the desired pose
+     * @param time time to achieve the pose (in seconds)
+     * @param lockBodies (default=true)
+     */
+    public void driveToPoseUsingKinematics(
+            SkeletonPose pose, float time, boolean lockBodies) {
+        long ragdollVa = va();
+        long poseVa = pose.va();
+        driveToPoseUsingKinematics(ragdollVa, poseVa, time, lockBodies);
+    }
+
+    /**
      * Drive the ragdoll to the specified pose using motors.
      *
      * @param pose the desired pose (not null, unaffected)
@@ -67,6 +100,105 @@ public class Ragdoll extends NonCopyable implements RefTarget {
         long ragdollVa = va();
         long poseVa = pose.va();
         driveToPoseUsingMotors(ragdollVa, poseVa);
+    }
+
+    /**
+     * Count how many bodies are in the ragdoll, which is unaffected
+     *
+     * @return the count (&ge;0)
+     */
+    public int getBodyCount() {
+        long ragdollVa = va();
+        int result = getBodyCount(ragdollVa);
+
+        return result;
+    }
+
+    /**
+     * Enumerate all bodies in the ragdoll, which is unaffected. (native method:
+     * GetBodyIDs)
+     *
+     * @return a new array of body IDs
+     */
+    public int[] getBodyIds() {
+        long ragdollVa = va();
+        int numBodies = getBodyCount(ragdollVa);
+        int[] storeIds = new int[numBodies];
+        getBodyIds(ragdollVa, storeIds);
+
+        return storeIds;
+    }
+
+    /**
+     * Count how many constraints are in the ragdoll, which is unaffected.
+     *
+     * @return the count (&ge;0)
+     */
+    public int getConstraintCount() {
+        long ragdollVa = va();
+        int result = getConstraintCount(ragdollVa);
+
+        return result;
+    }
+
+    /**
+     * Copy the low-level pose using a locking body interface.
+     *
+     * @param storeRootOffset storage for the root offset (not null, modified)
+     * @param storeJointMatrices storage for the joint matrices (not null,
+     * modified)
+     */
+    public void getPose(RVec3 storeRootOffset, Mat44Array storeJointMatrices) {
+        getPose(storeRootOffset, storeJointMatrices, true);
+    }
+
+    /**
+     * Copy the low-level pose.
+     *
+     * @param storeRootOffset storage for the root offset (not null, modified)
+     * @param storeJointMatrices storage for the joint matrices (not null,
+     * modified)
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * {@code false} &rarr; use the non-locking body interface (default=true)
+     */
+    public void getPose(RVec3 storeRootOffset, Mat44Array storeJointMatrices,
+            boolean lockBodies) {
+        long ragdollVa = va();
+        double[] storeDoubles = new double[3];
+        long storeMatsVa = storeJointMatrices.va();
+        getPose(ragdollVa, storeDoubles, storeMatsVa, lockBodies);
+        storeRootOffset.set(storeDoubles);
+    }
+
+    /**
+     * Copy the transform of the ragdoll's root, using the locking body
+     * interface. The ragdoll is unaffected.
+     *
+     * @param storeLocation storage for the root location (not null, modified)
+     * @param storeOrientation storage for the root orientation (not null,
+     * modified)
+     */
+    public void getRootTransform(RVec3 storeLocation, Quat storeOrientation) {
+        getRootTransform(storeLocation, storeOrientation, true);
+    }
+
+    /**
+     * Copy the transform of the ragdoll's root. The ragdoll is unaffected.
+     *
+     * @param storeLocation storage for the root location (not null, modified)
+     * @param storeOrientation storage for the root orientation (not null,
+     * modified)
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * {@code false} &rarr; use the non-locking body interface (default=true)
+     */
+    public void getRootTransform(
+            RVec3 storeLocation, Quat storeOrientation, boolean lockBodies) {
+        long ragdollVa = va();
+        double[] storeDoubles = new double[3];
+        float[] storeFloats = new float[4];
+        getRootTransform(ragdollVa, storeDoubles, storeFloats, lockBodies);
+        storeLocation.set(storeDoubles);
+        storeOrientation.set(storeFloats);
     }
 
     /**
@@ -133,7 +265,7 @@ public class Ragdoll extends NonCopyable implements RefTarget {
     public RagdollRef toRef() {
         long ragdollVa = va();
         long refVa = toRef(ragdollVa);
-        RagdollRef result = new RagdollRef(refVa, true);
+        RagdollRef result = new RagdollRef(refVa, system);
 
         return result;
     }
@@ -142,9 +274,24 @@ public class Ragdoll extends NonCopyable implements RefTarget {
 
     native static void addToPhysicsSystem(long ragdollVa, int ordinal);
 
+    native static void driveToPoseUsingKinematics(
+            long ragdollVa, long poseVa, float time, boolean lockBodies);
+
     native static void driveToPoseUsingMotors(long ragdollVa, long poseVa);
 
+    native static int getBodyCount(long ragdollVa);
+
+    native static void getBodyIds(long ragdollVa, int[] storeIds);
+
+    native static int getConstraintCount(long ragdollVa);
+
+    native static void getPose(long ragdollVa, double[] storeDoubles,
+            long storeMatsVa, boolean lockBodies);
+
     native private static int getRefCount(long ragdollVa);
+
+    native static void getRootTransform(long ragdollVa, double[] storeDoubles,
+            float[] storeFloats, boolean lockBodies);
 
     native static void removeFromPhysicsSystem(long ragdollVa);
 

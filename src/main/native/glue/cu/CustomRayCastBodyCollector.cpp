@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -50,9 +50,9 @@ public:
         JPH_ASSERT(!pEnv->ExceptionCheck());
     }
 
-    void AddHit(const BroadPhaseCastResult &inResult) {
+    void AddHit(const BroadPhaseCastResult &inResult) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong resultVa = reinterpret_cast<jlong> (&inResult);
@@ -63,7 +63,7 @@ public:
 
     ~CustomRayCastBodyCollector() {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         pAttachEnv->DeleteGlobalRef(mJavaObject);

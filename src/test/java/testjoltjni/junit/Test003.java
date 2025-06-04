@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,8 @@ import com.github.stephengold.joltjni.AaBox;
 import com.github.stephengold.joltjni.BodyCreationSettings;
 import com.github.stephengold.joltjni.BoxShape;
 import com.github.stephengold.joltjni.BoxShapeSettings;
+import com.github.stephengold.joltjni.CapsuleShape;
+import com.github.stephengold.joltjni.CharacterSettings;
 import com.github.stephengold.joltjni.CharacterVirtual;
 import com.github.stephengold.joltjni.CharacterVirtualSettings;
 import com.github.stephengold.joltjni.CollisionGroup;
@@ -40,21 +42,37 @@ import com.github.stephengold.joltjni.MotionProperties;
 import com.github.stephengold.joltjni.PhysicsSystem;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RVec3;
-import com.github.stephengold.joltjni.Shape;
-import com.github.stephengold.joltjni.ShapeSettings;
+import com.github.stephengold.joltjni.SkinWeight;
+import com.github.stephengold.joltjni.SoftBodyCreationSettings;
+import com.github.stephengold.joltjni.SoftBodyMotionProperties;
+import com.github.stephengold.joltjni.SoftBodySharedSettings;
 import com.github.stephengold.joltjni.SphereShape;
+import com.github.stephengold.joltjni.SpringSettings;
 import com.github.stephengold.joltjni.TempAllocator;
 import com.github.stephengold.joltjni.TempAllocatorImpl;
 import com.github.stephengold.joltjni.TempAllocatorImplWithMallocFallback;
 import com.github.stephengold.joltjni.TempAllocatorMalloc;
 import com.github.stephengold.joltjni.Vec3;
+import com.github.stephengold.joltjni.VehicleConstraintSettings;
+import com.github.stephengold.joltjni.WheelSettingsWv;
+import com.github.stephengold.joltjni.WheeledVehicleControllerSettings;
 import com.github.stephengold.joltjni.enumerate.EAllowedDofs;
 import com.github.stephengold.joltjni.enumerate.EMotionQuality;
 import com.github.stephengold.joltjni.enumerate.EMotionType;
 import com.github.stephengold.joltjni.enumerate.EOverrideMassProperties;
+import com.github.stephengold.joltjni.enumerate.ESpringMode;
 import com.github.stephengold.joltjni.readonly.ConstBodyCreationSettings;
+import com.github.stephengold.joltjni.readonly.ConstCollisionGroup;
 import com.github.stephengold.joltjni.readonly.ConstMassProperties;
+import com.github.stephengold.joltjni.readonly.ConstShape;
+import com.github.stephengold.joltjni.readonly.ConstShapeSettings;
+import com.github.stephengold.joltjni.readonly.ConstSoftBodyCreationSettings;
+import com.github.stephengold.joltjni.readonly.ConstSoftBodySharedSettings;
+import com.github.stephengold.joltjni.readonly.QuatArg;
+import com.github.stephengold.joltjni.readonly.RVec3Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
+import com.github.stephengold.joltjni.vhacd.FillMode;
+import com.github.stephengold.joltjni.vhacd.Parameters;
 import org.junit.Assert;
 import org.junit.Test;
 import testjoltjni.TestUtils;
@@ -79,6 +97,7 @@ public class Test003 {
 
         doAaBox();
         doBodyCreationSettings();
+        doCharacter();
         doCharacterVirtual();
         doCollisionGroup();
         doContactSettings();
@@ -86,9 +105,17 @@ public class Test003 {
         doJobSystemThreadPool();
         doMassProperties();
         doMotionProperties();
+        doParameters();
+        doSkinWeight();
+        doSoftBodyCreationSettings();
+        doSoftBodyMotionProperties();
+        doSpringSettings();
         doTempAllocatorImpl();
         doTempAllocatorImplWithMallocFallback();
         doTempAllocatorMalloc();
+        doVehicleConstraintSettings();
+        doWvControllerSettings();
+        doWheelSettingsWv();
 
         TestUtils.cleanup();
     }
@@ -99,7 +126,7 @@ public class Test003 {
      * Test the {@code AaBox} class.
      */
     private static void doAaBox() {
-        {
+        { // no-arg constructor:
             AaBox box = new AaBox();
 
             Assert.assertTrue(box.hasAssignedNativeObject());
@@ -118,21 +145,19 @@ public class Test003 {
             Assert.assertNotEquals(0L, box.va());
 
             TestUtils.assertEquals(0f, 0f, 0f, box.getCenter(), 0f);
+            float halfMax = 0.5f * Float.MAX_VALUE;
             TestUtils.assertEquals(
-                    Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY,
-                    Float.POSITIVE_INFINITY, box.getExtent(), 0f);
+                    halfMax, halfMax, halfMax, box.getExtent(), 0f);
+            TestUtils.assertEquals(halfMax, halfMax, halfMax, box.getMax(), 0f);
+            TestUtils.assertEquals(
+                    -halfMax, -halfMax, -halfMax, box.getMin(), 0f);
             TestUtils.assertEquals(Float.MAX_VALUE, Float.MAX_VALUE,
-                    Float.MAX_VALUE, box.getMax(), 0f);
-            TestUtils.assertEquals(-Float.MAX_VALUE, -Float.MAX_VALUE,
-                    -Float.MAX_VALUE, box.getMin(), 0f);
-            TestUtils.assertEquals(
-                    Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY,
-                    Float.POSITIVE_INFINITY, box.getSize(), 0f);
+                    Float.MAX_VALUE, box.getSize(), 0f);
             Assert.assertTrue(box.isValid());
 
             TestUtils.testClose(box);
         }
-        {
+        { // min-max constructor:
             Vec3Arg max = new Vec3(4f, 5f, 6f);
             Vec3Arg min = new Vec3(1f, 2f, 3f);
             AaBox box = new AaBox(min, max);
@@ -150,6 +175,24 @@ public class Test003 {
 
             TestUtils.testClose(box);
         }
+        { // center-and-extent constructor:
+            Vec3Arg center = new Vec3(4f, 3f, 2f);
+            float radius = 5f;
+            AaBox box = new AaBox(center, radius);
+
+            Assert.assertTrue(box.hasAssignedNativeObject());
+            Assert.assertTrue(box.ownsNativeObject());
+            Assert.assertNotEquals(0L, box.va());
+
+            TestUtils.assertEquals(center, box.getCenter(), 0f);
+            TestUtils.assertEquals(9f, 8f, 7f, box.getMax(), 0f);
+            TestUtils.assertEquals(radius, radius, radius, box.getExtent(), 0f);
+            TestUtils.assertEquals(-1f, -2f, -3f, box.getMin(), 0f);
+            TestUtils.assertEquals(10f, 10f, 10f, box.getSize(), 0f);
+            Assert.assertTrue(box.isValid());
+
+            TestUtils.testClose(box);
+        }
 
         System.gc();
     }
@@ -158,41 +201,82 @@ public class Test003 {
      * Test the {@code BodyCreationSettings} class.
      */
     private static void doBodyCreationSettings() {
-        {
+        { // no-arg constructor:
             BodyCreationSettings bcs = new BodyCreationSettings();
 
+            Assert.assertNull(bcs.getMassProperties());
             Assert.assertNull(bcs.getShape());
+            Assert.assertNull(bcs.getShapeSettings());
             testBcsDefaults(bcs);
             testBcsSetters(bcs);
 
             TestUtils.testClose(bcs);
         }
-        {
-            ShapeSettings ss = new BoxShapeSettings(new Vec3(1f, 1f, 1f));
+        { // copy constructor:
+            ConstBodyCreationSettings original = new BodyCreationSettings();
+            BodyCreationSettings copy = new BodyCreationSettings(original);
+
+            Assert.assertNull(copy.getMassProperties());
+            Assert.assertNull(copy.getShape());
+            Assert.assertNull(copy.getShapeSettings());
+            testBcsDefaults(copy);
+            testBcsSetters(copy);
+
+            TestUtils.testClose(copy, original);
+        }
+        { // constructed from a ShapeSettings:
+            ConstShapeSettings ss = new BoxShapeSettings(1f, 1f, 1f);
             int objectLayer = 0;
             BodyCreationSettings bcs = new BodyCreationSettings(ss,
                     new RVec3(), new Quat(), EMotionType.Dynamic, objectLayer);
 
+            Assert.assertNotNull(bcs.getMassProperties());
             Assert.assertNotNull(bcs.getShape());
+            Assert.assertEquals(ss, bcs.getShapeSettings());
             Assert.assertTrue(bcs.getShape() instanceof BoxShape);
             testBcsDefaults(bcs);
             testBcsSetters(bcs);
 
             TestUtils.testClose(bcs, ss);
         }
-        {
-            Shape shape = new SphereShape(1f);
+        { // constructed from a Shape:
+            ConstShape shape = new SphereShape(1f);
             int objectLayer = 0;
             BodyCreationSettings bcs = new BodyCreationSettings(shape,
                     new RVec3(), new Quat(), EMotionType.Dynamic, objectLayer);
 
+            Assert.assertNotNull(bcs.getMassProperties());
             Assert.assertEquals(shape, bcs.getShape());
+            Assert.assertNull(bcs.getShapeSettings());
             testBcsDefaults(bcs);
             testBcsSetters(bcs);
 
             TestUtils.testClose(bcs, shape);
         }
 
+        System.gc();
+    }
+
+    /**
+     * Test the {@code Character} class.
+     */
+    private static void doCharacter() {
+        float radius = 1f; // meters
+        float height = 2f; // meters
+        ConstShape shape = new CapsuleShape(height / 2f, radius);
+
+        CharacterSettings settings = new CharacterSettings();
+        settings.setShape(shape);
+
+        int maxBodies = 1;
+        PhysicsSystem system = TestUtils.newPhysicsSystem(maxBodies);
+        com.github.stephengold.joltjni.Character character
+                = new com.github.stephengold.joltjni.Character(
+                        settings, new RVec3(), new Quat(), 0L, system);
+
+        testCharacterDefaults(character);
+
+        TestUtils.testClose(character, system, settings, shape);
         System.gc();
     }
 
@@ -300,6 +384,99 @@ public class Test003 {
     }
 
     /**
+     * Test the {@code Parameters} class.
+     */
+    private static void doParameters() {
+        Parameters parameters = new Parameters();
+
+        testParametersDefaults(parameters);
+        testParametersSetters(parameters);
+
+        TestUtils.testClose(parameters);
+        System.gc();
+    }
+
+    /**
+     * Test the {@code SkinWeight} class.
+     */
+    private static void doSkinWeight() {
+        SkinWeight weight = new SkinWeight();
+        testSkinWeightDefaults(weight);
+
+        TestUtils.testClose(weight);
+        System.gc();
+    }
+
+    /**
+     * Test the {@code SoftBodyCreationSettings} class.
+     */
+    private static void doSoftBodyCreationSettings() {
+        { // no-arg constructor:
+            SoftBodyCreationSettings sbcs = new SoftBodyCreationSettings();
+
+            Assert.assertNull(sbcs.getSettings());
+            testSbcsDefaults(sbcs);
+            testSbcsSetters(sbcs);
+
+            TestUtils.testClose(sbcs);
+        }
+        { // copy constructor:
+            ConstSoftBodyCreationSettings original
+                    = new SoftBodyCreationSettings();
+            SoftBodyCreationSettings copy
+                    = new SoftBodyCreationSettings(original);
+
+            Assert.assertNull(copy.getSettings());
+            testSbcsDefaults(copy);
+            testSbcsSetters(copy);
+
+            TestUtils.testClose(copy, original);
+        }
+        { // constructed from a SoftBodySharedSettings:
+            ConstSoftBodySharedSettings sbss = new SoftBodySharedSettings();
+            RVec3Arg location = new RVec3();
+            QuatArg orientation = new Quat();
+            int objectLayer = 0;
+            SoftBodyCreationSettings sbcs = new SoftBodyCreationSettings(
+                    sbss, location, orientation, objectLayer);
+
+            Assert.assertEquals(sbss.targetVa(), sbcs.getSettings().targetVa());
+            testSbcsDefaults(sbcs);
+            testSbcsSetters(sbcs);
+
+            TestUtils.testClose(sbcs, sbss);
+        }
+
+        System.gc();
+    }
+
+    /**
+     * Test the {@code SoftBodyMotionProperties} class.
+     */
+    private static void doSoftBodyMotionProperties() {
+        SoftBodyMotionProperties properties = new SoftBodyMotionProperties();
+
+        testSoftBodyMotionPropertiesDefaults(properties);
+        testSoftBodyMotionPropertiesSetters(properties);
+
+        TestUtils.testClose(properties);
+        System.gc();
+    }
+
+    /**
+     * Test the {@code SpringSettings} class.
+     */
+    private static void doSpringSettings() {
+        SpringSettings ss = new SpringSettings();
+
+        testSpringSettingsDefaults(ss);
+        testSpringSettingsSetters(ss);
+
+        TestUtils.testClose(ss);
+        System.gc();
+    }
+
+    /**
      * Test the {@code TempAllocatorImpl} class.
      */
     private static void doTempAllocatorImpl() {
@@ -345,6 +522,46 @@ public class Test003 {
     }
 
     /**
+     * Test the {@code VehicleConstraintSettings} class.
+     */
+    private static void doVehicleConstraintSettings() {
+        VehicleConstraintSettings vcs = new VehicleConstraintSettings();
+
+        testVehicleConstraintSettingsDefaults(vcs);
+        testVehicleConstraintSettingsSetters(vcs);
+
+        TestUtils.testClose(vcs);
+        System.gc();
+    }
+
+    /**
+     * Test the {@code WheelSettingsWv} class.
+     */
+    private static void doWheelSettingsWv() {
+        WheelSettingsWv wswv = new WheelSettingsWv();
+
+        testWheelSettingsWvDefaults(wswv);
+        testWheelSettingsWvSetters(wswv);
+
+        TestUtils.testClose(wswv);
+        System.gc();
+    }
+
+    /**
+     * Test the {@code WheeledVehicleControllerSettings} class.
+     */
+    private static void doWvControllerSettings() {
+        WheeledVehicleControllerSettings wvcs
+                = new WheeledVehicleControllerSettings();
+
+        testWvControllerSettingsDefaults(wvcs);
+        testWvControllerSettingsSetters(wvcs);
+
+        TestUtils.testClose(wvcs);
+        System.gc();
+    }
+
+    /**
      * Test the getters and defaults of the specified
      * {@code BodyCreationSettings}.
      *
@@ -354,14 +571,21 @@ public class Test003 {
         Assert.assertTrue(bcs.hasAssignedNativeObject());
         Assert.assertTrue(bcs.ownsNativeObject());
 
+        Assert.assertFalse(bcs.getAllowDynamicOrKinematic());
+        Assert.assertEquals(EAllowedDofs.All, bcs.getAllowedDofs());
         Assert.assertTrue(bcs.getAllowSleeping());
         Assert.assertEquals(0.05f, bcs.getAngularDamping(), 0f);
         TestUtils.assertEquals(0f, 0f, 0f, bcs.getAngularVelocity(), 0f);
+        Assert.assertFalse(bcs.getApplyGyroscopicForce());
+        Assert.assertNotNull(bcs.getCollisionGroup());
+        Assert.assertFalse(bcs.getEnhancedInternalEdgeRemoval());
         Assert.assertEquals(0.2f, bcs.getFriction(), 0f);
         Assert.assertEquals(1f, bcs.getGravityFactor(), 0f);
         Assert.assertFalse(bcs.getIsSensor());
         Assert.assertEquals(0.05f, bcs.getLinearDamping(), 0f);
         TestUtils.assertEquals(0f, 0f, 0f, bcs.getLinearVelocity(), 0f);
+        // caller should test getMassProperties()
+        testMpDefaults(bcs.getMassPropertiesOverride());
         Assert.assertEquals(15 * Math.PI, bcs.getMaxAngularVelocity(), 1e-6f);
         Assert.assertEquals(500f, bcs.getMaxLinearVelocity(), 0f);
         Assert.assertEquals(EMotionQuality.Discrete, bcs.getMotionQuality());
@@ -372,6 +596,7 @@ public class Test003 {
         TestUtils.assertEquals(0f, 0f, 0f, bcs.getPosition(), 0f);
         Assert.assertEquals(0f, bcs.getRestitution(), 0f);
         TestUtils.assertEquals(0f, 0f, 0f, 1f, bcs.getRotation(), 0f);
+        // caller should test getShape() and getShapeSettings()
         Assert.assertTrue(bcs.hasMassProperties());
     }
 
@@ -381,9 +606,18 @@ public class Test003 {
      * @param bcs the settings to test (not null, modified)
      */
     private static void testBcsSetters(BodyCreationSettings bcs) {
+        bcs.setAllowDynamicOrKinematic(true);
+        bcs.setAllowedDofs(EAllowedDofs.Plane2D);
         bcs.setAllowSleeping(false);
         bcs.setAngularDamping(0.01f);
         bcs.setAngularVelocity(new Vec3(0.02f, 0.03f, 0.04f));
+        bcs.setApplyGyroscopicForce(true);
+
+        GroupFilterTable filter = new GroupFilterTable();
+        CollisionGroup group = new CollisionGroup(filter, 2, 3);
+        bcs.setCollisionGroup(group);
+
+        bcs.setEnhancedInternalEdgeRemoval(true);
         bcs.setFriction(0.05f);
         bcs.setGravityFactor(0.06f);
         bcs.setIsSensor(true);
@@ -393,17 +627,23 @@ public class Test003 {
         bcs.setMaxLinearVelocity(0.102f);
         bcs.setMotionQuality(EMotionQuality.LinearCast);
         bcs.setMotionType(EMotionType.Kinematic);
-        bcs.setObjectLayer(11);
+        bcs.setObjectLayer(65_535);
         bcs.setOverrideMassProperties(
                 EOverrideMassProperties.MassAndInertiaProvided);
         bcs.setPosition(new RVec3(0.12, 0.13, 0.14));
         bcs.setRestitution(0.15f);
         bcs.setRotation(new Quat(0.6f, 0f, 0f, 0.8f));
 
+        // Verify the new parameter values:
+        Assert.assertTrue(bcs.getAllowDynamicOrKinematic());
+        Assert.assertEquals(EAllowedDofs.Plane2D, bcs.getAllowedDofs());
         Assert.assertFalse(bcs.getAllowSleeping());
         Assert.assertEquals(0.01f, bcs.getAngularDamping(), 0f);
         TestUtils.assertEquals(
                 0.02f, 0.03f, 0.04f, bcs.getAngularVelocity(), 0f);
+        Assert.assertTrue(bcs.getApplyGyroscopicForce());
+        TestUtils.assertCollisionGroup(group, bcs.getCollisionGroup());
+        Assert.assertTrue(bcs.getEnhancedInternalEdgeRemoval());
         Assert.assertEquals(0.05f, bcs.getFriction(), 0f);
         Assert.assertEquals(0.06f, bcs.getGravityFactor(), 0f);
         Assert.assertTrue(bcs.getIsSensor());
@@ -413,12 +653,27 @@ public class Test003 {
         Assert.assertEquals(0.102f, bcs.getMaxLinearVelocity(), 0f);
         Assert.assertEquals(EMotionQuality.LinearCast, bcs.getMotionQuality());
         Assert.assertEquals(EMotionType.Kinematic, bcs.getMotionType());
-        Assert.assertEquals(11, bcs.getObjectLayer());
+        Assert.assertEquals(65_535, bcs.getObjectLayer());
         Assert.assertEquals(EOverrideMassProperties.MassAndInertiaProvided,
                 bcs.getOverrideMassProperties());
         TestUtils.assertEquals(0.12f, 0.13f, 0.14f, bcs.getPosition(), 0f);
         Assert.assertEquals(0.15f, bcs.getRestitution(), 0f);
         TestUtils.assertEquals(0.6f, 0f, 0f, 0.8f, bcs.getRotation(), 0f);
+    }
+
+    /**
+     * Test the getters and defaults of the specified {@code Character}.
+     *
+     * @param character the character to test (not null, unaffected)
+     */
+    private static void testCharacterDefaults(
+            com.github.stephengold.joltjni.Character character) {
+        TestUtils.assertEquals(
+                0f, 0f, 0f, character.getCenterOfMassPosition(), 0f);
+        Assert.assertEquals(0, character.getLayer());
+        TestUtils.assertEquals(0f, 0f, 0f, character.getLinearVelocity(), 0f);
+        TestUtils.assertEquals(0f, 0f, 0f, character.getPosition(), 0f);
+        TestUtils.assertEquals(0f, 0f, 0f, 1f, character.getRotation(), 0f);
     }
 
     /**
@@ -445,7 +700,7 @@ public class Test003 {
      *
      * @param group the group to test (not null, unaffected)
      */
-    private static void testCollisionGroupDefaults(CollisionGroup group) {
+    private static void testCollisionGroupDefaults(ConstCollisionGroup group) {
         Assert.assertNull(group.getGroupFilter());
         Assert.assertEquals(CollisionGroup.cInvalidGroup, group.getGroupId());
         Assert.assertEquals(
@@ -463,7 +718,7 @@ public class Test003 {
         group.setGroupId(101);
         group.setSubGroupId(102);
 
-        Assert.assertEquals(filter.va(), group.getGroupFilter().va());
+        Assert.assertEquals(filter.va(), group.getGroupFilter().targetVa());
         Assert.assertEquals(101, group.getGroupId());
         Assert.assertEquals(102, group.getSubGroupId());
     }
@@ -546,7 +801,7 @@ public class Test003 {
     /**
      * Test the setters of the specified {@code MotionProperties}.
      *
-     * @param props properties to test (not null, modified)
+     * @param props the properties to test (not null, modified)
      */
     private static void testMotionSetters(MotionProperties props) {
         props.setAngularDamping(0.01f);
@@ -586,8 +841,6 @@ public class Test003 {
      */
     private static void testMpDefaults(ConstMassProperties props) {
         Assert.assertTrue(props.hasAssignedNativeObject());
-        Assert.assertTrue(props.ownsNativeObject());
-
         Assert.assertEquals(0f, props.getMass(), 0f);
         Assert.assertTrue(props.getInertia().isEqual(Mat44.sZero()));
     }
@@ -595,7 +848,7 @@ public class Test003 {
     /**
      * Test the setters of the specified {@code MassProperties}.
      *
-     * @param props properties to test (not null, modified)
+     * @param props the properties to test (not null, modified)
      */
     private static void testMpSetters(MassProperties props) {
         props.setMass(2f);
@@ -603,5 +856,351 @@ public class Test003 {
 
         props.setInertia(Mat44.sIdentity());
         Assert.assertTrue(props.getInertia().isEqual(Mat44.sIdentity()));
+    }
+
+    /**
+     * Test the getters and defaults of the specified {@code Parameters}.
+     *
+     * @param params the parameters to test (not null, unaffected)
+     */
+    private static void testParametersDefaults(Parameters params) {
+        Assert.assertTrue(params.hasAssignedNativeObject());
+        Assert.assertTrue(params.ownsNativeObject());
+
+        Assert.assertTrue(params.getAsyncAcd());
+        Assert.assertFalse(params.isDebugOutputEnabled());
+        Assert.assertEquals(FillMode.FloodFill, params.getFillMode());
+        Assert.assertFalse(params.getFindBestPlane());
+        Assert.assertEquals(64, params.getMaxConvexHulls());
+        Assert.assertEquals(64, params.getMaxNumVerticesPerCh());
+        Assert.assertEquals(10, params.getMaxRecursionDepth());
+        Assert.assertEquals(2, params.getMinEdgeLength());
+        Assert.assertEquals(
+                1., params.getMinimumVolumePercentErrorAllowed(), 0.);
+        Assert.assertEquals(400_000, params.getResolution());
+        Assert.assertTrue(params.getShrinkWrap());
+    }
+
+    /**
+     * Test the setters of the specified {@code Parameters}.
+     *
+     * @param params the parameters to test (not null, modified)
+     */
+    private static void testParametersSetters(Parameters params) {
+        params.setAsyncAcd(false);
+        params.setDebugOutputEnabled(true);
+        params.setFillMode(FillMode.RaycastFill);
+        params.setFindBestPlane(true);
+        params.setMaxConvexHulls(123);
+        params.setMaxNumVerticesPerCh(67);
+        params.setMaxRecursionDepth(8);
+        params.setMinEdgeLength(9);
+        params.setMinimumVolumePercentErrorAllowed(12.);
+        params.setResolution(345_678);
+        params.setShrinkWrap(false);
+
+        Assert.assertFalse(params.getAsyncAcd());
+        Assert.assertTrue(params.isDebugOutputEnabled());
+        Assert.assertEquals(FillMode.RaycastFill, params.getFillMode());
+        Assert.assertTrue(params.getFindBestPlane());
+        Assert.assertEquals(123, params.getMaxConvexHulls());
+        Assert.assertEquals(67, params.getMaxNumVerticesPerCh());
+        Assert.assertEquals(8, params.getMaxRecursionDepth());
+        Assert.assertEquals(9, params.getMinEdgeLength());
+        Assert.assertEquals(
+                12., params.getMinimumVolumePercentErrorAllowed(), 0.);
+        Assert.assertEquals(345_678, params.getResolution());
+        Assert.assertFalse(params.getShrinkWrap());
+    }
+
+    /**
+     * Test the getters and defaults of the specified
+     * {@code SoftBodyCreationSettings}.
+     *
+     * @param sbcs the settings to test (not null, unaffected)
+     */
+    private static void testSbcsDefaults(ConstSoftBodyCreationSettings sbcs) {
+        Assert.assertTrue(sbcs.hasAssignedNativeObject());
+        Assert.assertTrue(sbcs.ownsNativeObject());
+
+        Assert.assertTrue(sbcs.getAllowSleeping());
+        Assert.assertNotNull(sbcs.getCollisionGroup());
+        Assert.assertEquals(0.2f, sbcs.getFriction(), 0f);
+        Assert.assertEquals(1f, sbcs.getGravityFactor(), 0f);
+        Assert.assertEquals(0.1f, sbcs.getLinearDamping(), 0f);
+        Assert.assertTrue(sbcs.getMakeRotationIdentity());
+        Assert.assertEquals(500f, sbcs.getMaxLinearVelocity(), 0f);
+        Assert.assertEquals(0, sbcs.getObjectLayer());
+        TestUtils.assertEquals(0f, 0f, 0f, sbcs.getPosition(), 0f);
+        Assert.assertEquals(0f, sbcs.getPressure(), 0f);
+        Assert.assertEquals(0f, sbcs.getRestitution(), 0f);
+        TestUtils.assertEquals(0f, 0f, 0f, 1f, sbcs.getRotation(), 0f);
+        Assert.assertTrue(sbcs.getUpdatePosition());
+    }
+
+    /**
+     * Test the setters of the specified {@code SoftBodyCreationSettings}.
+     *
+     * @param sbcs the settings to test (not null, modified)
+     */
+    private static void testSbcsSetters(SoftBodyCreationSettings sbcs) {
+        sbcs.setAllowSleeping(false);
+        sbcs.setCollisionGroup(new CollisionGroup());
+        sbcs.setFriction(0.02f);
+        sbcs.setGravityFactor(0.06f);
+        sbcs.setLinearDamping(0.07f);
+        sbcs.setMakeRotationIdentity(false);
+        sbcs.setMaxLinearVelocity(0.102f);
+        sbcs.setObjectLayer(65_535);
+        sbcs.setPosition(new RVec3(3., 4., 5.));
+        sbcs.setPressure(0.09f);
+        sbcs.setRestitution(0.15f);
+        sbcs.setRotation(new Quat(0.5f, 0.5f, -0.5f, -0.5f));
+        sbcs.setUpdatePosition(false);
+
+        SoftBodySharedSettings newSs = new SoftBodySharedSettings();
+        sbcs.setSettings(newSs);
+
+        Assert.assertFalse(sbcs.getAllowSleeping());
+        Assert.assertEquals(0.02f, sbcs.getFriction(), 0f);
+        Assert.assertEquals(0.06f, sbcs.getGravityFactor(), 0f);
+        Assert.assertEquals(0.07f, sbcs.getLinearDamping(), 0f);
+        Assert.assertFalse(sbcs.getMakeRotationIdentity());
+        Assert.assertEquals(0.102f, sbcs.getMaxLinearVelocity(), 0f);
+        Assert.assertEquals(65_535, sbcs.getObjectLayer());
+        TestUtils.assertEquals(3f, 4f, 5f, sbcs.getPosition(), 0f);
+        Assert.assertEquals(0.09f, sbcs.getPressure(), 0f);
+        Assert.assertEquals(0.15f, sbcs.getRestitution(), 0f);
+        TestUtils.assertEquals(
+                0.5f, 0.5f, -0.5f, -0.5f, sbcs.getRotation(), 0f);
+        Assert.assertEquals(newSs, sbcs.getSettings());
+        Assert.assertFalse(sbcs.getUpdatePosition());
+    }
+
+    /**
+     * Test the getters and defaults of the specified {@code SkinWeight}.
+     *
+     * @param weight the weight to test (not null, unaffected)
+     */
+    private static void testSkinWeightDefaults(SkinWeight weight) {
+        Assert.assertTrue(weight.hasAssignedNativeObject());
+        Assert.assertTrue(weight.ownsNativeObject());
+
+        Assert.assertEquals(0, weight.getInvBindIndex());
+        Assert.assertEquals(0., weight.getWeight(), 0.);
+    }
+
+    /**
+     * Test the getters and defaults of the specified
+     * {@code SoftBodyMotionProperties}.
+     *
+     * @param properties the properties to test (not null, unaffected)
+     */
+    private static void testSoftBodyMotionPropertiesDefaults(
+            SoftBodyMotionProperties properties) {
+        Assert.assertTrue(properties.hasAssignedNativeObject());
+        Assert.assertTrue(properties.ownsNativeObject());
+
+        Assert.assertTrue(properties.getEnableSkinConstraints());
+        Assert.assertEquals(0, properties.getNumIterations());
+        Assert.assertEquals(
+                1f, properties.getSkinnedMaxDistanceMultiplier(), 0f);
+    }
+
+    /**
+     * Test the setters of the specified {@code SoftBodyMotionProperties}.
+     *
+     * @param properties the properties to test (not null, modified)
+     */
+    private static void testSoftBodyMotionPropertiesSetters(
+            SoftBodyMotionProperties properties) {
+        properties.setEnableSkinConstraints(false);
+        properties.setNumIterations(2);
+        properties.setSkinnedMaxDistanceMultiplier(9f);
+
+        Assert.assertFalse(properties.getEnableSkinConstraints());
+        Assert.assertEquals(2, properties.getNumIterations());
+        Assert.assertEquals(
+                9f, properties.getSkinnedMaxDistanceMultiplier(), 0f);
+    }
+
+    /**
+     * Test the getters and defaults of the specified {@code SpringSettings}.
+     *
+     * @param ss the settings to test (not null, unaffected)
+     */
+    private static void testSpringSettingsDefaults(SpringSettings ss) {
+        Assert.assertNull(ss.getConstraint());
+        Assert.assertNull(ss.getConstraintSettings());
+        Assert.assertEquals(0f, ss.getDamping(), 0f);
+        Assert.assertEquals(0f, ss.getFrequency(), 0f);
+        Assert.assertEquals(ESpringMode.FrequencyAndDamping, ss.getMode());
+        Assert.assertEquals(0f, ss.getStiffness(), 0f);
+        Assert.assertFalse(ss.hasStiffness());
+    }
+
+    /**
+     * Test the setters of the specified {@code SpringSettings}.
+     *
+     * @param ss the settings to test (not null, modified)
+     */
+    private static void testSpringSettingsSetters(SpringSettings ss) {
+        ss.setFrequency(2f);
+        Assert.assertEquals(2f, ss.getFrequency(), 0f);
+
+        ss.setDamping(1f);
+        ss.setMode(ESpringMode.StiffnessAndDamping);
+        ss.setStiffness(3f);
+
+        Assert.assertEquals(1f, ss.getDamping(), 0f);
+        Assert.assertEquals(3f, ss.getFrequency(), 0f);
+        Assert.assertEquals(ESpringMode.StiffnessAndDamping, ss.getMode());
+        Assert.assertEquals(3f, ss.getStiffness(), 0f);
+        Assert.assertTrue(ss.hasStiffness());
+    }
+
+    /**
+     * Test the getters and defaults of the specified
+     * {@code VehicleConstraintSettings}.
+     *
+     * @param vcs the settings to test (not null, unaffected)
+     */
+    private static void testVehicleConstraintSettingsDefaults(
+            VehicleConstraintSettings vcs) {
+        Assert.assertEquals(0, vcs.getConstraintPriority());
+        Assert.assertNull(vcs.getController());
+        Assert.assertEquals(0, vcs.getControllerType());
+        Assert.assertEquals(1f, vcs.getDrawConstraintSize(), 0f);
+        Assert.assertTrue(vcs.getEnabled());
+        TestUtils.assertEquals(0f, 0f, 1f, vcs.getForward(), 0f);
+        Assert.assertEquals(Jolt.JPH_PI, vcs.getMaxPitchRollAngle(), 0f);
+        Assert.assertEquals(0, vcs.getNumAntiRollBars());
+        Assert.assertEquals(0, vcs.getNumPositionStepsOverride());
+        Assert.assertEquals(0, vcs.getNumVelocityStepsOverride());
+        Assert.assertEquals(0, vcs.getNumWheels());
+        TestUtils.assertEquals(0f, 1f, 0f, vcs.getUp(), 0f);
+    }
+
+    /**
+     * Test the setters of the specified {@code VehicleConstraintSettings}.
+     *
+     * @param vcs the settings to test (not null, modified)
+     */
+    private static void testVehicleConstraintSettingsSetters(
+            VehicleConstraintSettings vcs) {
+        vcs.addWheels(new WheelSettingsWv());
+        vcs.setConstraintPriority(9);
+        vcs.setController(new WheeledVehicleControllerSettings());
+        vcs.setDrawConstraintSize(8f);
+        vcs.setEnabled(false);
+        vcs.setForward(new Vec3(0.6f, 0.8f, 0f));
+        vcs.setMaxPitchRollAngle(1.2f);
+        vcs.setNumAntiRollBars(1);
+        vcs.setNumPositionStepsOverride(4);
+        vcs.setNumVelocityStepsOverride(5);
+        vcs.setUp(new Vec3(0f, 0f, -1f));
+
+        Assert.assertEquals(9, vcs.getConstraintPriority());
+        Assert.assertNotNull(vcs.getController());
+        Assert.assertEquals(4, vcs.getControllerType());
+        Assert.assertEquals(8f, vcs.getDrawConstraintSize(), 0f);
+        Assert.assertFalse(vcs.getEnabled());
+        TestUtils.assertEquals(0.6f, 0.8f, 0f, vcs.getForward(), 0f);
+        Assert.assertEquals(1.2f, vcs.getMaxPitchRollAngle(), 0f);
+        Assert.assertEquals(1, vcs.getNumAntiRollBars());
+        Assert.assertEquals(4, vcs.getNumPositionStepsOverride());
+        Assert.assertEquals(5, vcs.getNumVelocityStepsOverride());
+        Assert.assertEquals(1, vcs.getNumWheels());
+        TestUtils.assertEquals(0f, 0f, -1f, vcs.getUp(), 0f);
+    }
+
+    /**
+     * Test the getters and defaults of the specified {@code WheelSettingsWv}.
+     *
+     * @param wswv the settings to test (not null, unaffected)
+     */
+    private static void testWheelSettingsWvDefaults(WheelSettingsWv wswv) {
+        Assert.assertFalse(wswv.getEnableSuspensionForcePoint());
+        Assert.assertEquals(1_500f, wswv.getMaxBrakeTorque(), 0f);
+        Assert.assertEquals(4_000f, wswv.getMaxHandBrakeTorque(), 0f);
+        Assert.assertEquals(
+                Jolt.degreesToRadians(70f), wswv.getMaxSteerAngle(), 1e-7f);
+        TestUtils.assertEquals(0f, 0f, 0f, wswv.getPosition(), 0f);
+        Assert.assertEquals(0.3f, wswv.getRadius(), 0f);
+        TestUtils.assertEquals(0f, 1f, 0f, wswv.getSteeringAxis(), 0f);
+        TestUtils.assertEquals(0f, -1f, 0f, wswv.getSuspensionDirection(), 0f);
+        TestUtils.assertEquals(0f, 0f, 0f, wswv.getSuspensionForcePoint(), 0f);
+        Assert.assertEquals(0.5f, wswv.getSuspensionMaxLength(), 0f);
+        Assert.assertEquals(0.3f, wswv.getSuspensionMinLength(), 0f);
+        Assert.assertEquals(0f, wswv.getSuspensionPreloadLength(), 0f);
+        Assert.assertNotNull(wswv.getSuspensionSpring());
+        TestUtils.assertEquals(0f, 0f, 1f, wswv.getWheelForward(), 0f);
+        Assert.assertEquals(0.1f, wswv.getWidth(), 0f);
+    }
+
+    /**
+     * Test the setters of the specified {@code WheelSettingsWv}.
+     *
+     * @param wswv the settings to test (not null, modified)
+     */
+    private static void testWheelSettingsWvSetters(WheelSettingsWv wswv) {
+        wswv.setEnableSuspensionForcePoint(true);
+        wswv.setMaxBrakeTorque(333f);
+        wswv.setMaxHandBrakeTorque(456f);
+        wswv.setMaxSteerAngle(0.1f);
+        wswv.setPosition(new Vec3(1f, 2f, 3f));
+        wswv.setRadius(0.4f);
+        wswv.setSteeringAxis(new Vec3(0f, 0f, 1f));
+        wswv.setSuspensionDirection(new Vec3(0f, -0.8f, 0.6f));
+        wswv.setSuspensionForcePoint(new Vec3(4f, 2f, 1f));
+        wswv.setSuspensionMaxLength(1f);
+        wswv.setSuspensionMinLength(0.2f);
+        wswv.setSuspensionPreloadLength(0.5f);
+        wswv.setWheelForward(new Vec3(0f, 0f, -1f));
+        wswv.setWidth(0.14f);
+
+        Assert.assertTrue(wswv.getEnableSuspensionForcePoint());
+        Assert.assertEquals(333f, wswv.getMaxBrakeTorque(), 0f);
+        Assert.assertEquals(456f, wswv.getMaxHandBrakeTorque(), 0f);
+        Assert.assertEquals(0.1f, wswv.getMaxSteerAngle(), 0f);
+        TestUtils.assertEquals(1f, 2f, 3f, wswv.getPosition(), 0f);
+        Assert.assertEquals(0.4f, wswv.getRadius(), 0f);
+        TestUtils.assertEquals(0f, 0f, 1f, wswv.getSteeringAxis(), 0f);
+        TestUtils.assertEquals(
+                0f, -0.8f, 0.6f, wswv.getSuspensionDirection(), 0f);
+        TestUtils.assertEquals(4f, 2f, 1f, wswv.getSuspensionForcePoint(), 0f);
+        Assert.assertEquals(1f, wswv.getSuspensionMaxLength(), 0f);
+        Assert.assertEquals(0.2f, wswv.getSuspensionMinLength(), 0f);
+        Assert.assertEquals(0.5f, wswv.getSuspensionPreloadLength(), 0f);
+        TestUtils.assertEquals(0f, 0f, -1f, wswv.getWheelForward(), 0f);
+        Assert.assertEquals(0.14f, wswv.getWidth(), 0f);
+    }
+
+    /**
+     * Test the getters and defaults of the specified
+     * {@code WheeledVehicleControllerSettings}.
+     *
+     * @param wvcs the settings to test (not null, unaffected)
+     */
+    private static void testWvControllerSettingsDefaults(
+            WheeledVehicleControllerSettings wvcs) {
+        Assert.assertNotNull(wvcs.getEngine());
+        Assert.assertEquals(0, wvcs.getNumDifferentials());
+        Assert.assertNotNull(wvcs.getTransmission());
+    }
+
+    /**
+     * Test the setters of the specified
+     * {@code WheeledVehicleControllerSettings}.
+     *
+     * @param wvcs the settings to test (not null, modified)
+     */
+    private static void testWvControllerSettingsSetters(
+            WheeledVehicleControllerSettings wvcs) {
+        wvcs.setNumDifferentials(2);
+
+        Assert.assertEquals(2, wvcs.getNumDifferentials());
+        Assert.assertNotNull(wvcs.getDifferential(0));
+        Assert.assertNotNull(wvcs.getDifferential(1));
     }
 }

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,4 +40,23 @@ public class MeshShape extends Shape {
     MeshShape(long shapeVa) {
         super(shapeVa);
     }
+    // *************************************************************************
+    // new methods exposed
+
+    /**
+     * Return the user data of the specified sub-shape. The shape is unaffected.
+     *
+     * @param subShapeId the ID of the sub-shape to read
+     * @return the value
+     */
+    public int getTriangleUserData(int subShapeId) {
+        long shapeVa = va();
+        int result = getTriangleUserData(shapeVa, subShapeId);
+
+        return result;
+    }
+    // *************************************************************************
+    // native private methods
+
+    native private static int getTriangleUserData(long shapeVa, int subShapeId);
 }

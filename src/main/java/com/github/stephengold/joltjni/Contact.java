@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,12 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.enumerate.EMotionType;
+import com.github.stephengold.joltjni.readonly.ConstCharacterVirtual;
 import com.github.stephengold.joltjni.readonly.ConstContact;
 
 /**
  * Describe a contact between a {@code Character} and a body or another
- * character.
+ * character. (native type: {@code CharacterVirtual::Contact})
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -53,16 +54,12 @@ public class Contact extends JoltPhysicsObject implements ConstContact {
      * Return the ID of the colliding body. The contact is unaffected. (native
      * attribute: mBodyB)
      *
-     * @return a new ID, or null if no colliding body
+     * @return the {@code BodyID} value
      */
     @Override
-    public BodyId getBodyB() {
+    public int getBodyB() {
         long contactVa = va();
-        long idVa = getBodyB(contactVa);
-        BodyId result = null;
-        if (idVa != 0L) {
-            result = new BodyId(idVa, true);
-        }
+        int result = getBodyB(contactVa);
 
         return result;
     }
@@ -86,13 +83,18 @@ public class Contact extends JoltPhysicsObject implements ConstContact {
      * attribute: mCharacterB)
      *
      * @return a new JVM object with the pre-existing native object assigned, or
-     * null if no colliding character
+     * {@code null} if no colliding character
      */
     @Override
-    public CharacterVirtual getCharacterB() {
+    public ConstCharacterVirtual getCharacterB() {
         long contactVa = va();
         long characterVa = getCharacterB(contactVa);
-        CharacterVirtual result = new CharacterVirtual(characterVa);
+        ConstCharacterVirtual result;
+        if (characterVa == 0L) {
+            result = null;
+        } else {
+            result = new CharacterVirtual(characterVa, null);
+        }
 
         return result;
     }
@@ -173,7 +175,7 @@ public class Contact extends JoltPhysicsObject implements ConstContact {
     }
 
     /**
-     * Return the velocity of the contact point. The contact is unaffected.
+     * Copy the velocity of the contact point. The contact is unaffected.
      * (native attribute: mLinearVelocity)
      *
      * @return a new velocity vector
@@ -205,7 +207,7 @@ public class Contact extends JoltPhysicsObject implements ConstContact {
     }
 
     /**
-     * Return the location where the contact occurs. The contact is unaffected.
+     * Copy the location where the contact occurs. The contact is unaffected.
      * (native attribute: mPosition)
      *
      * @return a new vector (in system coordinates)
@@ -222,25 +224,21 @@ public class Contact extends JoltPhysicsObject implements ConstContact {
     }
 
     /**
-     * Return the subshape ID of the colliding body. The contact is unaffected.
+     * Return the sub-shape ID of the colliding body. The contact is unaffected.
      * (native attribute: mSubShapeIDB)
      *
-     * @return a new ID, or null if no colliding body
+     * @return a {@code SubShapeID} value
      */
     @Override
-    public SubShapeId getSubShapeIdB() {
+    public int getSubShapeIdB() {
         long contactVa = va();
-        long idVa = getSubShapeIdB(contactVa);
-        SubShapeId result = null;
-        if (idVa != 0L) {
-            result = new SubShapeId(idVa, true);
-        }
+        int result = getSubShapeIdB(contactVa);
 
         return result;
     }
 
     /**
-     * Return the surface normal of the contact. The contact is unaffected.
+     * Copy the surface normal of the contact. The contact is unaffected.
      * (native attribute: mSurfaceNormal)
      *
      * @return a new direction vector
@@ -288,7 +286,7 @@ public class Contact extends JoltPhysicsObject implements ConstContact {
 
     native private static void free(long contactVa);
 
-    native private static long getBodyB(long contactVa);
+    native private static int getBodyB(long contactVa);
 
     native private static boolean getCanPushCharacter(long contactVa);
 
@@ -322,7 +320,7 @@ public class Contact extends JoltPhysicsObject implements ConstContact {
 
     native private static double getPositionZ(long contactVa);
 
-    native private static long getSubShapeIdB(long contactVa);
+    native private static int getSubShapeIdB(long contactVa);
 
     native private static float getSurfaceNormalX(long contactVa);
 

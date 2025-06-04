@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,24 +21,31 @@ SOFTWARE.
  */
 package testjoltjni.app.performancetest;
 import com.github.stephengold.joltjni.PhysicsSystem;
+import com.github.stephengold.joltjni.TempAllocator;
 import com.github.stephengold.joltjni.enumerate.EMotionQuality;
-
 /**
- * A line-for-line Java translation of the Jolt Physics test-scene interface.
+ * A line-for-line Java translation of the Jolt Physics performance test-scene interface.
  * <p>
  * Compare with the original by Jorrit Rouwe at
  * https://github.com/jrouwe/JoltPhysics/blob/master/PerformanceTest/PerformanceTestScene.h
  */
-interface PerformanceTestScene {
+interface PerformanceTestScene
+{
 	// Get name of test for debug purposes
- 	String GetName();
+	String   	GetName()   ;
 
 	// Load assets for the scene
-	boolean Load();
+	default boolean			Load(   )	{ return true; }
 
 	// Start a new test by adding objects to inPhysicsSystem
-	void StartTest(PhysicsSystem inPhysicsSystem, EMotionQuality inMotionQuality);
+	void			StartTest(PhysicsSystem inPhysicsSystem, EMotionQuality inMotionQuality)  ;
+
+	// Step the test
+	default void			UpdateTest( PhysicsSystem inPhysicsSystem,  TempAllocator ioTempAllocator,  float inDeltaTime) { }
+
+	// Update the hash with the state of the scene
+	default long			UpdateHash(long  ioHash) 	{return ioHash;}
 
 	// Stop a test and remove objects from inPhysicsSystem
-	void StopTest(PhysicsSystem inPhysicsSystem);
+	default void			StopTest(PhysicsSystem inPhysicsSystem)			{ }
 };

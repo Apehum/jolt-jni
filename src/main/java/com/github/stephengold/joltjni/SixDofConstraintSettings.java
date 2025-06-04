@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,15 @@ public class SixDofConstraintSettings extends TwoBodyConstraintSettings {
     // constructors
 
     /**
+     * Instantiate default settings.
+     */
+    public SixDofConstraintSettings() {
+        long settingsVa = createSixDofConstraintSettings();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EConstraintSubType.SixDof);
+    }
+
+    /**
      * Instantiate with the specified native object assigned but not owned.
      *
      * @param settingsVa the virtual address of the native object to assign (not
@@ -50,11 +59,14 @@ public class SixDofConstraintSettings extends TwoBodyConstraintSettings {
     }
 
     /**
-     * Instantiate default settings.
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
      */
-    public SixDofConstraintSettings() {
-        long settingsVa = createSixDofConstraintSettings();
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+    public SixDofConstraintSettings(SixDofConstraintSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
         setSubType(EConstraintSubType.SixDof);
     }
     // *************************************************************************
@@ -181,9 +193,8 @@ public class SixDofConstraintSettings extends TwoBodyConstraintSettings {
     }
 
     /**
-     * Access the spring settings for the specified degree of freedom. The
-     * constraint settings are unaffected. (native attribute:
-     * mLimitsSpringSettings)
+     * Access the spring settings for the specified degree of freedom. (native
+     * attribute: mLimitsSpringSettings)
      *
      * @param translationDof which DOF (not null, not a rotation DOF)
      * @return a new JVM object with the pre-existing native object assigned
@@ -505,11 +516,15 @@ public class SixDofConstraintSettings extends TwoBodyConstraintSettings {
      * attribute: mMotorSettings)
      *
      * @param dof which DOF (not null)
-     * @param motorSettings the settings to copy (not null, not affected)
+     * @param motorSettings the settings to copy (not null, unaffected)
+     * @return the motor settings, for chaining
      */
-    public void setMotorSettings(EAxis dof, MotorSettings motorSettings) {
+    public MotorSettings setMotorSettings(
+            EAxis dof, MotorSettings motorSettings) {
         int dofIndex = dof.ordinal();
         setMotorSettings(dofIndex, motorSettings);
+
+        return motorSettings;
     }
 
     /**
@@ -517,7 +532,7 @@ public class SixDofConstraintSettings extends TwoBodyConstraintSettings {
      * attribute: mMotorSettings)
      *
      * @param dofIndex which DOF (&ge;0, &lt;6)
-     * @param motorSettings the settings to copy (not null, not affected)
+     * @param motorSettings the settings to copy (not null, unaffected)
      */
     public void setMotorSettings(int dofIndex, MotorSettings motorSettings) {
         long constraintSettingsVa = va();
@@ -583,6 +598,8 @@ public class SixDofConstraintSettings extends TwoBodyConstraintSettings {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
 
     native private static long createSixDofConstraintSettings();
 

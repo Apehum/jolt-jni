@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,8 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.enumerate.EGroundState;
-import com.github.stephengold.joltjni.readonly.ConstBodyId;
 import com.github.stephengold.joltjni.readonly.ConstCharacterVirtual;
+import com.github.stephengold.joltjni.readonly.ConstContact;
 import com.github.stephengold.joltjni.readonly.ConstPhysicsMaterial;
 import com.github.stephengold.joltjni.readonly.ConstShape;
 import com.github.stephengold.joltjni.readonly.QuatArg;
@@ -41,12 +41,20 @@ final public class CharacterVirtualRef
         extends Ref
         implements ConstCharacterVirtual {
     // *************************************************************************
+    // fields
+
+    /**
+     * where to add the body (may be {@code null})
+     */
+    final private PhysicsSystem system;
+    // *************************************************************************
     // constructors
 
     /**
      * Instantiate an empty reference.
      */
     public CharacterVirtualRef() {
+        this.system = null;
         long refVa = createEmpty();
         setVirtualAddress(refVa, () -> free(refVa));
     }
@@ -56,11 +64,15 @@ final public class CharacterVirtualRef
      *
      * @param refVa the virtual address of the native object to assign (not
      * zero)
-     * @param owner {@code true} &rarr; make the JVM object the owner,
-     * {@code false} &rarr; it isn't the owner
+     * @param physicsSystem where to add the body
      */
-    CharacterVirtualRef(long refVa, boolean owner) {
-        Runnable freeingAction = owner ? () -> free(refVa) : null;
+    CharacterVirtualRef(long refVa, PhysicsSystem physicsSystem) {
+        this.system = physicsSystem;
+        /*
+         * Passing physicsSystem to the Runnable ensures that the underlying
+         * system won't get cleaned before the character.
+         */
+        Runnable freeingAction = () -> freeWithSystem(refVa, physicsSystem);
         setVirtualAddress(refVa, freeingAction);
     }
     // *************************************************************************
@@ -269,15 +281,19 @@ final public class CharacterVirtualRef
     }
 
     /**
-     * Access the list of contacts. The character is unaffected.
+     * Copy the list of active contacts. The character is unaffected.
      *
-     * @return a new JVM object with the pre-existing native object assigned
+     * @return a new array of new objects
      */
     @Override
-    public ContactList getActiveContacts() {
+    public ConstContact[] getActiveContacts() {
         long characterVa = targetVa();
-        long listVa = CharacterVirtual.getActiveContacts(characterVa);
-        ContactList result = new ContactList(listVa);
+        int numContacts = CharacterVirtual.countActiveContacts(characterVa);
+        ConstContact[] result = new ConstContact[numContacts];
+        for (int i = 0; i < numContacts; ++i) {
+            long contactVa = CharacterVirtual.getActiveContact(characterVa, i);
+            result[i] = new Contact(contactVa, true);
+        }
 
         return result;
     }
@@ -329,6 +345,23 @@ final public class CharacterVirtualRef
     }
 
     /**
+     * Generate settings to reconstruct the character. The character is
+     * unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public CharacterVirtualSettings getCharacterVirtualSettings() {
+        long characterVa = targetVa();
+        long settingsVa
+                = CharacterVirtual.getCharacterVirtualSettings(characterVa);
+        CharacterVirtualSettings result
+                = new CharacterVirtualSettings(settingsVa);
+
+        return result;
+    }
+
+    /**
      * Return the maximum slope the character can walk on. The character is
      * unaffected.
      *
@@ -361,13 +394,12 @@ final public class CharacterVirtualRef
      * Return the body ID of the supporting surface. The character is
      * unaffected.
      *
-     * @return a new ID
+     * @return the {@code BodyID} value
      */
     @Override
-    public BodyId getGroundBodyId() {
+    public int getGroundBodyId() {
         long characterVa = targetVa();
-        long idVa = CharacterBase.getGroundBodyId(characterVa);
-        BodyId result = new BodyId(idVa, true);
+        int result = CharacterBase.getGroundBodyId(characterVa);
 
         return result;
     }
@@ -394,7 +426,7 @@ final public class CharacterVirtualRef
     }
 
     /**
-     * Return the normal direction at the point of contact with the supporting
+     * Copy the normal direction at the point of contact with the supporting
      * surface. The character is unaffected.
      *
      * @return a new direction vector (in system coordinates)
@@ -411,7 +443,7 @@ final public class CharacterVirtualRef
     }
 
     /**
-     * Return the location of the point of contact with the supporting surface.
+     * Copy the location of the point of contact with the supporting surface.
      * The character is unaffected.
      *
      * @return a new location vector (in system coordinates)
@@ -446,13 +478,12 @@ final public class CharacterVirtualRef
      * Identify the face on the supporting surface where contact is occurring.
      * The character is unaffected.
      *
-     * @return a new ID
+     * @return a {@code SubShapeId} value
      */
     @Override
-    public SubShapeId getGroundSubShapeId() {
+    public int getGroundSubShapeId() {
         long characterVa = targetVa();
-        long idVa = CharacterBase.getGroundSubShapeId(characterVa);
-        SubShapeId result = new SubShapeId(idVa, true);
+        int result = CharacterBase.getGroundSubShapeId(characterVa);
 
         return result;
     }
@@ -472,8 +503,8 @@ final public class CharacterVirtualRef
     }
 
     /**
-     * Return the world-space velocity of the supporting surface. The character
-     * is unaffected.
+     * Copy the world-space velocity of the supporting surface. The character is
+     * unaffected.
      *
      * @return a new velocity vector (meters per second in system coordinates)
      */
@@ -504,21 +535,35 @@ final public class CharacterVirtualRef
     }
 
     /**
-     * Return the ID of the inner body. The character is unaffected.
+     * Return the character's ID. The character is unaffected. (native method:
+     * GetID)
      *
-     * @return the ID, or {@code null} if none
+     * @return a {@code CharacterId} value
      */
     @Override
-    public BodyId getInnerBodyId() {
+    public int getId() {
         long characterVa = targetVa();
-        long idVa = CharacterVirtual.getInnerBodyId(characterVa);
-        BodyId result = new BodyId(idVa, true);
+        int result = CharacterVirtual.getId(characterVa);
 
         return result;
     }
 
     /**
-     * Return the linear velocity of the character. The character is unaffected.
+     * Return the ID of the inner body. The character is unaffected. (native
+     * method: GetInnerBodyID)
+     *
+     * @return the {@code BodyID} value
+     */
+    @Override
+    public int getInnerBodyId() {
+        long characterVa = targetVa();
+        int result = CharacterVirtual.getInnerBodyId(characterVa);
+
+        return result;
+    }
+
+    /**
+     * Copy the linear velocity of the character. The character is unaffected.
      *
      * @return a new velocity vector (meters per second in system coordinates)
      */
@@ -619,6 +664,31 @@ final public class CharacterVirtualRef
     }
 
     /**
+     * Copy the position of the character. The character is unaffected.
+     *
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
+     */
+    @Override
+    public void getPositionAndRotation(
+            RVec3 storeLocation, Quat storeOrientation) {
+        long characterVa = targetVa();
+
+        double xx = CharacterVirtual.getPositionX(characterVa);
+        double yy = CharacterVirtual.getPositionY(characterVa);
+        double zz = CharacterVirtual.getPositionZ(characterVa);
+        storeLocation.set(xx, yy, zz);
+
+        float qx = CharacterVirtual.getRotationX(characterVa);
+        float qy = CharacterVirtual.getRotationY(characterVa);
+        float qz = CharacterVirtual.getRotationZ(characterVa);
+        float qw = CharacterVirtual.getRotationW(characterVa);
+        storeOrientation.set(qx, qy, qz, qw);
+    }
+
+    /**
      * Copy the orientation of the character. The character is unaffected.
      *
      * @return a new rotation quaternion (in system coordinates)
@@ -667,7 +737,22 @@ final public class CharacterVirtualRef
     }
 
     /**
-     * Return the character's "up" direction. The character is unaffected.
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character. The character is unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public TransformedShape getTransformedShape() {
+        long characterVa = targetVa();
+        long resultVa = CharacterVirtual.getTransformedShape(characterVa);
+        TransformedShape result = new TransformedShape(resultVa, true);
+
+        return result;
+    }
+
+    /**
+     * Copy the character's "up" direction. The character is unaffected.
      *
      * @return a new direction vector
      */
@@ -716,15 +801,14 @@ final public class CharacterVirtualRef
      * specified body during the previous time step. The character is
      * unaffected.
      *
-     * @param bodyId the ID of the body to test against (not null, unaffected)
+     * @param bodyId the ID of the body to test against
      * @return {@code true} if contact or collision, otherwise {@code false}
      */
     @Override
-    public boolean hasCollidedWith(ConstBodyId bodyId) {
+    public boolean hasCollidedWith(int bodyId) {
         long characterVa = targetVa();
-        long idVa = bodyId.targetVa();
         boolean result
-                = CharacterVirtual.hasCollidedWithBody(characterVa, idVa);
+                = CharacterVirtual.hasCollidedWithBody(characterVa, bodyId);
 
         return result;
     }
@@ -780,7 +864,8 @@ final public class CharacterVirtualRef
     }
 
     /**
-     * Save the character's state to the specified recorder.
+     * Save the character's state to the specified recorder. The character is
+     * unaffected.
      *
      * @param recorder the recorder to save to (not null)
      */
@@ -789,6 +874,20 @@ final public class CharacterVirtualRef
         long characterVa = targetVa();
         long recorderVa = recorder.va();
         CharacterBase.saveState(characterVa, recorderVa);
+    }
+
+    /**
+     * Create another counted reference to the native {@code CharacterVirtual}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
+    @Override
+    public CharacterVirtualRefC toRefC() {
+        long refVa = va();
+        long copyVa = toRefC(refVa);
+        CharacterVirtualRefC result = new CharacterVirtualRefC(copyVa, system);
+
+        return result;
     }
     // *************************************************************************
     // Ref methods
@@ -801,7 +900,7 @@ final public class CharacterVirtualRef
     @Override
     public CharacterVirtual getPtr() {
         long settingsVa = targetVa();
-        CharacterVirtual result = new CharacterVirtual(settingsVa);
+        CharacterVirtual result = new CharacterVirtual(settingsVa, system);
 
         return result;
     }
@@ -829,7 +928,7 @@ final public class CharacterVirtualRef
     public CharacterVirtualRef toRef() {
         long refVa = va();
         long copyVa = copy(refVa);
-        CharacterVirtualRef result = new CharacterVirtualRef(copyVa, true);
+        CharacterVirtualRef result = new CharacterVirtualRef(copyVa, system);
 
         return result;
     }
@@ -842,5 +941,9 @@ final public class CharacterVirtualRef
 
     native private static void free(long refVa);
 
+    native private static void freeWithSystem(long refVa, PhysicsSystem unused);
+
     native private static long getPtr(long refVa);
+
+    native private static long toRefC(long refVa);
 }

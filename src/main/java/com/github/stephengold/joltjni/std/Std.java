@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,11 @@ SOFTWARE.
 package com.github.stephengold.joltjni.std;
 
 import java.io.PrintStream;
+import java.util.List;
 
 /**
- * Java equivalents for features of the {@code std::} namespace.
+ * Java equivalents for (and access to) certain features of the {@code std::}
+ * namespace.
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -68,31 +70,8 @@ final public class Std {
     // new methods exposed
 
     /**
-     * Return the inverse cosine of the specified single-precision ratio.
-     *
-     * @param ratio the input cosine ratio (&ge;-1, &le;1)
-     * @return the angle (in radians)
-     */
-    native public static float acos(float ratio);
-
-    /**
-     * Return the inverse tangent of the specified single-precision ratio.
-     *
-     * @param ratio the input tangent ratio
-     * @return the angle (in radians)
-     */
-    native public static float atan(float ratio);
-
-    /**
-     * Return the cosine of the specified single-precision angle.
-     *
-     * @param angle the input angle (in radians)
-     * @return the cosine ratio
-     */
-    native public static float cos(float angle);
-
-    /**
-     * Return the exponential of the specified single-precision value.
+     * Return the exponential of the specified single-precision value. There's
+     * evidence this is faster than {@link java.lang.Math#exp(double)}.
      *
      * @param value the input exponent
      * @return the exponential
@@ -110,7 +89,18 @@ final public class Std {
     native public static float fmod(float numerator, float denominator);
 
     /**
+     * Return the hypotenuse of the specified right triangle.
+     *
+     * @param opposite the signed length of the opposite side
+     * @param adjacent the signed length of the adjacent side
+     * @return the length of the hypotenuse (&ge;0)
+     */
+    native public static float hypot(float opposite, float adjacent);
+
+    /**
      * Return the specified power of the specified single-precision base.
+     * There's evidence this is faster than
+     * {@link java.lang.Math#pow(double, double)}.
      *
      * @param base the base value
      * @param exponent the exponent value
@@ -119,15 +109,51 @@ final public class Std {
     native public static float pow(float base, float exponent);
 
     /**
-     * Return the sine of the specified single-precision angle.
+     * Shuffle the specified array.
      *
-     * @param angle the input angle (in radians)
-     * @return the sine ratio
+     * @param indices the values to shuffle (not null, modified)
+     * @param generator the sequence generator to use (not null, modified)
      */
-    native public static float sin(float angle);
+    public static void shuffle(int[] indices, DefaultRandomEngine generator) {
+        long generatorVa = generator.va();
+        shuffle(indices, generatorVa);
+    }
 
     /**
-     * Return the square root of the specified single-precision value.
+     * Shuffle the specified Java list.
+     *
+     * @param list the list to shuffle (not null, modified)
+     * @param generator the sequence generator to use (not null, modified)
+     */
+    public static void shuffle(
+            List<Object> list, DefaultRandomEngine generator) {
+        int numElements = list.size();
+        int[] indices = new int[numElements];
+        Object[] originals = new Object[numElements];
+        for (int i = 0; i < numElements; ++i) {
+            indices[i] = i;
+            originals[i] = list.get(i);
+        }
+        shuffle(indices, generator);
+        for (int i = 0; i < numElements; ++i) {
+            int newI = indices[i];
+            list.set(newI, originals[i]);
+        }
+    }
+
+    /**
+     * Count the number of elements in the specified array.
+     *
+     * @param array the array to measure (not null, unaffected)
+     * @return the number of elements (&ge;0)
+     */
+    public static int size(Object[] array) {
+        return array.length;
+    }
+
+    /**
+     * Return the square root of the specified single-precision value. There's
+     * evidence this is slower than {@link java.lang.Math#sqrt(double)}.
      *
      * @param value the input value
      * @return the square root
@@ -147,4 +173,8 @@ final public class Std {
         int result = lhs.compareTo(rhs);
         return result;
     }
+    // *************************************************************************
+    // native private methods
+
+    native private static void shuffle(int[] indices, long generatorVa);
 }

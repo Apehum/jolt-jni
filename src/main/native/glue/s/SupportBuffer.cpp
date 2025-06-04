@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,12 +36,7 @@ using namespace JPH;
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SupportBuffer_createDefault
-  (JNIEnv *, jclass) {
-    ConvexShape::SupportBuffer * const pBuffer
-            = new ConvexShape::SupportBuffer();
-    TRACE_NEW("ConvexShape::SupportBuffer", pBuffer)
-    return reinterpret_cast<jlong> (pBuffer);
-}
+    BODYOF_CREATE_DEFAULT(ConvexShape::SupportBuffer)
 
 /*
  * Class:     com_github_stephengold_joltjni_SupportBuffer
@@ -49,9 +44,4 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SupportBuffer_create
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SupportBuffer_free
-  (JNIEnv *, jclass, jlong bufferVa) {
-    ConvexShape::SupportBuffer * const pBuffer
-            = reinterpret_cast<ConvexShape::SupportBuffer *> (bufferVa);
-    TRACE_DELETE("ConvexShape::SupportBuffer", pBuffer)
-    delete pBuffer;
-}
+    BODYOF_FREE(ConvexShape::SupportBuffer)

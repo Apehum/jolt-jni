@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,24 +46,24 @@ public:
                 "com/github/stephengold/joltjni/CustomCollideShapeBodyCollector");
         JPH_ASSERT(!pEnv->ExceptionCheck());
 
-        mAddMethodId = pEnv->GetMethodID(clss, "addHit", "(J)V");
+        mAddMethodId = pEnv->GetMethodID(clss, "addHit", "(I)V");
         JPH_ASSERT(!pEnv->ExceptionCheck());
     }
 
-    void AddHit(const BodyID &inResult) {
+    void AddHit(const BodyID &inResult) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
-        const jlong resultVa = reinterpret_cast<jlong> (&inResult);
-        pAttachEnv->CallVoidMethod(mJavaObject, mAddMethodId, resultVa);
+        const jint resultId = inResult.GetIndexAndSequenceNumber();
+        pAttachEnv->CallVoidMethod(mJavaObject, mAddMethodId, resultId);
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
         mpVM->DetachCurrentThread();
     }
 
     ~CustomCollideShapeBodyCollector() {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         pAttachEnv->DeleteGlobalRef(mJavaObject);

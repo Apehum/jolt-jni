@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,12 +36,7 @@ using namespace JPH;
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Edge_createDefault
-  (JNIEnv *, jclass) {
-    SoftBodySharedSettings::Edge * const pResult
-            = new SoftBodySharedSettings::Edge();
-    TRACE_NEW("SoftBodySharedSettings::Edge", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(SoftBodySharedSettings::Edge)
 
 /*
  * Class:     com_github_stephengold_joltjni_Edge
@@ -49,12 +44,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Edge_createDefault
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Edge_free
-  (JNIEnv *, jclass, jlong edgeVa) {
-    SoftBodySharedSettings::Edge * const pEdge
-            = reinterpret_cast<SoftBodySharedSettings::Edge *> (edgeVa);
-    TRACE_DELETE("SoftBodySharedSettings::Edge", pEdge)
-    delete pEdge;
-}
+  BODYOF_FREE(SoftBodySharedSettings::Edge)
 
 /*
  * Class:     com_github_stephengold_joltjni_Edge

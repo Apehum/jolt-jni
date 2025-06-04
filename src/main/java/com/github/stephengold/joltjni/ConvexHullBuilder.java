@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,9 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.enumerate.EResult;
+import com.github.stephengold.joltjni.readonly.Vec3Arg;
 import java.nio.FloatBuffer;
-import java.util.List;
+import java.util.Collection;
 
 /**
  * Construct a 3-D convex hull for specified points.
@@ -39,11 +40,11 @@ public class ConvexHullBuilder extends NonCopyable {
      *
      * @param points a list of locations (not null, unaffected)
      */
-    public ConvexHullBuilder(List<Vec3> points) {
+    public ConvexHullBuilder(Collection<Vec3Arg> points) {
         int numPoints = points.size();
         int numFloats = 3 * numPoints;
         FloatBuffer pointBuffer = Jolt.newDirectFloatBuffer(numFloats);
-        for (Vec3 point : points) {
+        for (Vec3Arg point : points) {
             point.put(pointBuffer);
         }
         long builderVa = create(pointBuffer);
@@ -92,12 +93,12 @@ public class ConvexHullBuilder extends NonCopyable {
         long builderVa = va();
         float[] storeFloats = new float[4];
         getCenterOfMassAndVolume(builderVa, storeFloats);
-        storeCom.set(storeFloats[0], storeFloats[1], storeFloats[2]);
+        storeCom.set(storeFloats);
         storeVolume[0] = storeFloats[3];
     }
 
     /**
-     * Enumerate the faces of the hull.
+     * Enumerate all faces of the hull.
      *
      * @return a new array of JVM objects with pre-existing native objects
      * assigned

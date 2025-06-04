@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,19 @@ public class HingeConstraintSettings extends TwoBodyConstraintSettings {
      */
     public HingeConstraintSettings() {
         long settingsVa = createHingeConstraintSettings();
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EConstraintSubType.Hinge);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public HingeConstraintSettings(HingeConstraintSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
         setSubType(EConstraintSubType.Hinge);
     }
 
@@ -133,7 +145,7 @@ public class HingeConstraintSettings extends TwoBodyConstraintSettings {
      * Return the maximum friction torque when not driven by a motor. The
      * settings are unaffected. (native attribute: mMaxFrictionTorque)
      *
-     * @return the torque (in Newton-meters)
+     * @return the torque (in Newton.meters)
      */
     public float getMaxFrictionTorque() {
         long settingsVa = va();
@@ -291,7 +303,7 @@ public class HingeConstraintSettings extends TwoBodyConstraintSettings {
      * Alter the maximum friction torque when not driven by a motor. (native
      * attribute: mMaxFrictionTorque)
      *
-     * @param torque the desired torque (in Newton-meters, default=0)
+     * @param torque the desired torque (in Newton.meters, default=0)
      */
     public void setMaxFrictionTorque(float torque) {
         long settingsVa = va();
@@ -390,6 +402,8 @@ public class HingeConstraintSettings extends TwoBodyConstraintSettings {
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
 
     native private static long createHingeConstraintSettings();
 

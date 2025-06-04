@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@ import com.github.stephengold.joltjni.enumerate.EShapeType;
 import com.github.stephengold.joltjni.readonly.ConstColor;
 import com.github.stephengold.joltjni.readonly.ConstPhysicsMaterial;
 import com.github.stephengold.joltjni.readonly.ConstShape;
-import com.github.stephengold.joltjni.readonly.ConstSubShapeId;
 import com.github.stephengold.joltjni.readonly.Mat44Arg;
 import com.github.stephengold.joltjni.readonly.RMat44Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
@@ -113,6 +112,9 @@ abstract public class Shape extends NonCopyable
             case Scaled:
                 result = new ScaledShape(shapeVa);
                 break;
+            case SoftBody:
+                result = new SoftBodyShape(shapeVa);
+                break;
             case Sphere:
                 result = new SphereShape(shapeVa);
                 break;
@@ -135,16 +137,6 @@ abstract public class Shape extends NonCopyable
                 throw new IllegalArgumentException("subType = " + subType);
         }
         return result;
-    }
-
-    /**
-     * Alter the shape's user data.
-     *
-     * @param value the desired value (default=0)
-     */
-    public void setUserData(long value) {
-        long shapeVa = va();
-        setUserData(shapeVa, value);
     }
 
     /**
@@ -276,6 +268,25 @@ abstract public class Shape extends NonCopyable
     }
 
     /**
+     * Access the leaf shape for the specified sub-shape ID.
+     *
+     * @param subShapeId a sub-shape ID that specifies the path to the desired
+     * leaf shape
+     * @param storeRemainderId storage for the remainder of the sub-shape ID
+     * after removing the path to the leaf shape (not null, modified)
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null} if the ID is invalid
+     */
+    @Override
+    public ConstShape getLeafShape(int subShapeId, int[] storeRemainderId) {
+        long currentVa = va();
+        long leafVa = getLeafShape(currentVa, subShapeId, storeRemainderId);
+        ConstShape result = Shape.newShape(leafVa);
+
+        return result;
+    }
+
+    /**
      * Return a bounding box that includes the convex radius. The shape is
      * unaffected.
      *
@@ -307,15 +318,28 @@ abstract public class Shape extends NonCopyable
     /**
      * Access the material of the specified sub-shape. The shape is unaffected.
      *
-     * @param id identifies the particular sub-shape (not null, unaffected)
+     * @param subShapeId which sub-shape
      * @return a new JVM object with the pre-existing native object assigned
      */
     @Override
-    public ConstPhysicsMaterial getMaterial(ConstSubShapeId id) {
+    public ConstPhysicsMaterial getMaterial(int subShapeId) {
         long shapeVa = va();
-        long idVa = id.targetVa();
-        long materialVa = getMaterial(shapeVa, idVa);
+        long materialVa = getMaterial(shapeVa, subShapeId);
         ConstPhysicsMaterial result = new PhysicsMaterial(this, materialVa);
+
+        return result;
+    }
+
+    /**
+     * Return the shape's revision count, which is automatically incremented
+     * each time the shape is altered. The shape is unaffected.
+     *
+     * @return the count
+     */
+    @Override
+    public long getRevisionCount() {
+        long shapeVa = va();
+        long result = getUserData(shapeVa);
 
         return result;
     }
@@ -377,20 +401,6 @@ abstract public class Shape extends NonCopyable
     }
 
     /**
-     * Return the shape's user data: can be used for anything. The shape is
-     * unaffected.
-     *
-     * @return the value
-     */
-    @Override
-    public long getUserData() {
-        long shapeVa = va();
-        long result = getUserData(shapeVa);
-
-        return result;
-    }
-
-    /**
      * Return the bounding box including convex radius. The shape is unaffected.
      *
      * @param comTransform the center-of-mass transform to apply to the shape
@@ -435,6 +445,42 @@ abstract public class Shape extends NonCopyable
     }
 
     /**
+     * Test whether the specified scale vector is valid for wrapping the current
+     * shape in a {@code ScaledShape}. The current shape is unaffected.
+     *
+     * @param scale the proposed scale vector (not null, unaffected)
+     * @return {@code true} if valid, otherwise {@code false}
+     */
+    @Override
+    public boolean isValidScale(Vec3Arg scale) {
+        long shapeVa = va();
+        float sx = scale.getX();
+        float sy = scale.getY();
+        float sz = scale.getZ();
+        boolean result = isValidScale(shapeVa, sx, sy, sz);
+
+        return result;
+    }
+
+    /**
+     * Transform the specified scale vector such that it will be valid for
+     * wrapping the current shape in a {@code ScaledShape}. The current shape is
+     * unaffected.
+     *
+     * @param scale the proposed scale vector (not null, unaffected)
+     * @return a new scale vector
+     */
+    @Override
+    public Vec3 makeScaleValid(Vec3Arg scale) {
+        long shapeVa = va();
+        FloatBuffer floatBuffer = scale.toBuffer();
+        makeScaleValid(shapeVa, floatBuffer);
+        Vec3 result = new Vec3(floatBuffer);
+
+        return result;
+    }
+
+    /**
      * Test whether the shape can be used in a dynamic/kinematic body. The shape
      * is unaffected.
      *
@@ -449,7 +495,7 @@ abstract public class Shape extends NonCopyable
     }
 
     /**
-     * Save the state of this shape in binary form. The shape is unaffected.
+     * Save the shape to the specified binary stream. The shape is unaffected.
      *
      * @param stream the stream to write to (not null)
      */
@@ -536,11 +582,14 @@ abstract public class Shape extends NonCopyable
 
     native static float getInnerRadius(long shapeVa);
 
+    native static long getLeafShape(
+            long currentVa, int subShapeId, int[] storeRemainderId);
+
     native static long getLocalBounds(long shapeVa);
 
     native static long getMassProperties(long shapeVa);
 
-    native static long getMaterial(long shapeVa, long idVa);
+    native static long getMaterial(long shapeVa, int subShapeId);
 
     native private static int getRefCount(long shapeVa);
 
@@ -560,13 +609,16 @@ abstract public class Shape extends NonCopyable
     native static long getWorldSpaceBoundsReal(
             long shapeVa, long rMat44Va, float sx, float sy, float sz);
 
+    native static boolean isValidScale(
+            long shapeVa, float sx, float sy, float sz);
+
+    native static void makeScaleValid(long shapeVa, FloatBuffer floatBuffer);
+
     native static boolean mustBeStatic(long shapeVa);
 
     native static void saveBinaryState(long sceneVa, long streamVa);
 
     native private static void setEmbedded(long shapeVa);
-
-    native static void setUserData(long shapeVa, long value);
 
     native private static long sRestoreFromBinaryState(long streamVa);
 

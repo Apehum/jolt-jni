@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,18 @@ public class CollidePointResult extends JoltPhysicsObject {
     // constructors
 
     /**
+     * Instantiate a point result with the specified container and native
+     * object.
+     *
+     * @param container the containing object, or {@code null} if none
+     * @param pointResultVa the virtual address of the native object to assign
+     * (not zero)
+     */
+    CollidePointResult(JoltPhysicsObject container, long pointResultVa) {
+        super(container, pointResultVa);
+    }
+
+    /**
      * Instantiate a point result with the specified native object assigned but
      * not owned.
      * <p>
@@ -40,7 +52,7 @@ public class CollidePointResult extends JoltPhysicsObject {
      * (not zero)
      */
     public CollidePointResult(long pointResultVa) {
-        setVirtualAddress(pointResultVa, null);
+        setVirtualAddress(pointResultVa);
     }
     // *************************************************************************
     // new methods exposed
@@ -49,33 +61,31 @@ public class CollidePointResult extends JoltPhysicsObject {
      * Identify the body that was hit. The result object is unaffected. (native
      * attribute: mBodyID)
      *
-     * @return a new JVM object with a new native object assigned
+     * @return the {@code BodyID} value
      */
-    public BodyId getBodyId() {
+    public int getBodyId() {
         long pointResultVa = va();
-        long idVa = getBodyId(pointResultVa);
-        BodyId result = new BodyId(idVa, true);
+        int result = getBodyId(pointResultVa);
 
         return result;
     }
 
     /**
-     * Identify the subshape on the shape that was hit. The result object is
+     * Identify the sub-shape on the shape that was hit. The result object is
      * unaffected. (native attribute: mSubShapeID2)
      *
-     * @return a new JVM object with a new native object assigned
+     * @return a {@code SubShapeID} value
      */
-    public SubShapeId getSubShapeId2() {
+    public int getSubShapeId2() {
         long pointResultVa = va();
-        long idVa = getSubShapeId2(pointResultVa);
-        SubShapeId result = new SubShapeId(idVa, true);
+        int result = getSubShapeId2(pointResultVa);
 
         return result;
     }
     // *************************************************************************
     // native private methods
 
-    native private static long getBodyId(long pointResultVa);
+    native private static int getBodyId(long pointResultVa);
 
-    native private static long getSubShapeId2(long pointResultVa);
+    native private static int getSubShapeId2(long pointResultVa);
 }

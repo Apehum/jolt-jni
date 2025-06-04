@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +25,19 @@ import com.github.stephengold.joltjni.enumerate.EMotionQuality;
 import com.github.stephengold.joltjni.enumerate.EMotionType;
 import com.github.stephengold.joltjni.enumerate.EOverrideMassProperties;
 import com.github.stephengold.joltjni.readonly.ConstBodyCreationSettings;
+import com.github.stephengold.joltjni.readonly.ConstCollisionGroup;
+import com.github.stephengold.joltjni.readonly.ConstMassProperties;
 import com.github.stephengold.joltjni.readonly.ConstShape;
+import com.github.stephengold.joltjni.readonly.ConstShapeSettings;
 import com.github.stephengold.joltjni.readonly.QuatArg;
 import com.github.stephengold.joltjni.readonly.RVec3Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
+import com.github.stephengold.joltjni.streamutils.GroupFilterToIdMap;
+import com.github.stephengold.joltjni.streamutils.IdToGroupFilterMap;
+import com.github.stephengold.joltjni.streamutils.IdToMaterialMap;
+import com.github.stephengold.joltjni.streamutils.IdToShapeMap;
+import com.github.stephengold.joltjni.streamutils.MaterialToIdMap;
+import com.github.stephengold.joltjni.streamutils.ShapeToIdMap;
 
 /**
  * Settings used to create a rigid body.
@@ -50,6 +59,17 @@ public class BodyCreationSettings
     }
 
     /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public BodyCreationSettings(ConstBodyCreationSettings original) {
+        long originalVa = original.targetVa();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa, () -> free(copyVa));
+    }
+
+    /**
      * Instantiate settings for the specified shape.
      *
      * @param shape the desired shape (not null)
@@ -62,10 +82,9 @@ public class BodyCreationSettings
             EMotionType motionType, int objLayer) {
         long shapeVa = shape.targetVa();
         int motionTypeOrdinal = motionType.ordinal();
-        long bodySettingsVa = createFromShape(
-                shapeVa, loc.xx(), loc.yy(), loc.zz(),
-                orient.getX(), orient.getY(), orient.getZ(), orient.getW(),
-                motionTypeOrdinal, objLayer);
+        long bodySettingsVa = createFromShape(shapeVa, loc.xx(), loc.yy(),
+                loc.zz(), orient.getX(), orient.getY(), orient.getZ(),
+                orient.getW(), motionTypeOrdinal, objLayer);
         setVirtualAddress(bodySettingsVa, () -> free(bodySettingsVa));
     }
 
@@ -108,20 +127,6 @@ public class BodyCreationSettings
     }
 
     /**
-     * Instantiate settings for the specified shape reference.
-     *
-     * @param shapeRef a reference to the desired shape (not null)
-     * @param loc the desired location (not null, unaffected)
-     * @param orient the desired orientation (not null, unaffected)
-     * @param motionType the desired motion type (not null)
-     * @param objLayer the ID of the desired object layer
-     */
-    public BodyCreationSettings(ShapeRefC shapeRef, RVec3Arg loc,
-            QuatArg orient, EMotionType motionType, int objLayer) {
-        this(shapeRef.getPtr(), loc, orient, motionType, objLayer);
-    }
-
-    /**
      * Instantiate settings for the specified shape settings.
      *
      * @param shapeSettings the desired shape settings (not null)
@@ -130,366 +135,464 @@ public class BodyCreationSettings
      * @param motionType the desired motion type (not null)
      * @param objLayer the ID of the desired object layer
      */
-    public BodyCreationSettings(ShapeSettings shapeSettings, RVec3Arg loc,
+    public BodyCreationSettings(ConstShapeSettings shapeSettings, RVec3Arg loc,
             QuatArg orient, EMotionType motionType, int objLayer) {
-        long shapeSettingsVa = shapeSettings.va();
+        long shapeSettingsVa = shapeSettings.targetVa();
         int motionTypeOrdinal = motionType.ordinal();
-        long bodySettingsVa = createFromShapeSettings(
-                shapeSettingsVa, loc.xx(), loc.yy(), loc.zz(),
-                orient.getX(), orient.getY(), orient.getZ(), orient.getW(),
-                motionTypeOrdinal, objLayer);
+        long bodySettingsVa = createFromShapeSettings(shapeSettingsVa, loc.xx(),
+                loc.yy(), loc.zz(), orient.getX(), orient.getY(), orient.getZ(),
+                orient.getW(), motionTypeOrdinal, objLayer);
         setVirtualAddress(bodySettingsVa, () -> free(bodySettingsVa));
-    }
-
-    /**
-     * Instantiate settings for the specified shape-settings reference.
-     *
-     * @param shapeSettingsRef a reference to the desired shape settings (not
-     * null)
-     * @param loc the desired location (not null, unaffected)
-     * @param orient the desired orientation (not null, unaffected)
-     * @param motionType the desired motion type (not null)
-     * @param objLayer the ID of the desired object layer
-     */
-    public BodyCreationSettings(ShapeSettingsRef shapeSettingsRef, RVec3Arg loc,
-            QuatArg orient, EMotionType motionType, int objLayer) {
-        this(shapeSettingsRef.getPtr(), loc, orient, motionType, objLayer);
     }
     // *************************************************************************
     // new methods exposed
 
     /**
-     * Access the collision group.
+     * Prepare for simulation by cooking the {@code ShapeSettings} member into a
+     * shape. After invoking this method, {@code ObjectStream} serialization is
+     * inhibited.
      *
-     * @return a new JVM object with the pre-existing native object assigned
+     * @return a new object
      */
-    public CollisionGroup getCollisionGroup() {
+    public ShapeResult convertShapeSettings() {
         long bodySettingsVa = va();
-        long groupVa = getCollisionGroup(bodySettingsVa);
-        CollisionGroup result = new CollisionGroup(this, groupVa);
+        long resultVa = convertShapeSettings(bodySettingsVa);
+        ShapeResult result = new ShapeResult(resultVa, true);
 
         return result;
     }
 
     /**
-     * Alter whether a static body can be converted to kinematic or dynamic.
-     * (native attribute: mAllowDynamicOrKinematic)
+     * Read the state of this object from the specified stream, excluding the
+     * shape and group filter.
      *
-     * @param setting {@code true} to allow or {@code false} to inhibit
-     * (default=false)
+     * @param stream where to read objects from (not null)
      */
-    public void setAllowDynamicOrKinematic(boolean setting) {
+    public void restoreBinaryState(StreamIn stream) {
         long bodySettingsVa = va();
-        setAllowDynamicOrKinematic(bodySettingsVa, setting);
+        long streamVa = stream.va();
+        restoreBinaryState(bodySettingsVa, streamVa);
     }
 
     /**
-     * Alter the body's degrees of freedom. (native attribute: mAllowedDOFs)
+     * Alter whether a static body can be converted to kinematic or dynamic.
+     * (native member: mAllowDynamicOrKinematic)
+     *
+     * @param setting {@code true} to allow or {@code false} to inhibit
+     * (default=false)
+     * @return the modified settings, for chaining
+     */
+    public BodyCreationSettings setAllowDynamicOrKinematic(boolean setting) {
+        long bodySettingsVa = va();
+        setAllowDynamicOrKinematic(bodySettingsVa, setting);
+
+        return this;
+    }
+
+    /**
+     * Alter the body's degrees of freedom. (native member: mAllowedDOFs)
      *
      * @param bitmask the desired bitmask (see {@code EAllowedDofs} for
-     * semantics)
+     * semantics, default=All)
+     * @return the modified settings, for chaining
      */
-    public void setAllowedDofs(int bitmask) {
+    public BodyCreationSettings setAllowedDofs(int bitmask) {
         long bodySettingsVa = va();
         setAllowedDofs(bodySettingsVa, bitmask);
+
+        return this;
     }
 
     /**
      * Alter whether the created body will be allowed to fall asleep. (native
-     * attribute: mAllowSleeping)
+     * member: mAllowSleeping)
      *
      * @param allow {@code true} to allow, {@code false} to inhibit
      * (default=true)
+     * @return the modified settings, for chaining
      */
-    public void setAllowSleeping(boolean allow) {
+    public BodyCreationSettings setAllowSleeping(boolean allow) {
         long bodySettingsVa = va();
         setAllowSleeping(bodySettingsVa, allow);
+
+        return this;
     }
 
     /**
-     * Alter the angular damping constant. (native attribute: mAngularDamping)
+     * Alter the angular damping constant. (native member: mAngularDamping)
      *
      * @param damping the desired value (in units of per second, &ge;0, &le;1,
      * default=0.05)
+     * @return the modified settings, for chaining
      */
-    public void setAngularDamping(float damping) {
+    public BodyCreationSettings setAngularDamping(float damping) {
         long bodySettingsVa = va();
         setAngularDamping(bodySettingsVa, damping);
+
+        return this;
     }
 
     /**
-     * Alter the (initial) angular velocity. (native attribute:
-     * mAngularVelocity)
+     * Alter the (initial) angular velocity. (native member: mAngularVelocity)
      *
-     * @param omega the desired angular velocity (radians per second in
-     * physics-system coordinates, not null, unaffected, default=(0,0,0))
+     * @param omega the desired angular velocity (radians per second in system
+     * coordinates, not null, unaffected, default=(0,0,0))
+     * @return the modified settings, for chaining
      */
-    public void setAngularVelocity(Vec3Arg omega) {
+    public BodyCreationSettings setAngularVelocity(Vec3Arg omega) {
         long bodySettingsVa = va();
         setAngularVelocity(bodySettingsVa,
                 omega.getX(), omega.getY(), omega.getZ());
+
+        return this;
     }
 
     /**
-     * Alter whether gyroscopic force will be applied. (native attribute:
+     * Alter whether gyroscopic force will be applied. (native member:
      * mApplyGyroscopicForce)
      *
      * @param setting {@code true} to enable the force, or {@code false} to
-     * disable it
+     * disable it (default=false)
+     * @return the modified settings, for chaining
      */
-    public void setApplyGyroscopicForce(boolean setting) {
+    public BodyCreationSettings setApplyGyroscopicForce(boolean setting) {
         long bodySettingsVa = va();
         setApplyGyroscopicForce(bodySettingsVa, setting);
+
+        return this;
     }
 
     /**
-     * Alter the collision group to which the body will belong. (native
-     * attribute: mCollisionGroup)
+     * Alter the collision group to which the body will belong. (native member:
+     * mCollisionGroup)
      *
      * @param group the desired group (not null, unaffected)
+     * @return the modified settings, for chaining
      */
-    public void setCollisionGroup(CollisionGroup group) {
+    public BodyCreationSettings setCollisionGroup(ConstCollisionGroup group) {
         long bodySettingsVa = va();
-        long groupVa = group.va();
+        long groupVa = group.targetVa();
         setCollisionGroup(bodySettingsVa, groupVa);
+
+        return this;
     }
 
     /**
      * Alter whether extra effort should be made to remove ghost contacts.
+     * (native member: mEnhancedInternalEdgeRemoval)
      *
      * @param enhance {@code true} for extra effort, {@code false} for ordinary
      * effort (default=false)
+     * @return the modified settings, for chaining
      */
-    public void setEnhancedInternalEdgeRemoval(boolean enhance) {
+    public BodyCreationSettings setEnhancedInternalEdgeRemoval(
+            boolean enhance) {
         long bodySettingsVa = va();
         setEnhancedInternalEdgeRemoval(bodySettingsVa, enhance);
+
+        return this;
     }
 
     /**
-     * Alter the friction ratio. (native attribute: mFriction)
+     * Alter the friction ratio. (native member: mFriction)
      *
      * @param friction the desired ratio (typically &ge;0 and &le;1,
      * default=0.2)
+     * @return the modified settings, for chaining
      */
-    public void setFriction(float friction) {
+    public BodyCreationSettings setFriction(float friction) {
         long bodySettingsVa = va();
         setFriction(bodySettingsVa, friction);
+
+        return this;
     }
 
     /**
-     * Alter the gravity multiplier. (native attribute: mGravityFactor)
+     * Alter the gravity multiplier. (native member: mGravityFactor)
      *
      * @param factor the desired multiplier (default=1)
+     * @return the modified settings, for chaining
      */
-    public void setGravityFactor(float factor) {
+    public BodyCreationSettings setGravityFactor(float factor) {
         long bodySettingsVa = va();
         setGravityFactor(bodySettingsVa, factor);
+
+        return this;
     }
 
     /**
-     * Alter whether the body will be a sensor. (native attribute: mIsSensor)
+     * Alter whether the body will be a sensor. (native member: mIsSensor)
      *
      * @param setting {@code true} for a sensor, otherwise {@code false}
      * (default=false)
+     * @return the modified settings, for chaining
      */
-    public void setIsSensor(boolean setting) {
+    public BodyCreationSettings setIsSensor(boolean setting) {
         long bodySettingsVa = va();
         setIsSensor(bodySettingsVa, setting);
+
+        return this;
     }
 
     /**
-     * Alter the linear damping constant. (native attribute: mLinearDamping)
+     * Alter the linear damping constant. (native member: mLinearDamping)
      *
      * @param damping the desired value (in units of per second, &ge;0, &le;1,
      * default=0.05)
+     * @return the modified settings, for chaining
      */
-    public void setLinearDamping(float damping) {
+    public BodyCreationSettings setLinearDamping(float damping) {
         long bodySettingsVa = va();
         setLinearDamping(bodySettingsVa, damping);
+
+        return this;
     }
 
     /**
-     * Alter the (initial) linear velocity. (native attribute: mLinearVelocity)
+     * Alter the (initial) linear velocity. (native member: mLinearVelocity)
      *
-     * @param velocity the desired velocity (in physics-system coordinates, not
-     * null, unaffected, default=(0,0,0))
+     * @param velocity the desired velocity (in system coordinates, not null,
+     * unaffected, default=(0,0,0))
+     * @return the modified settings, for chaining
      */
-    public void setLinearVelocity(Vec3Arg velocity) {
+    public BodyCreationSettings setLinearVelocity(Vec3Arg velocity) {
         long bodySettingsVa = va();
         setLinearVelocity(bodySettingsVa,
                 velocity.getX(), velocity.getY(), velocity.getZ());
+
+        return this;
     }
 
     /**
-     * Alter the mass-properties override. (native attribute:
+     * Alter the mass-properties override. (native member:
      * mMassPropertiesOverride)
      *
      * @param properties the desired properties (not null, unaffected)
+     * @return the modified settings, for chaining
      */
-    public void setMassPropertiesOverride(MassProperties properties) {
+    public BodyCreationSettings setMassPropertiesOverride(
+            ConstMassProperties properties) {
         long bodySettingsVa = va();
-        long propertiesVa = properties.va();
+        long propertiesVa = properties.targetVa();
         setMassPropertiesOverride(bodySettingsVa, propertiesVa);
+
+        return this;
     }
 
     /**
-     * Alter the maximum angular speed. (native attribute: mMaxAngularVelocity)
+     * Alter the maximum angular speed. (native member: mMaxAngularVelocity)
      *
      * @param maxSpeed the desired maximum speed (in radians per second, &ge;0,
      * default=15*pi)
+     * @return the modified settings, for chaining
      */
-    public void setMaxAngularVelocity(float maxSpeed) {
+    public BodyCreationSettings setMaxAngularVelocity(float maxSpeed) {
         long bodySettingsVa = va();
         setMaxAngularVelocity(bodySettingsVa, maxSpeed);
+
+        return this;
     }
 
     /**
-     * Alter the maximum linear speed. (native attribute: mMaxLinearVelocity)
+     * Alter the maximum linear speed. (native member: mMaxLinearVelocity)
      *
      * @param maxSpeed the desired maximum speed (in meters per second, &ge;0,
      * default=500)
+     * @return the modified settings, for chaining
      */
-    public void setMaxLinearVelocity(float maxSpeed) {
+    public BodyCreationSettings setMaxLinearVelocity(float maxSpeed) {
         long bodySettingsVa = va();
         setMaxLinearVelocity(bodySettingsVa, maxSpeed);
+
+        return this;
     }
 
     /**
-     * Alter the motion quality. (native attribute: mMotionQuality)
+     * Alter the motion quality. (native member: mMotionQuality)
      *
      * @param motionQuality the desired quality (not null, default=Discrete)
+     * @return the modified settings, for chaining
      */
-    public void setMotionQuality(EMotionQuality motionQuality) {
+    public BodyCreationSettings setMotionQuality(EMotionQuality motionQuality) {
         long bodySettingsVa = va();
         int motionQualityOrdinal = motionQuality.ordinal();
         setMotionQuality(bodySettingsVa, motionQualityOrdinal);
+
+        return this;
     }
 
     /**
-     * Alter the motion type. (native attribute: mMotionType)
+     * Alter the motion type. (native member: mMotionType)
      *
      * @param motionType the desired type (not null, default=Dynamic)
+     * @return the modified settings, for chaining
      */
-    public void setMotionType(EMotionType motionType) {
+    public BodyCreationSettings setMotionType(EMotionType motionType) {
         long bodySettingsVa = va();
         int motionTypeOrdinal = motionType.ordinal();
         setMotionType(bodySettingsVa, motionTypeOrdinal);
+
+        return this;
     }
 
     /**
-     * Alter the object layer. (native attribute: mObjectLayer)
+     * Alter the object layer. (native member: mObjectLayer)
      *
-     * @param objLayer the ID of the desired object layer (&ge;0,
-     * &lt;numObjectLayers, default=0)
+     * @param objLayer the index of the desired object layer (&ge;0,
+     * &lt;numObjectLayers, &lt;65536, default=0)
+     * @return the modified settings, for chaining
      */
-    public void setObjectLayer(int objLayer) {
+    public BodyCreationSettings setObjectLayer(int objLayer) {
+        assert objLayer >= 0 && objLayer < 65_536 : "objLayer = " + objLayer;
+
         long bodySettingsVa = va();
         setObjectLayer(bodySettingsVa, objLayer);
+
+        return this;
     }
 
     /**
-     * Alter how the mass-properties override will be used. (native attribute:
+     * Alter how the mass-properties override will be used. (native member:
      * mOverrideMassProperties)
      *
      * @param setting an enum value (not null, default=CalculateMassAndInertia)
+     * @return the modified settings, for chaining
      */
-    public void setOverrideMassProperties(EOverrideMassProperties setting) {
+    public BodyCreationSettings setOverrideMassProperties(
+            EOverrideMassProperties setting) {
         long bodySettingsVa = va();
         int ordinal = setting.ordinal();
         setOverrideMassProperties(bodySettingsVa, ordinal);
+
+        return this;
     }
 
     /**
      * Alter the (initial) location of the body's origin (which might not
-     * coincide with its center of mass). (native attribute: mPosition)
+     * coincide with its center of mass). (native member: mPosition)
      *
-     * @param location the desired location (in physics-system coordinates, not
-     * null, unaffected, default=(0,0,0))
+     * @param xx the desired X coordinate (in system coordinates, default=0)
+     * @param yy the desired Y coordinate (in system coordinates, default=0)
+     * @param zz the desired Z coordinate (in system coordinates, default=0)
+     * @return the modified settings, for chaining
      */
-    public void setPosition(RVec3Arg location) {
+    public BodyCreationSettings setPosition(double xx, double yy, double zz) {
+        long bodySettingsVa = va();
+        setPosition(bodySettingsVa, xx, yy, zz);
+
+        return this;
+    }
+
+    /**
+     * Alter the (initial) location of the body's origin (which might not
+     * coincide with its center of mass). (native member: mPosition)
+     *
+     * @param location the desired location (in system coordinates, not null,
+     * unaffected, default=(0,0,0))
+     * @return the modified settings, for chaining
+     */
+    public BodyCreationSettings setPosition(RVec3Arg location) {
         long bodySettingsVa = va();
         double xx = location.xx();
         double yy = location.yy();
         double zz = location.zz();
         setPosition(bodySettingsVa, xx, yy, zz);
+
+        return this;
     }
 
     /**
-     * Alter the restitution ratio for collisions. (native attribute:
-     * mRestitution)
+     * Alter the restitution ratio for collisions. (native member: mRestitution)
      *
      * @param restitution the desired ratio (typically &ge;0 and &le;1,
      * default=0)
+     * @return the modified settings, for chaining
      */
-    public void setRestitution(float restitution) {
+    public BodyCreationSettings setRestitution(float restitution) {
         long bodySettingsVa = va();
         setRestitution(bodySettingsVa, restitution);
+
+        return this;
     }
 
     /**
-     * Alter the (initial) orientation of the body's axes. (native attribute:
+     * Alter the (initial) orientation of the body's axes. (native member:
      * mRotation)
      *
-     * @param quat the desired rotation (relative to the physics-system axes,
-     * not null, unaffected, default=(0,0,0,1))
+     * @param quat the desired rotation (relative to the system axes, not null,
+     * normalized, unaffected, default=(0,0,0,1))
+     * @return the modified settings, for chaining
      */
-    public void setRotation(QuatArg quat) {
+    public BodyCreationSettings setRotation(QuatArg quat) {
+        assert quat.isNormalized() : "length =" + quat.length();
+
         long bodySettingsVa = va();
         float qw = quat.getW();
         float qx = quat.getX();
         float qy = quat.getY();
         float qz = quat.getZ();
         setRotation(bodySettingsVa, qx, qy, qz, qw);
+
+        return this;
     }
 
     /**
      * Replace the shape.
      *
-     * @param shape the desired shape (not null, unaffected)
+     * @param shape the desired shape (not {@code null}, unaffected)
+     * @return the modified settings, for chaining
      */
-    public void setShape(ConstShape shape) {
+    public BodyCreationSettings setShape(ConstShape shape) {
         long bodySettingsVa = va();
         long shapeVa = shape.targetVa();
         setShape(bodySettingsVa, shapeVa);
-    }
 
-    /**
-     * Replace the shape.
-     *
-     * @param shapeRef a reference to the desired shape (not null)
-     */
-    public void setShape(ShapeRefC shapeRef) {
-        ConstShape shape = shapeRef.getPtr();
-        setShape(shape);
+        return this;
     }
 
     /**
      * Replace the shape settings.
      *
      * @param shapeSettings the desired shape settings (not null)
+     * @return the modified settings, for chaining
      */
-    public void setShapeSettings(ShapeSettings shapeSettings) {
+    public BodyCreationSettings setShapeSettings(
+            ConstShapeSettings shapeSettings) {
         long bodySettingsVa = va();
-        long shapeSettingsVa = shapeSettings.va();
+        long shapeSettingsVa = shapeSettings.targetVa();
         setShapeSettings(bodySettingsVa, shapeSettingsVa);
+
+        return this;
     }
 
     /**
-     * Replace the shape settings.
+     * Read a settings object from the specified binary stream.
      *
-     * @param shapeSettingsRef a reference to the desired shape settings (not
-     * null)
+     * @param stream where to read objects (not null)
+     * @param shapeMap track multiple uses of shapes (not null)
+     * @param materialMap track multiple uses of physics materials (not null)
+     * @param filterMap track multiple uses of group filters (not null)
+     * @return a new object
      */
-    public void setShapeSettings(ShapeSettingsRef shapeSettingsRef) {
-        ShapeSettings shapeSettings = shapeSettingsRef.getPtr();
-        setShapeSettings(shapeSettings);
+    public static BcsResult sRestoreWithChildren(
+            StreamIn stream, IdToShapeMap shapeMap,
+            IdToMaterialMap materialMap, IdToGroupFilterMap filterMap) {
+        long streamVa = stream.va();
+        long shapeMapVa = shapeMap.va();
+        long materialMapVa = materialMap.va();
+        long filterMapVa = filterMap.va();
+        long resultVa = sRestoreWithChildren(
+                streamVa, shapeMapVa, materialMapVa, filterMapVa);
+        BcsResult result = new BcsResult(resultVa, true);
+
+        return result;
     }
     // *************************************************************************
     // ConstBodyCreationSettings methods
 
     /**
      * Test whether a static body can be converted to kinematic or dynamic. The
-     * settings are unaffected. (native attribute: mAllowDynamicOrKinematic)
+     * settings are unaffected. (native member: mAllowDynamicOrKinematic)
      *
      * @return {@code true} if convertible, otherwise {@code false}
      */
@@ -503,7 +606,7 @@ public class BodyCreationSettings
 
     /**
      * Return the body's degrees of freedom. The settings are unaffected.
-     * (native attribute: mAllowedDOFs)
+     * (native member: mAllowedDOFs)
      *
      * @return a bitmask (see {@code EAllowedDofs} for semantics)
      */
@@ -517,7 +620,7 @@ public class BodyCreationSettings
 
     /**
      * Test whether the created body will be allowed to fall asleep. The
-     * settings are unaffected. (native attribute: mAllowSleeping)
+     * settings are unaffected. (native member: mAllowSleeping)
      *
      * @return {@code true} if allowed, otherwise {@code false}
      */
@@ -531,7 +634,7 @@ public class BodyCreationSettings
 
     /**
      * Return the angular damping constant. The settings are unaffected. (native
-     * attribute: mAngularDamping)
+     * member: mAngularDamping)
      *
      * @return the constant (in units of per second, &ge;0, &le;1)
      */
@@ -545,10 +648,9 @@ public class BodyCreationSettings
 
     /**
      * Copy the (initial) angular velocity. The settings are unaffected. (native
-     * attribute: mAngularVelocity)
+     * member: mAngularVelocity)
      *
-     * @return a new velocity vector (radians per second in physics-system
-     * coordinates)
+     * @return a new velocity vector (radians per second in system coordinates)
      */
     @Override
     public Vec3 getAngularVelocity() {
@@ -563,7 +665,7 @@ public class BodyCreationSettings
 
     /**
      * Test whether the gyroscopic force will be applied. The settings are
-     * unaffected. (native attribute: mApplyGyroscopicForce)
+     * unaffected. (native member: mApplyGyroscopicForce)
      *
      * @return {@code true} if enabled, otherwise {@code false}
      */
@@ -576,7 +678,23 @@ public class BodyCreationSettings
     }
 
     /**
-     * Test whether extra effort should be made to remove ghost contacts.
+     * Access the collision group to which the body will belong. (native member:
+     * mCollisionGroup)
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    @Override
+    public CollisionGroup getCollisionGroup() {
+        long bodySettingsVa = va();
+        long groupVa = getCollisionGroup(bodySettingsVa);
+        CollisionGroup result = new CollisionGroup(this, groupVa);
+
+        return result;
+    }
+
+    /**
+     * Test whether extra effort should be made to remove ghost contacts. The
+     * settings are unaffected. (native member: mEnhancedInternalEdgeRemoval)
      *
      * @return {@code true} for extra effort, otherwise {@code false}
      */
@@ -589,8 +707,8 @@ public class BodyCreationSettings
     }
 
     /**
-     * Return the friction ratio. The settings are unaffected. (native
-     * attribute: mFriction)
+     * Return the friction ratio. The settings are unaffected. (native member:
+     * mFriction)
      *
      * @return the ratio (typically &ge;0 and &le;1)
      */
@@ -603,8 +721,8 @@ public class BodyCreationSettings
     }
 
     /**
-     * Return the gravity factor. The settings are unaffected. (native
-     * attribute: mGravityFactor)
+     * Return the gravity factor. The settings are unaffected. (native member:
+     * mGravityFactor)
      *
      * @return the factor
      */
@@ -618,7 +736,7 @@ public class BodyCreationSettings
 
     /**
      * Test whether the body will be a sensor. The settings are unaffected.
-     * (native attribute: mIsSensor)
+     * (native member: mIsSensor)
      *
      * @return {@code true} for a sensor, otherwise {@code false}
      */
@@ -632,7 +750,7 @@ public class BodyCreationSettings
 
     /**
      * Return the linear damping constant. The settings are unaffected. (native
-     * attribute: mLinearDamping)
+     * member: mLinearDamping)
      *
      * @return the constant (in units of per second, &ge;0, &le;1)
      */
@@ -646,10 +764,9 @@ public class BodyCreationSettings
 
     /**
      * Copy the (initial) linear velocity. The settings are unaffected. (native
-     * attribute: mLinearVelocity)
+     * member: mLinearVelocity)
      *
-     * @return a new velocity vector (meters per second in physics-system
-     * coordinates)
+     * @return a new velocity vector (meters per second in system coordinates)
      */
     @Override
     public Vec3 getLinearVelocity() {
@@ -665,19 +782,29 @@ public class BodyCreationSettings
     /**
      * Calculate the mass and inertia. The settings are unaffected.
      *
-     * @return a new JVM object with a new native object assigned
+     * @return a new JVM object with a new native object assigned, or
+     * {@code null} if a shape is required but not available
      */
     @Override
     public MassProperties getMassProperties() {
         long bodySettingsVa = va();
-        long propertiesVa = getMassProperties(bodySettingsVa);
-        MassProperties result = new MassProperties(propertiesVa, true);
+        int omp = getOverrideMassProperties(bodySettingsVa);
+
+        MassProperties result;
+        if (omp == EOverrideMassProperties.MassAndInertiaProvided.ordinal()
+                || getShape(bodySettingsVa) != 0L) {
+            long propertiesVa = getMassProperties(bodySettingsVa);
+            result = new MassProperties(propertiesVa, true);
+
+        } else { // Avoid SIGSEGV when shape is required but not available:
+            result = null;
+        }
 
         return result;
     }
 
     /**
-     * Access the mass-properties override. (native attribute:
+     * Access the mass-properties override. (native member:
      * mMassPropertiesOverride)
      *
      * @return a new JVM object with the pre-existing native object assigned
@@ -693,7 +820,7 @@ public class BodyCreationSettings
 
     /**
      * Return the maximum angular speed. The settings are unaffected. (native
-     * attribute: mMaxAngularVelocity)
+     * member: mMaxAngularVelocity)
      *
      * @return the maximum speed (in radians per second)
      */
@@ -707,7 +834,7 @@ public class BodyCreationSettings
 
     /**
      * Return the maximum linear speed. The settings are unaffected. (native
-     * attribute: mMaxLinearVelocity)
+     * member: mMaxLinearVelocity)
      *
      * @return the maximum speed (in meters per second)
      */
@@ -720,8 +847,8 @@ public class BodyCreationSettings
     }
 
     /**
-     * Return the motion quality. The settings are unaffected. (native
-     * attribute: mMotionQuality)
+     * Return the motion quality. The settings are unaffected. (native member:
+     * mMotionQuality)
      *
      * @return an enum value (not null)
      */
@@ -735,7 +862,7 @@ public class BodyCreationSettings
     }
 
     /**
-     * Return the motion type. The settings are unaffected. (native attribute:
+     * Return the motion type. The settings are unaffected. (native member:
      * mMotionType)
      *
      * @return an enum value (not null)
@@ -751,7 +878,7 @@ public class BodyCreationSettings
 
     /**
      * Return the index of the object layer. The settings are unaffected.
-     * (native attribute: mObjectLayer)
+     * (native member: mObjectLayer)
      *
      * @return the layer index (&ge;0, &lt;numObjectLayers)
      */
@@ -765,7 +892,7 @@ public class BodyCreationSettings
 
     /**
      * Return how the mass-properties override will be used. The settings are
-     * unaffected. (native attribute: mOverrideMassProperties)
+     * unaffected. (native member: mOverrideMassProperties)
      *
      * @return an enum value (not null)
      */
@@ -779,11 +906,11 @@ public class BodyCreationSettings
     }
 
     /**
-     * Return the (initial) location. The settings are unaffected. (native
-     * attribute: mPosition)
+     * Copy the (initial) location. The settings are unaffected. (native member:
+     * mPosition)
      *
-     * @return a new location vector (in physics-system coordinates, all
-     * components finite)
+     * @return a new location vector (in system coordinates, all components
+     * finite)
      */
     @Override
     public RVec3 getPosition() {
@@ -804,7 +931,7 @@ public class BodyCreationSettings
 
     /**
      * Return the restitution ratio. The settings are unaffected. (native
-     * attribute: mRestitution)
+     * member: mRestitution)
      *
      * @return the ratio (typically &ge;0 and &le;1)
      */
@@ -818,9 +945,9 @@ public class BodyCreationSettings
 
     /**
      * Copy the (initial) orientation of the body's axes. The settings are
-     * unaffected. (native attribute: mRotation)
+     * unaffected. (native member: mRotation)
      *
-     * @return a new rotation quaternion (relative to the physics-system axes)
+     * @return a new rotation quaternion (relative to the system axes)
      */
     @Override
     public Quat getRotation() {
@@ -839,13 +966,30 @@ public class BodyCreationSettings
      * unaffected.
      *
      * @return a new JVM object with the pre-existing native object assigned, or
-     * {@code null}
+     * {@code null} if the settings aren't cooked
      */
     @Override
     public ConstShape getShape() {
         long bodySettingsVa = va();
-        long shapeSettingsVa = getShape(bodySettingsVa);
-        ConstShape result = Shape.newShape(shapeSettingsVa);
+        long shapeVa = getShape(bodySettingsVa);
+        ConstShape result = Shape.newShape(shapeVa);
+
+        return result;
+    }
+
+    /**
+     * Acquire read-only access to the {@code ShapeSettings}. The body-creation
+     * settings are unaffected.
+     *
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null}
+     */
+    @Override
+    public ConstShapeSettings getShapeSettings() {
+        long bodySettingsVa = va();
+        long shapeSettingsVa = getShapeSettings(bodySettingsVa);
+        ConstShapeSettings result
+                = ShapeSettings.newShapeSettings(shapeSettingsVa);
 
         return result;
     }
@@ -862,15 +1006,67 @@ public class BodyCreationSettings
         boolean result = hasMassProperties(bodySettingsVa);
         return result;
     }
+
+    /**
+     * Write the state of this object to the specified stream, excluding the
+     * shape, materials, and group filter. The settings are unaffected.
+     *
+     * @param stream where to write objects (not null)
+     */
+    @Override
+    public void saveBinaryState(StreamOut stream) {
+        long bodySettingsVa = va();
+        long streamVa = stream.va();
+        saveBinaryState(bodySettingsVa, streamVa);
+    }
+
+    /**
+     * Write the state of this object to the specified stream. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not null)
+     * @param shapeMap track multiple uses of shapes (may be null)
+     * @param materialMap track multiple uses of physics materials (may be null)
+     * @param filterMap track multiple uses of group filters (may be null)
+     */
+    @Override
+    public void saveWithChildren(StreamOut stream, ShapeToIdMap shapeMap,
+            MaterialToIdMap materialMap, GroupFilterToIdMap filterMap) {
+        long bodySettingsVa = va();
+        long streamVa = stream.va();
+        long shapeMapVa = (shapeMap == null) ? 0L : shapeMap.va();
+        long materialMapVa = (materialMap == null) ? 0L : materialMap.va();
+        long filterMapVa = (filterMap == null) ? 0L : filterMap.va();
+        saveWithChildren(bodySettingsVa, streamVa, shapeMapVa, materialMapVa,
+                filterMapVa);
+    }
+    // *************************************************************************
+    // protected methods
+
+    /**
+     * Assign a native object, assuming there's none already assigned.
+     *
+     * @param allocatorVa the virtual address of the native object to assign
+     * (not zero)
+     * @param owner {@code true} &rarr; make the JVM object the owner,
+     * {@code false} &rarr; it isn't the owner
+     */
+    final protected void setVirtualAddress(long allocatorVa, boolean owner) {
+        Runnable freeingAction = owner ? () -> free(allocatorVa) : null;
+        setVirtualAddress(allocatorVa, freeingAction);
+    }
     // *************************************************************************
     // native private methods
+
+    native private static long convertShapeSettings(long bodySettingsVa);
+
+    native private static long createCopy(long originalVa);
 
     native private static long createDefault();
 
     native private static long createFromShape(
-            long shapeVa, double locX, double locY, double locZ,
-            float qx, float qy, float qz, float qw,
-            int motionTypeOrdinal, int objLayer);
+            long shapeVa, double locX, double locY, double locZ, float qx,
+            float qy, float qz, float qw, int motionTypeOrdinal, int objLayer);
 
     native private static long createFromShapeSettings(
             long shapeSettingsVa, double locX, double locY, double locZ,
@@ -949,7 +1145,19 @@ public class BodyCreationSettings
 
     native private static long getShape(long bodySettingsVa);
 
+    native private static long getShapeSettings(long bodySettingsVa);
+
     native private static boolean hasMassProperties(long bodySettingsVa);
+
+    native private static void restoreBinaryState(
+            long bodySettingsVa, long streamVa);
+
+    native private static void saveBinaryState(
+            long bodySettingsVa, long streamVa);
+
+    native private static void saveWithChildren(
+            long bodySettingsVa, long streamVa, long shapeMapVa,
+            long materialMapVa, long filterMapVa);
 
     native private static void setAllowDynamicOrKinematic(
             long bodySettingsVa, boolean setting);
@@ -1022,4 +1230,7 @@ public class BodyCreationSettings
 
     native private static void setShapeSettings(
             long bodySettingsVa, long shapeSettingsVa);
+
+    native private static long sRestoreWithChildren(long streamVa,
+            long shapeMapVa, long materialMapVa, long filterMapVa);
 }

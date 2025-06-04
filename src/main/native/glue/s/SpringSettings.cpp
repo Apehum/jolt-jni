@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,33 @@ SOFTWARE.
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Constraints/SpringSettings.h"
 #include "auto/com_github_stephengold_joltjni_SpringSettings.h"
+#include "glue/glue.h"
 
 using namespace JPH;
+
+/*
+ * Class:     com_github_stephengold_joltjni_SpringSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SpringSettings_createCopy
+  BODYOF_CREATE_COPY(SpringSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_SpringSettings
+ * Method:    createDefault
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SpringSettings_createDefault
+  BODYOF_CREATE_DEFAULT(SpringSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_SpringSettings
+ * Method:    free
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SpringSettings_free
+  BODYOF_FREE(SpringSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_SpringSettings
@@ -92,6 +117,32 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_SpringSettings_ha
             = reinterpret_cast<SpringSettings *> (settingsVa);
     const bool result = pSettings->HasStiffness();
     return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SpringSettings
+ * Method:    restoreBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SpringSettings_restoreBinaryState
+  (JNIEnv *, jclass, jlong settingsVa, jlong streamVa) {
+    SpringSettings * const pSettings
+            = reinterpret_cast<SpringSettings *> (settingsVa);
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    pSettings->RestoreBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SpringSettings
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SpringSettings_saveBinaryState
+  (JNIEnv *, jclass, jlong settingsVa, jlong streamVa) {
+    const SpringSettings * const pSettings
+            = reinterpret_cast<SpringSettings *> (settingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pSettings->SaveBinaryState(*pStream);
 }
 
 /*

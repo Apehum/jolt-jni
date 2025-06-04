@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,15 +32,19 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_createCopy
+  BODYOF_CREATE_COPY(SoftBodyCreationSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
  * Method:    createDefault
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_createDefault
-  (JNIEnv *, jclass) {
-    SoftBodyCreationSettings * const pResult = new SoftBodyCreationSettings();
-    TRACE_NEW("SoftBodyCreationSettings", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(SoftBodyCreationSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
@@ -66,12 +70,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSett
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_free
-  (JNIEnv *, jclass, jlong bodySettingsVa) {
-    SoftBodyCreationSettings * const pSettings
-            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
-    TRACE_DELETE("SoftBodyCreationSettings", pSettings)
-    delete pSettings;
-}
+  BODYOF_FREE(SoftBodyCreationSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
@@ -84,6 +83,19 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationS
             = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
     const bool result = pSettings->mAllowSleeping;
     return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    getCollisionGroup
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_getCollisionGroup
+  (JNIEnv *, jclass, jlong bodySettingsVa) {
+    SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    CollisionGroup * const pResult = &pSettings->mCollisionGroup;
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*
@@ -127,6 +139,19 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSet
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    getMakeRotationIdentity
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_getMakeRotationIdentity
+  (JNIEnv *, jclass, jlong bodySettingsVa) {
+    const SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    const bool result = pSettings->mMakeRotationIdentity;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
  * Method:    getMaxLinearVelocity
  * Signature: (J)F
  */
@@ -135,6 +160,19 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSet
     const SoftBodyCreationSettings * const pSettings
             = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
     const float result = pSettings->mMaxLinearVelocity;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    getNumIterations
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_getNumIterations
+  (JNIEnv *, jclass, jlong bodySettingsVa) {
+    const SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    const uint32 result = pSettings->mNumIterations;
     return result;
 }
 
@@ -284,6 +322,91 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSett
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    getUpdatePosition
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_getUpdatePosition
+  (JNIEnv *, jclass, jlong bodySettingsVa) {
+    const SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    const bool result = pSettings->mUpdatePosition;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    getUserData
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_getUserData
+  (JNIEnv *, jclass, jlong bodySettingsVa) {
+    const SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    const uint64 result = pSettings->mUserData;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    getVertexRadius
+ * Signature: (J)F
+ */
+JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_getVertexRadius
+  (JNIEnv *, jclass, jlong bodySettingsVa) {
+    const SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    const float result = pSettings->mVertexRadius;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    restoreBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_restoreBinaryState
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong streamVa) {
+    SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    pSettings->RestoreBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_saveBinaryState
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong streamVa) {
+    const SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pSettings->SaveBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    saveWithChildren
+ * Signature: (JJJJJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_saveWithChildren
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong streamVa, jlong settingsMapVa,
+  jlong materialMapVa, jlong filterMapVa) {
+    const SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    SoftBodyCreationSettings::SharedSettingsToIDMap * const pSettingsMap
+            = reinterpret_cast<SoftBodyCreationSettings::SharedSettingsToIDMap *> (settingsMapVa);
+    SoftBodyCreationSettings::MaterialToIDMap * const pMaterialMap
+            = reinterpret_cast<SoftBodyCreationSettings::MaterialToIDMap *> (materialMapVa);
+    SoftBodyCreationSettings::GroupFilterToIDMap * const pFilterMap
+            = reinterpret_cast<SoftBodyCreationSettings::GroupFilterToIDMap *> (filterMapVa);
+    pSettings->SaveWithChildren(*pStream, pSettingsMap, pMaterialMap, pFilterMap);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
  * Method:    setAllowSleeping
  * Signature: (JZ)V
  */
@@ -342,6 +465,18 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSetti
     SoftBodyCreationSettings * const pSettings
             = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
     pSettings->mLinearDamping = damping;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    setMakeRotationIdentity
+ * Signature: (JZ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_setMakeRotationIdentity
+  (JNIEnv *, jclass, jlong bodySettingsVa, jboolean enable) {
+    SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    pSettings->mMakeRotationIdentity = enable;
 }
 
 /*
@@ -428,4 +563,77 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSetti
             = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
     const Quat orientation(qx, qy, qz, qw);
     pSettings->mRotation = orientation;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    setSettings
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_setSettings
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong sharedSettingsVa) {
+    SoftBodyCreationSettings * const pCreate
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    const SoftBodySharedSettings * const pShared
+            = reinterpret_cast<SoftBodySharedSettings *> (sharedSettingsVa);
+    pCreate->mSettings = pShared;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    setUpdatePosition
+ * Signature: (JZ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_setUpdatePosition
+  (JNIEnv *, jclass, jlong bodySettingsVa, jboolean enable) {
+    SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    pSettings->mUpdatePosition = enable;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    setUserData
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_setUserData
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong value) {
+    SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    pSettings->mUserData = value;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    setVertexRadius
+ * Signature: (JF)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_setVertexRadius
+  (JNIEnv *, jclass, jlong bodySettingsVa, jfloat radius) {
+    SoftBodyCreationSettings * const pSettings
+            = reinterpret_cast<SoftBodyCreationSettings *> (bodySettingsVa);
+    pSettings->mVertexRadius = radius;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodyCreationSettings
+ * Method:    sRestoreWithChildren
+ * Signature: (JJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodyCreationSettings_sRestoreWithChildren
+  (JNIEnv *, jclass, jlong streamVa, jlong sbssMapVa, jlong materialMapVa,
+  jlong filterMapVa) {
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    SoftBodyCreationSettings::IDToSharedSettingsMap * const pSbssMap
+            = reinterpret_cast<SoftBodyCreationSettings::IDToSharedSettingsMap *> (sbssMapVa);
+    SoftBodyCreationSettings::IDToMaterialMap * const pMaterialMap
+            = reinterpret_cast<SoftBodyCreationSettings::IDToMaterialMap *> (materialMapVa);
+    SoftBodyCreationSettings::IDToGroupFilterMap * const pFilterMap
+            = reinterpret_cast<SoftBodyCreationSettings::IDToGroupFilterMap *> (filterMapVa);
+    SoftBodyCreationSettings::SBCSResult * const pResult
+            = new SoftBodyCreationSettings::SBCSResult();
+    TRACE_NEW("SoftBodyCreationSettings::SBCSResult", pResult);
+    *pResult = SoftBodyCreationSettings::sRestoreWithChildren(
+            *pStream, *pSbssMap, *pMaterialMap, *pFilterMap);
+    return reinterpret_cast<jlong> (pResult);
 }

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,13 @@ import com.github.stephengold.joltjni.readonly.Vec3Arg;
  */
 public class Character extends CharacterBase implements ConstCharacter {
     // *************************************************************************
+    // fields
+
+    /**
+     * where to add the body (not null)
+     */
+    final private PhysicsSystem system;
+    // *************************************************************************
     // constructors
 
     /**
@@ -44,9 +51,11 @@ public class Character extends CharacterBase implements ConstCharacter {
      *
      * @param characterVa the virtual address of the native object to assign
      * (not zero)
+     * @param physicsSystem where to add the body (not null)
      */
-    Character(long characterVa) {
+    Character(long characterVa, PhysicsSystem physicsSystem) {
         super(characterVa);
+        this.system = physicsSystem;
     }
 
     /**
@@ -58,10 +67,11 @@ public class Character extends CharacterBase implements ConstCharacter {
      * @param orientation the desired initial orientation (in system
      * coordinates, not null, unaffected)
      * @param userData the desired user-data value
-     * @param system the system to which the character will be added (not null)
+     * @param system where to add the body (not null)
      */
     public Character(ConstCharacterSettings settings, RVec3Arg location,
             QuatArg orientation, long userData, PhysicsSystem system) {
+        this.system = system;
         long settingsVa = settings.targetVa();
         double locX = location.xx();
         double locY = location.yy();
@@ -73,7 +83,7 @@ public class Character extends CharacterBase implements ConstCharacter {
         long systemVa = system.va();
         long characterVa = createCharacter(settingsVa, locX, locY, locZ,
                 qx, qy, qz, qw, userData, systemVa);
-        setVirtualAddress(characterVa, null); // not owner due to ref counting
+        setVirtualAddress(characterVa); // not owner due to ref counting
     }
     // *************************************************************************
     // new methods exposed
@@ -186,7 +196,7 @@ public class Character extends CharacterBase implements ConstCharacter {
      * Needs to be invoked after every physics update.
      *
      * @param maxSeparation the max distance between the floor and the character
-     * for standing
+     * for standing (in meters)
      */
     public void postSimulation(float maxSeparation) {
         postSimulation(maxSeparation, true);
@@ -196,7 +206,7 @@ public class Character extends CharacterBase implements ConstCharacter {
      * Needs to be invoked after every physics update.
      *
      * @param maxSeparation the max distance between the floor and the character
-     * for standing
+     * for standing (in meters)
      * @param lockBodies {@code true} &rarr; use the locking body interface,
      * {@code false} &rarr; use the non-locking body interface (default=true)
      */
@@ -227,7 +237,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     /**
      * Alter the character's object layer, using the locking body interface.
      *
-     * @param layer the index of the desired layer
+     * @param layer the index of the desired layer (default=0)
      */
     public void setLayer(int layer) {
         setLayer(layer, true);
@@ -236,7 +246,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     /**
      * Alter the character's object layer.
      *
-     * @param layer the index of the desired layer
+     * @param layer the index of the desired layer (default=0)
      * @param lockBodies {@code true} &rarr; use the locking body interface,
      * {@code false} &rarr; use the non-locking body interface (default=true)
      */
@@ -308,7 +318,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     }
 
     /**
-     * Re-locate and activate the character using the locking body interface.
+     * Relocate and activate the character using the locking body interface.
      *
      * @param location the desired location (in system coordinates, not null,
      * unaffected)
@@ -318,7 +328,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     }
 
     /**
-     * Re-locate the character, optionally activating it, using the locking body
+     * Relocate the character, optionally activating it, using the locking body
      * interface.
      *
      * @param location the desired location (in system coordinates, not null,
@@ -331,7 +341,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     }
 
     /**
-     * Re-locate the character, optionally activating it.
+     * Relocate the character, optionally activating it.
      *
      * @param location the desired location (in system coordinates, not null,
      * unaffected)
@@ -351,7 +361,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     }
 
     /**
-     * Re-position and activate the character using the locking body interface.
+     * Reposition and activate the character using the locking body interface.
      *
      * @param location the desired location (in system coordinates, not null,
      * unaffected)
@@ -363,7 +373,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     }
 
     /**
-     * Re-position the character, optionally activating it.
+     * Reposition the character, optionally activating it.
      *
      * @param location the desired location (in system coordinates, not null,
      * unaffected)
@@ -378,7 +388,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     }
 
     /**
-     * Re-position the character, optionally activating it.
+     * Reposition the character, optionally activating it.
      *
      * @param location the desired location (in system coordinates, not null,
      * unaffected)
@@ -494,7 +504,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     public CharacterRef toRef() {
         long characterVa = va();
         long refVa = toRef(characterVa);
-        CharacterRef result = new CharacterRef(refVa, true);
+        CharacterRef result = new CharacterRef(refVa, system);
 
         return result;
     }
@@ -502,22 +512,21 @@ public class Character extends CharacterBase implements ConstCharacter {
     // ConstCharacter methods
 
     /**
-     * Return the ID of the body associated with this character. The character
-     * is unaffected.
+     * Return the ID of the body associated with the character. The character is
+     * unaffected. (native method: GetBodyID)
      *
-     * @return a new ID
+     * @return the {@code BodyID} value
      */
     @Override
-    public BodyId getBodyId() {
+    public int getBodyId() {
         long characterVa = va();
-        long idVa = getBodyId(characterVa);
-        BodyId result = new BodyId(idVa, true);
+        int result = getBodyId(characterVa);
 
         return result;
     }
 
     /**
-     * Return the location of the rigid body's center of mass using the locking
+     * Copy the location of the rigid body's center of mass using the locking
      * body interface. The character is unaffected.
      *
      * @return a new location vector (in system coordinates)
@@ -529,7 +538,7 @@ public class Character extends CharacterBase implements ConstCharacter {
     }
 
     /**
-     * Return the location of the rigid body's center of mass. The character is
+     * Copy the location of the rigid body's center of mass. The character is
      * unaffected.
      *
      * @param lockBodies {@code true} &rarr; use the locking body interface,
@@ -541,8 +550,35 @@ public class Character extends CharacterBase implements ConstCharacter {
         long characterVa = va();
         double[] storeDoubles = new double[3];
         getCenterOfMassPosition(characterVa, storeDoubles, lockBodies);
-        RVec3 result
-                = new RVec3(storeDoubles[0], storeDoubles[1], storeDoubles[2]);
+        RVec3 result = new RVec3(storeDoubles);
+
+        return result;
+    }
+
+    /**
+     * Generate settings to reconstruct the character, using the locking body
+     * interface. The character is unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public CharacterSettings getCharacterSettings() {
+        CharacterSettings result = getCharacterSettings(true);
+        return result;
+    }
+
+    /**
+     * Generate settings to reconstruct the character. The character is
+     * unaffected.
+     *
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * @return a new object
+     */
+    @Override
+    public CharacterSettings getCharacterSettings(boolean lockBodies) {
+        long characterVa = va();
+        long settingsVa = getCharacterSettings(characterVa, lockBodies);
+        CharacterSettings result = new CharacterSettings(settingsVa);
 
         return result;
     }
@@ -598,7 +634,7 @@ public class Character extends CharacterBase implements ConstCharacter {
         long characterVa = va();
         float[] storeFloats = new float[3];
         getLinearVelocity(characterVa, storeFloats, lockBodies);
-        Vec3 result = new Vec3(storeFloats[0], storeFloats[1], storeFloats[2]);
+        Vec3 result = new Vec3(storeFloats);
 
         return result;
     }
@@ -627,8 +663,7 @@ public class Character extends CharacterBase implements ConstCharacter {
         long characterVa = va();
         double[] storeDoubles = new double[3];
         getPosition(characterVa, storeDoubles, lockBodies);
-        RVec3 result
-                = new RVec3(storeDoubles[0], storeDoubles[1], storeDoubles[2]);
+        RVec3 result = new RVec3(storeDoubles);
 
         return result;
     }
@@ -637,10 +672,10 @@ public class Character extends CharacterBase implements ConstCharacter {
      * Copy the position of the associated body using the locking body
      * interface. The character is unaffected.
      *
-     * @param storeLocation the desired location (in system coordinates, not
-     * null, unaffected)
-     * @param storeOrientation the desired orientation (in system coordinates,
-     * not null, unaffected)
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
      */
     @Override
     public void getPositionAndRotation(
@@ -651,10 +686,10 @@ public class Character extends CharacterBase implements ConstCharacter {
     /**
      * Copy the position of the associated body. The character is unaffected.
      *
-     * @param storeLocation the desired location (in system coordinates, not
-     * null, unaffected)
-     * @param storeOrientation the desired orientation (in system coordinates,
-     * not null, unaffected)
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
      * @param lockBodies {@code true} &rarr; use the locking body interface,
      * {@code false} &rarr; use the non-locking body interface (default=true)
      */
@@ -666,9 +701,8 @@ public class Character extends CharacterBase implements ConstCharacter {
         float[] storeFloats = new float[4];
         getPositionAndRotation(
                 characterVa, storeDoubles, storeFloats, lockBodies);
-        storeLocation.set(storeDoubles[0], storeDoubles[1], storeDoubles[2]);
-        storeOrientation.set(
-                storeFloats[0], storeFloats[1], storeFloats[2], storeFloats[3]);
+        storeLocation.set(storeDoubles);
+        storeOrientation.set(storeFloats);
     }
 
     /**
@@ -695,8 +729,36 @@ public class Character extends CharacterBase implements ConstCharacter {
         long characterVa = va();
         float[] storeFloats = new float[4];
         getRotation(characterVa, storeFloats, lockBodies);
-        Quat result = new Quat(
-                storeFloats[0], storeFloats[1], storeFloats[2], storeFloats[3]);
+        Quat result = new Quat(storeFloats);
+
+        return result;
+    }
+
+    /**
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character, using the locking body interface. The character is unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public TransformedShape getTransformedShape() {
+        TransformedShape result = getTransformedShape(true);
+        return result;
+    }
+
+    /**
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character. The character is unaffected.
+     *
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * {@code false} &rarr; use the non-locking body interface (default=true)
+     * @return a new object
+     */
+    @Override
+    public TransformedShape getTransformedShape(boolean lockBodies) {
+        long characterVa = va();
+        long resultVa = getTransformedShape(characterVa, lockBodies);
+        TransformedShape result = new TransformedShape(resultVa, true);
 
         return result;
     }
@@ -729,6 +791,20 @@ public class Character extends CharacterBase implements ConstCharacter {
 
         return result;
     }
+
+    /**
+     * Create a counted reference to the native {@code Character}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
+    @Override
+    public CharacterRefC toRefC() {
+        long characterVa = va();
+        long refVa = toRefC(characterVa);
+        CharacterRefC result = new CharacterRefC(refVa, system);
+
+        return result;
+    }
     // *************************************************************************
     // native methods
 
@@ -747,10 +823,13 @@ public class Character extends CharacterBase implements ConstCharacter {
             long settingsVa, double locX, double locY, double locZ, float qx,
             float qy, float qz, float qw, long userData, long systemVa);
 
-    native static long getBodyId(long characterVa);
+    native static int getBodyId(long characterVa);
 
     native static void getCenterOfMassPosition(
             long characterVa, double[] storeDoubles, boolean lockBodies);
+
+    native static long getCharacterSettings(
+            long characterVa, boolean lockBodies);
 
     native static int getLayer(long characterVa);
 
@@ -765,6 +844,9 @@ public class Character extends CharacterBase implements ConstCharacter {
 
     native static void getRotation(
             long characterVa, float[] toreFloats, boolean lockBodies);
+
+    native static long getTransformedShape(
+            long characterVa, boolean lockBodies);
 
     native static long getWorldTransform(long characterVa, boolean lockBodies);
 
@@ -798,4 +880,6 @@ public class Character extends CharacterBase implements ConstCharacter {
             float maxPenetrationDepth, boolean lockBodies);
 
     native private static long toRef(long characterVa);
+
+    native private static long toRefC(long characterVa);
 }

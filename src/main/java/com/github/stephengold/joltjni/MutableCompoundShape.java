@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,13 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.ConstShape;
 import com.github.stephengold.joltjni.readonly.QuatArg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
 import java.nio.ByteBuffer;
 
 /**
- * A {@code CompoundShape} whose subshapes can be modified after the shape is
+ * A {@code CompoundShape} whose sub-shapes can be modified after the shape is
  * constructed.
  *
  * @author Stephen Gold sgold@sonic.net
@@ -36,11 +37,11 @@ public class MutableCompoundShape extends CompoundShape {
     // constructors
 
     /**
-     * Instantiate an empty compound shape with no subshapes.
+     * Instantiate an empty compound shape with no sub-shapes.
      */
     public MutableCompoundShape() {
         long shapeVa = createMutableCompoundShape();
-        setVirtualAddress(shapeVa, null); // not the owner due to ref counting
+        setVirtualAddress(shapeVa); // not the owner due to ref counting
     }
 
     /**
@@ -57,15 +58,15 @@ public class MutableCompoundShape extends CompoundShape {
     // new methods exposed
 
     /**
-     * Add a subshape in the specified position.
+     * Add a sub-shape in the specified position.
      *
      * @param offset the desired offset (not null, unaffected)
      * @param rotation the desired rotation (not null, not zero, unaffected)
-     * @param shapeRef a reference to the desired subshape (not null)
-     * @return the index of the added subshape
+     * @param subshape the desired sub-shape (not null)
+     * @return the index of the added sub-shape
      */
-    public int addShape(Vec3Arg offset, QuatArg rotation, ShapeRefC shapeRef) {
-        long shapeVa = va();
+    public int addShape(Vec3Arg offset, QuatArg rotation, ConstShape subshape) {
+        long compoundVa = va();
         float offsetX = offset.getX();
         float offsetY = offset.getY();
         float offsetZ = offset.getZ();
@@ -73,15 +74,15 @@ public class MutableCompoundShape extends CompoundShape {
         float rotX = rotation.getX();
         float rotY = rotation.getY();
         float rotZ = rotation.getZ();
-        long shapeRefVa = shapeRef.va();
-        int result = addShape(shapeVa, offsetX, offsetY, offsetZ,
-                rotX, rotY, rotZ, rotW, shapeRefVa);
+        long subShapeVa = subshape.targetVa();
+        int result = addShape(compoundVa, offsetX, offsetY, offsetZ,
+                rotX, rotY, rotZ, rotW, subShapeVa);
 
         return result;
     }
 
     /**
-     * Recalculate the center of mass and shift the subshapes accordingly.
+     * Recalculate the center of mass and shift the sub-shapes accordingly.
      */
     public void adjustCenterOfMass() {
         long shapeVa = va();
@@ -89,10 +90,10 @@ public class MutableCompoundShape extends CompoundShape {
     }
 
     /**
-     * Re-position multiple subshapes.
+     * Reposition multiple sub-shapes.
      *
      * @param startIndex index of the first shape to reposition (&ge;0)
-     * @param numSubshapes the number of subshapes to reposition (&ge;0)
+     * @param numSubshapes the number of sub-shapes to reposition (&ge;0)
      * @param offsets the desired offsets (not null, unaffected,
      * length&ge;numSubShapes)
      * @param rotations the desired rotations (not null, unaffected,
@@ -111,9 +112,9 @@ public class MutableCompoundShape extends CompoundShape {
     }
 
     /**
-     * Remove the specified subshape.
+     * Remove the specified sub-shape.
      *
-     * @param index the index of the subshape to remove (&ge;0)
+     * @param index the index (not the ID) of the sub-shape to remove (&ge;0)
      */
     public void removeShape(int index) {
         long shapeVa = va();
@@ -123,8 +124,8 @@ public class MutableCompoundShape extends CompoundShape {
     // native private methods
 
     native private static int addShape(
-            long shapeVa, float offsetX, float offsetY, float offsetZ,
-            float rotX, float rotY, float rotZ, float rotW, long shapeRefVa);
+            long compoundVa, float offsetX, float offsetY, float offsetZ,
+            float rotX, float rotY, float rotZ, float rotW, long subShapeVa);
 
     native private static void adjustCenterOfMass(long shapeVa);
 
@@ -132,7 +133,7 @@ public class MutableCompoundShape extends CompoundShape {
 
     native private static void modifyShapes(
             long shapeVa, int startIndex, int numSubshapes, ByteBuffer offsets,
-            ByteBuffer rotations, int offsetStride, int rotationStide);
+            ByteBuffer rotations, int offsetStride, int rotationStride);
 
     native private static void removeShape(long shapeVa, int index);
 }

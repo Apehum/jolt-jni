@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -79,6 +79,18 @@ final public class Float3 {
         this.y = rhs.y;
         this.z = rhs.z;
     }
+
+    /**
+     * Instantiate from a buffer.
+     *
+     * @param buffer the desired component values (not null, unaffected,
+     * capacity&ge;3)
+     */
+    public Float3(FloatBuffer buffer) {
+        this.x = buffer.get(0);
+        this.y = buffer.get(1);
+        this.z = buffer.get(2);
+    }
     // *************************************************************************
     // new methods exposed
 
@@ -99,8 +111,7 @@ final public class Float3 {
             case 2:
                 return z;
             default:
-                throw new IllegalArgumentException(
-                        "index must be either 0, 1 or 2");
+                throw new IllegalArgumentException("index must be 0, 1 or 2");
         }
     }
 

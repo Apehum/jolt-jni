@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,16 +32,19 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_DistanceConstraintSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_DistanceConstraintSettings_createCopy
+  BODYOF_CREATE_COPY(DistanceConstraintSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_DistanceConstraintSettings
  * Method:    createDistanceConstraintSettings
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_DistanceConstraintSettings_createDistanceConstraintSettings
-  (JNIEnv *, jclass) {
-    DistanceConstraintSettings * const pResult
-            = new DistanceConstraintSettings();
-    TRACE_NEW("DistanceConstraintSettings", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(DistanceConstraintSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_DistanceConstraintSettings

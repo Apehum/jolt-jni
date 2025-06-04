@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,15 +32,19 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_CollideShapeSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollideShapeSettings_createCopy
+  BODYOF_CREATE_COPY(CollideShapeSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_CollideShapeSettings
  * Method:    createDefault
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CollideShapeSettings_createDefault
-  (JNIEnv *, jclass) {
-    CollideShapeSettings * const pSettings = new CollideShapeSettings();
-    TRACE_NEW("CollideShapeSettings", pSettings);
-    return reinterpret_cast<jlong> (pSettings);
-}
+  BODYOF_CREATE_DEFAULT(CollideShapeSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_CollideShapeSettings

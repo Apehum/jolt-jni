@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -47,16 +47,19 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_WheeledVehicleControl
 
 /*
  * Class:     com_github_stephengold_joltjni_WheeledVehicleControllerSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_WheeledVehicleControllerSettings_createCopy
+  BODYOF_CREATE_COPY(WheeledVehicleControllerSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_WheeledVehicleControllerSettings
  * Method:    createDefault
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_WheeledVehicleControllerSettings_createDefault
-  (JNIEnv *, jclass) {
-    WheeledVehicleControllerSettings * const pSettings
-            = new WheeledVehicleControllerSettings();
-    TRACE_NEW("WheeledVehicleControllerSettings", pSettings)
-    return reinterpret_cast<jlong> (pSettings);
-}
+  BODYOF_CREATE_DEFAULT(WheeledVehicleControllerSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_WheeledVehicleControllerSettings

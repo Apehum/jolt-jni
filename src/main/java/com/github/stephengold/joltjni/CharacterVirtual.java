@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,9 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
-import com.github.stephengold.joltjni.readonly.ConstBodyId;
 import com.github.stephengold.joltjni.readonly.ConstCharacterVirtual;
 import com.github.stephengold.joltjni.readonly.ConstCharacterVirtualSettings;
+import com.github.stephengold.joltjni.readonly.ConstContact;
 import com.github.stephengold.joltjni.readonly.ConstShape;
 import com.github.stephengold.joltjni.readonly.QuatArg;
 import com.github.stephengold.joltjni.readonly.RVec3Arg;
@@ -49,6 +49,10 @@ public class CharacterVirtual
      * collection
      */
     private CharacterVsCharacterCollision cvcInterface;
+    /**
+     * where to add the body (not null)
+     */
+    final private PhysicsSystem system;
     // *************************************************************************
     // constructors
 
@@ -60,9 +64,11 @@ public class CharacterVirtual
      *
      * @param characterVa the virtual address of the native object to assign
      * (not zero)
+     * @param physicsSystem where to add the body (not null)
      */
-    public CharacterVirtual(long characterVa) {
+    public CharacterVirtual(long characterVa, PhysicsSystem physicsSystem) {
         super(characterVa);
+        this.system = physicsSystem;
     }
 
     /**
@@ -74,11 +80,12 @@ public class CharacterVirtual
      * @param orientation the desired initial orientation (in system
      * coordinates, not null, unaffected)
      * @param userData the desired user-data value
-     * @param system the system to which the character will be added (not null)
+     * @param system where to add the body (not null)
      */
     public CharacterVirtual(
             ConstCharacterVirtualSettings settings, RVec3Arg location,
             QuatArg orientation, long userData, PhysicsSystem system) {
+        this.system = system;
         long settingsVa = settings.targetVa();
         double locX = location.xx();
         double locY = location.yy();
@@ -90,7 +97,7 @@ public class CharacterVirtual
         long systemVa = system.va();
         long characterVa = createCharacterVirtual(settingsVa, locX, locY, locZ,
                 qx, qy, qz, qw, userData, systemVa);
-        setVirtualAddress(characterVa, null); // not owner due to ref counting
+        setVirtualAddress(characterVa); // not owner due to ref counting
     }
     // *************************************************************************
     // new methods exposed
@@ -368,7 +375,7 @@ public class CharacterVirtual
     public CharacterVirtualRef toRef() {
         long characterVa = va();
         long refVa = toRef(characterVa);
-        CharacterVirtualRef result = new CharacterVirtualRef(refVa, true);
+        CharacterVirtualRef result = new CharacterVirtualRef(refVa, system);
 
         return result;
     }
@@ -417,15 +424,19 @@ public class CharacterVirtual
     }
 
     /**
-     * Access the list of contacts. The character is unaffected.
+     * Copy the list of active contacts. The character is unaffected.
      *
-     * @return a new JVM object with the pre-existing native object assigned
+     * @return a new array of new objects
      */
     @Override
-    public ContactList getActiveContacts() {
+    public ConstContact[] getActiveContacts() {
         long characterVa = va();
-        long listVa = getActiveContacts(characterVa);
-        ContactList result = new ContactList(listVa);
+        int numContacts = countActiveContacts(characterVa);
+        ConstContact[] result = new ConstContact[numContacts];
+        for (int i = 0; i < numContacts; ++i) {
+            long contactVa = getActiveContact(characterVa, i);
+            result[i] = new Contact(contactVa, true);
+        }
 
         return result;
     }
@@ -477,6 +488,22 @@ public class CharacterVirtual
     }
 
     /**
+     * Generate settings to reconstruct the character. The character is
+     * unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public CharacterVirtualSettings getCharacterVirtualSettings() {
+        long characterVa = va();
+        long settingsVa = getCharacterVirtualSettings(characterVa);
+        CharacterVirtualSettings result
+                = new CharacterVirtualSettings(settingsVa);
+
+        return result;
+    }
+
+    /**
      * Test whether enhanced internal edge removal is enabled. The character is
      * unaffected.
      *
@@ -506,21 +533,35 @@ public class CharacterVirtual
     }
 
     /**
-     * Return the ID of the inner body. The character is unaffected.
+     * Return the character's ID. The character is unaffected. (native method:
+     * GetID)
      *
-     * @return the ID, or {@code null} if none
+     * @return a {@code CharacterId} value
      */
     @Override
-    public BodyId getInnerBodyId() {
+    public int getId() {
         long characterVa = va();
-        long idVa = getInnerBodyId(characterVa);
-        BodyId result = new BodyId(idVa, true);
+        int result = getId(characterVa);
 
         return result;
     }
 
     /**
-     * Return the linear velocity of the character. The character is unaffected.
+     * Return the ID of the inner body. The character is unaffected. (native
+     * method: GetInnerBodyID)
+     *
+     * @return the {@code BodyID} value
+     */
+    @Override
+    public int getInnerBodyId() {
+        long characterVa = va();
+        int result = getInnerBodyId(characterVa);
+
+        return result;
+    }
+
+    /**
+     * Copy the linear velocity of the character. The character is unaffected.
      *
      * @return a new velocity vector (meters per second in system coordinates)
      */
@@ -620,6 +661,31 @@ public class CharacterVirtual
     }
 
     /**
+     * Copy the position of the character. The character is unaffected.
+     *
+     * @param storeLocation storage for the location (in system coordinates, not
+     * null, modified)
+     * @param storeOrientation storage for the orientation (in system
+     * coordinates, not null, modified)
+     */
+    @Override
+    public void getPositionAndRotation(
+            RVec3 storeLocation, Quat storeOrientation) {
+        long characterVa = va();
+
+        double xx = getPositionX(characterVa);
+        double yy = getPositionY(characterVa);
+        double zz = getPositionZ(characterVa);
+        storeLocation.set(xx, yy, zz);
+
+        float qx = getRotationX(characterVa);
+        float qy = getRotationY(characterVa);
+        float qz = getRotationZ(characterVa);
+        float qw = getRotationW(characterVa);
+        storeOrientation.set(qx, qy, qz, qw);
+    }
+
+    /**
      * Copy the orientation of the character. The character is unaffected.
      *
      * @return a new rotation quaternion (in system coordinates)
@@ -648,6 +714,21 @@ public class CharacterVirtual
         float y = getShapeOffsetY(characterVa);
         float z = getShapeOffsetZ(characterVa);
         Vec3 result = new Vec3(x, y, z);
+
+        return result;
+    }
+
+    /**
+     * Generate a TransformedShape that represents the volume occupied by the
+     * character. The character is unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public TransformedShape getTransformedShape() {
+        long characterVa = va();
+        long resultVa = getTransformedShape(characterVa);
+        TransformedShape result = new TransformedShape(resultVa, true);
 
         return result;
     }
@@ -686,14 +767,13 @@ public class CharacterVirtual
      * specified body during the previous time step. The character is
      * unaffected.
      *
-     * @param bodyId the ID of the body to test against (not null, unaffected)
+     * @param bodyId the ID of the body to test against
      * @return {@code true} if contact or collision, otherwise {@code false}
      */
     @Override
-    public boolean hasCollidedWith(ConstBodyId bodyId) {
+    public boolean hasCollidedWith(int bodyId) {
         long characterVa = va();
-        long idVa = bodyId.targetVa();
-        boolean result = hasCollidedWithBody(characterVa, idVa);
+        boolean result = hasCollidedWithBody(characterVa, bodyId);
 
         return result;
     }
@@ -715,6 +795,20 @@ public class CharacterVirtual
 
         return result;
     }
+
+    /**
+     * Create a counted reference to the native {@code CharacterVirtual}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
+    @Override
+    public CharacterVirtualRefC toRefC() {
+        long characterVa = va();
+        long refVa = toRefC(characterVa);
+        CharacterVirtualRefC result = new CharacterVirtualRefC(refVa, system);
+
+        return result;
+    }
     // *************************************************************************
     // native methods
 
@@ -725,6 +819,8 @@ public class CharacterVirtual
     native static boolean canWalkStairs(
             long characterVa, float vx, float vy, float vz);
 
+    native static int countActiveContacts(long characterVa);
+
     native private static long createCharacterVirtual(
             long settingsVa, double locX, double locY, double locZ, float qx,
             float qy, float qz, float qw, long userData, long systemVa);
@@ -734,7 +830,7 @@ public class CharacterVirtual
             long bpFilterVa, long olFilterVa, long bodyFilterVa,
             long shapeFilterVa, long allocatorVa);
 
-    native static long getActiveContacts(long characterVa);
+    native static long getActiveContact(long characterVa, int index);
 
     native static double getCenterOfMassPositionX(long characterVa);
 
@@ -746,11 +842,15 @@ public class CharacterVirtual
 
     native static float getCharacterPadding(long characterVa);
 
+    native static long getCharacterVirtualSettings(long characterVa);
+
     native static boolean getEnhancedInternalEdgeRemoval(long characterVa);
 
     native static float getHitReductionCosMaxAngle(long characterVa);
 
-    native static long getInnerBodyId(long characterVa);
+    native static int getId(long characterVa);
+
+    native static int getInnerBodyId(long characterVa);
 
     native static float getLinearVelocityX(long characterVa);
 
@@ -788,11 +888,13 @@ public class CharacterVirtual
 
     native static float getShapeOffsetZ(long characterVa);
 
+    native static long getTransformedShape(long characterVa);
+
     native static long getUserData(long characterVa);
 
     native static long getWorldTransform(long characterVa);
 
-    native static boolean hasCollidedWithBody(long characterVa, long idVa);
+    native static boolean hasCollidedWithBody(long characterVa, int bodyId);
 
     native static boolean hasCollidedWithCharacter(
             long characterVa, long otherVa);
@@ -838,6 +940,8 @@ public class CharacterVirtual
     native private static void setUserData(long characterVa, long userData);
 
     native private static long toRef(long characterVa);
+
+    native private static long toRefC(long characterVa);
 
     native static void updateGroundVelocity(long characterVa);
 }

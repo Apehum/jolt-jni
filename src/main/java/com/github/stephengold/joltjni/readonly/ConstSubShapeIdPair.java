@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,22 +28,19 @@ package com.github.stephengold.joltjni.readonly;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstSubShapeIdPair extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Return the ID of the first body. The pair is unaffected.
      *
-     * @return a new object
+     * @return the {@code BodyID} value
      */
-    ConstBodyId getBody1Id();
+    int getBody1Id();
 
     /**
      * Return the ID of the 2nd body. The pair is unaffected.
      *
-     * @return a new object
+     * @return the {@code BodyID} value
      */
-    ConstBodyId getBody2Id();
+    int getBody2Id();
 
     /**
      * Return the hashcode for the pair. The pair is unaffected.
@@ -53,16 +50,16 @@ public interface ConstSubShapeIdPair extends ConstJoltPhysicsObject {
     long getHash();
 
     /**
-     * Return the ID of the first subshape. The pair is unaffected.
+     * Return the ID of the first sub-shape. The pair is unaffected.
      *
-     * @return a new object
+     * @return a {@code SubShapeID} value
      */
-    ConstSubShapeId getSubShapeId1();
+    int getSubShapeId1();
 
     /**
-     * Return the ID of the 2nd subshape. The pair is unaffected.
+     * Return the ID of the 2nd sub-shape. The pair is unaffected.
      *
-     * @return a new object
+     * @return a {@code SubShapeID} value
      */
-    ConstSubShapeId getSubShapeId2();
+    int getSubShapeId2();
 }

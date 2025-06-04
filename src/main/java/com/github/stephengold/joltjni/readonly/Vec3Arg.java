@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ SOFTWARE.
 package com.github.stephengold.joltjni.readonly;
 
 import com.github.stephengold.joltjni.Float3;
+import com.github.stephengold.joltjni.RVec3;
 import com.github.stephengold.joltjni.Vec3;
 import java.nio.FloatBuffer;
 
@@ -31,12 +32,15 @@ import java.nio.FloatBuffer;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface Vec3Arg {
-    // *************************************************************************
-    // new methods exposed
+    /**
+     * Return the absolute value of each component. The vector is unaffected.
+     *
+     * @return a new vector with no negative components
+     */
+    Vec3 abs();
 
     /**
-     * Return the cross product with the specified vector. The current vector is
-     * unaffected.
+     * Return the cross product with the argument. Both vectors are unaffected.
      *
      * @param rightFactor the vector to cross with the current one (not null,
      * unaffected)
@@ -45,8 +49,7 @@ public interface Vec3Arg {
     Vec3 cross(Vec3Arg rightFactor);
 
     /**
-     * Return the dot product with the specified vector. Both vectors are
-     * unaffected.
+     * Return the dot product with the argument. Both vectors are unaffected.
      *
      * @param factor the vector to dot with the current one (not null,
      * unaffected)
@@ -105,6 +108,15 @@ public interface Vec3Arg {
     float getZ();
 
     /**
+     * Test whether the vector contains infinities or NaNs. The vector is
+     * unaffected.
+     *
+     * @return {@code false} if one or more infinities or NaNs, otherwise
+     * {@code true}
+     */
+    boolean isFinite();
+
+    /**
      * Test whether the vector contains NaNs. The vector is unaffected.
      *
      * @return {@code true} if one or more NaNs, otherwise {@code false}
@@ -112,19 +124,19 @@ public interface Vec3Arg {
     boolean isNan();
 
     /**
-     * Test whether the vector is zero to within a tolerance of 10^-12. The
-     * vector is unaffected.
+     * Test whether the squared length is within 10^-12 of zero. The vector is
+     * unaffected.
      *
-     * @return {@code true} if near zero, otherwise {@code false}
+     * @return {@code true} if nearly zero, otherwise {@code false}
      */
     boolean isNearZero();
 
     /**
-     * Test whether the vector is zero to within the specified tolerance. The
-     * vector is unaffected.
+     * Test whether the squared length is within the specified tolerance of
+     * zero. The vector is unaffected.
      *
-     * @param tolerance the desired tolerance (default=1e-12)
-     * @return {@code true} if near zero, otherwise {@code false}
+     * @param tolerance the desired tolerance (&ge;0, default=1e-12)
+     * @return {@code true} if nearly zero, otherwise {@code false}
      */
     boolean isNearZero(float tolerance);
 
@@ -140,10 +152,21 @@ public interface Vec3Arg {
      * Test whether the vector is normalized to within the specified tolerance.
      * The vector is unaffected.
      *
-     * @param tolerance the desired tolerance (default=1e-6)
+     * @param tolerance the desired tolerance (&ge;0, default=1e-6)
      * @return {@code true} if normalized, otherwise {@code false}
      */
     boolean isNormalized(float tolerance);
+
+    /**
+     * Test whether the specified vector lies within the specified squared
+     * distance of this one. Both vectors are unaffected.
+     *
+     * @param v2 the vector to compare with (not null, unaffected)
+     * @param maxDistSq the maximum allowed squared distance (&ge;0)
+     * @return {@code true} if within the squared distance, otherwise
+     * {@code false}
+     */
+    boolean isClose(Vec3Arg v2, float maxDistSq);
 
     /**
      * Return the length. The vector is unaffected.
@@ -160,8 +183,8 @@ public interface Vec3Arg {
     float lengthSq();
 
     /**
-     * Generate a normalized vector with the same direction. The current vector
-     * is unaffected.
+     * Generate a unit vector with the same direction. The current vector is
+     * unaffected.
      *
      * @return a new vector
      */
@@ -169,8 +192,8 @@ public interface Vec3Arg {
 
     /**
      * Return a copy of the argument if the length of the current vector is
-     * zero. Otherwise, generate a normalized vector with the same direction as
-     * the current vector. The current vector is unaffected.
+     * zero. Otherwise, generate a unit vector with the same direction as the
+     * current vector. The current vector is unaffected.
      *
      * @param zeroValue the value to return if the length is zero (not null,
      * unaffected)
@@ -234,4 +257,19 @@ public interface Vec3Arg {
      * @return a new array with length=3
      */
     float[] toArray();
+
+    /**
+     * Copy the components to a direct buffer. The vector is unaffected.
+     *
+     * @return a new direct buffer with capacity=3
+     */
+    FloatBuffer toBuffer();
+
+    /**
+     * Copy the components to a new location vector. The current vector is
+     * unaffected.
+     *
+     * @return a new vector
+     */
+    RVec3 toRVec3();
 }

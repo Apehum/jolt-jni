@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,8 @@ IMPLEMENT_REF(ShapeSettings,
   Java_com_github_stephengold_joltjni_ShapeSettingsRef_copy,
   Java_com_github_stephengold_joltjni_ShapeSettingsRef_createEmpty,
   Java_com_github_stephengold_joltjni_ShapeSettingsRef_free,
-  Java_com_github_stephengold_joltjni_ShapeSettingsRef_getPtr)
+  Java_com_github_stephengold_joltjni_ShapeSettingsRef_getPtr,
+  Java_com_github_stephengold_joltjni_ShapeSettingsRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_ShapeSettings
@@ -128,5 +129,19 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ShapeSettings_toRef
             = reinterpret_cast<ShapeSettings *> (settingsVa);
     Ref<ShapeSettings> * const pResult = new Ref<ShapeSettings>(pSettings);
     TRACE_NEW("Ref<ShapeSettings>", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_ShapeSettings
+ * Method:    toRefC
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ShapeSettings_toRefC
+  (JNIEnv *, jclass, jlong settingsVa) {
+    const ShapeSettings * const pSettings
+            = reinterpret_cast<ShapeSettings *> (settingsVa);
+    RefConst<ShapeSettings> * const pResult = new RefConst<ShapeSettings>(pSettings);
+    TRACE_NEW("RefConst<ShapeSettings>", pResult)
     return reinterpret_cast<jlong> (pResult);
 }

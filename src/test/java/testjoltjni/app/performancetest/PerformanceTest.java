@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -93,6 +93,8 @@ public static void main(  String[] argv)throws IOException
 				scene = new PyramidScene();
 			else if (arg.substring(3).equals("LargeMesh"))
 				scene = new LargeMeshScene();
+			else if (arg.substring(3).equals("CharacterVirtual"))
+				scene = new CharacterVirtualScene();
 			else
 			{
 				Trace("Invalid scene");
@@ -260,7 +262,7 @@ public static void main(  String[] argv)throws IOException
 					final BodyLockInterface bli = physics_system.getBodyLockInterfaceNoLock();
 					BodyIdVector body_ids=new BodyIdVector();
 					physics_system.getBodies(body_ids);
-					for (BodyId id : body_ids.toList())
+					for (int id : body_ids.toList())
 					{
 						BodyLockWrite lock=new BodyLockWrite(bli, id);
 						if (lock.succeeded())
@@ -311,6 +313,9 @@ public static void main(  String[] argv)throws IOException
 
 					// Start measuring
 					long clock_start = System.nanoTime();
+
+					// Update the test
+					scene.UpdateTest(physics_system, temp_allocator, cDeltaTime);
 
 					// Do a physics step
 					physics_system.update(cDeltaTime, 1, temp_allocator, job_system);
@@ -372,12 +377,13 @@ public static void main(  String[] argv)throws IOException
 					final BodyLockInterface bli = physics_system.getBodyLockInterfaceNoLock();
 					BodyIdVector body_ids=new BodyIdVector();
 					physics_system.getBodies(body_ids);
-					for (BodyId id : body_ids.toList())
+					for (int id : body_ids.toList())
 					{
 						BodyLockRead lock=new BodyLockRead(bli, id);
 						final Body body = lock.getBody();
 						if (!body.isStatic())
 							detLog(id + ": p: " + body.getPosition() + " r: " + body.getRotation() + " v: " + body.getLinearVelocity() + " w: " + body.getAngularVelocity());
+						lock.releaseLock();
 					}
 				} // JPH_ENABLE_DETERMINISM_LOG
 				}
@@ -387,13 +393,16 @@ public static void main(  String[] argv)throws IOException
 				BodyInterface bi = physics_system.getBodyInterfaceNoLock();
 				BodyIdVector body_ids=new BodyIdVector();
 				physics_system.getBodies(body_ids);
-				for (BodyId id : body_ids.toList())
+				for (int id : body_ids.toList())
 				{
 					RVec3 pos = bi.getPosition(id);
 					hash = hashBytes(pos, hash);
 					Quat rot = bi.getRotation(id);
 					hash = hashBytes(rot, hash);
 				}
+
+				// Let the scene hash its own state
+				hash=scene.UpdateHash(hash);
 
 				// Convert hash to string
 				String hash_str = String.format("0x%x", hash);

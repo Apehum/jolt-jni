@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,37 @@ import com.github.stephengold.joltjni.readonly.Vec3Arg;
 public class BoxShape extends ConvexShape {
     // *************************************************************************
     // constructors
+
+    /**
+     * Instantiate a cubic shape with the specified half extents.
+     *
+     * @param halfExtent the desired half extents (&ge;0.05)
+     */
+    public BoxShape(float halfExtent) {
+        this(halfExtent, halfExtent, halfExtent);
+    }
+
+    /**
+     * Instantiate a shape with the specified half extents.
+     *
+     * @param xHalfExtent the desired half extents on the local X axis
+     * (&ge;0.05)
+     * @param yHalfExtent the desired half extents on the local Y axis
+     * (&ge;0.05)
+     * @param zHalfExtent the desired half extents on the local Z axis
+     * (&ge;0.05)
+     */
+    public BoxShape(float xHalfExtent, float yHalfExtent, float zHalfExtent) {
+        float convexRadius = Jolt.cDefaultConvexRadius;
+        assert xHalfExtent >= convexRadius : xHalfExtent;
+        assert yHalfExtent >= convexRadius : yHalfExtent;
+        assert zHalfExtent >= convexRadius : zHalfExtent;
+
+        long materialVa = 0L;
+        long shapeVa = createBoxShape(xHalfExtent, yHalfExtent, zHalfExtent,
+                convexRadius, materialVa);
+        setVirtualAddress(shapeVa); // not the owner due to ref counting
+    }
 
     /**
      * Instantiate a shape with the specified native object assigned but not
@@ -85,7 +116,7 @@ public class BoxShape extends ConvexShape {
         long materialVa = (material == null) ? 0L : material.targetVa();
         long shapeVa = createBoxShape(xHalfExtent, yHalfExtent, zHalfExtent,
                 convexRadius, materialVa);
-        setVirtualAddress(shapeVa, null); // not the owner due to ref counting
+        setVirtualAddress(shapeVa); // not the owner due to ref counting
     }
     // *************************************************************************
     // new methods exposed

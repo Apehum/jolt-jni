@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,27 +38,27 @@ final public class ContactManifold
      * Instantiate a manifold with the specified native object assigned but not
      * owned.
      *
-     * @param pairVa the virtual address of the native object to assign (not
+     * @param manifoldVa the virtual address of the native object to assign (not
      * zero)
      */
-    public ContactManifold(long pairVa) {
-        setVirtualAddress(pairVa, null);
+    public ContactManifold(long manifoldVa) {
+        setVirtualAddress(manifoldVa);
     }
     // *************************************************************************
     // ConstContactManifolds methods
 
     /**
-     * Return the location from which all contact points are measured. The
+     * Copy the location from which all contact points are measured. The
      * manifold is unaffected. (native attribute: mBaseOffset)
      *
      * @return a new location vector
      */
     @Override
     public RVec3 getBaseOffset() {
-        long pairVa = va();
-        double x = getBaseOffsetX(pairVa);
-        double y = getBaseOffsetY(pairVa);
-        double z = getBaseOffsetZ(pairVa);
+        long manifoldVa = va();
+        double x = getBaseOffsetX(manifoldVa);
+        double y = getBaseOffsetY(manifoldVa);
+        double z = getBaseOffsetZ(manifoldVa);
         RVec3 result = new RVec3(x, y, z);
 
         return result;
@@ -73,53 +73,51 @@ final public class ContactManifold
      */
     @Override
     public float getPenetrationDepth() {
-        long pairVa = va();
-        float result = getPenetrationDepth(pairVa);
+        long manifoldVa = va();
+        float result = getPenetrationDepth(manifoldVa);
         return result;
     }
 
     /**
-     * Return the ID of the first subshape that formed the manifold. The
+     * Return the ID of the first sub-shape that formed the manifold. The
      * manifold is unaffected. (native attribute: mSubShapeID1)
      *
-     * @return a new object
+     * @return a {@code SubShapeID} value
      */
     @Override
-    public SubShapeId getSubShapeId1() {
-        long pairVa = va();
-        long idVa = getSubShapeId1(pairVa);
-        SubShapeId result = new SubShapeId(idVa, true);
+    public int getSubShapeId1() {
+        long manifoldVa = va();
+        int result = getSubShapeId1(manifoldVa);
 
         return result;
     }
 
     /**
-     * Return the ID of the 2nd subshape that formed the manifold. The manifold
+     * Return the ID of the 2nd sub-shape that formed the manifold. The manifold
      * is unaffected. (native attribute: mSubShapeID2)
      *
-     * @return a new object
+     * @return a {@code SubShapeID} value
      */
     @Override
-    public SubShapeId getSubShapeId2() {
-        long pairVa = va();
-        long idVa = getSubShapeId2(pairVa);
-        SubShapeId result = new SubShapeId(idVa, true);
+    public int getSubShapeId2() {
+        long manifoldVa = va();
+        int result = getSubShapeId2(manifoldVa);
 
         return result;
     }
 
     /**
-     * Return the normal: the direction to move body 2 out of collision. The
-     * manifold is unaffected. (native attribute: mWorldSpaceNormal)
+     * Copy the normal vector: the direction to move body 2 out of collision.
+     * The manifold is unaffected. (native attribute: mWorldSpaceNormal)
      *
      * @return a new direction vector (in system coordinates)
      */
     @Override
     public Vec3 getWorldSpaceNormal() {
-        long pairVa = va();
-        float x = getWorldSpaceNormalX(pairVa);
-        float y = getWorldSpaceNormalY(pairVa);
-        float z = getWorldSpaceNormalZ(pairVa);
+        long manifoldVa = va();
+        float x = getWorldSpaceNormalX(manifoldVa);
+        float y = getWorldSpaceNormalY(manifoldVa);
+        float z = getWorldSpaceNormalZ(manifoldVa);
         Vec3 result = new Vec3(x, y, z);
 
         return result;
@@ -127,21 +125,21 @@ final public class ContactManifold
     // *************************************************************************
     // native private methods
 
-    native private static double getBaseOffsetX(long pairVa);
+    native private static double getBaseOffsetX(long manifoldVa);
 
-    native private static double getBaseOffsetY(long pairVa);
+    native private static double getBaseOffsetY(long manifoldVa);
 
-    native private static double getBaseOffsetZ(long pairVa);
+    native private static double getBaseOffsetZ(long manifoldVa);
 
-    native private static float getPenetrationDepth(long pairVa);
+    native private static float getPenetrationDepth(long manifoldVa);
 
-    native private static long getSubShapeId1(long pairVa);
+    native private static int getSubShapeId1(long manifoldVa);
 
-    native private static long getSubShapeId2(long pairVa);
+    native private static int getSubShapeId2(long manifoldVa);
 
-    native private static float getWorldSpaceNormalX(long pairVa);
+    native private static float getWorldSpaceNormalX(long manifoldVa);
 
-    native private static float getWorldSpaceNormalY(long pairVa);
+    native private static float getWorldSpaceNormalY(long manifoldVa);
 
-    native private static float getWorldSpaceNormalZ(long pairVa);
+    native private static float getWorldSpaceNormalZ(long manifoldVa);
 }

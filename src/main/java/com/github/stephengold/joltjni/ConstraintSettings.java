@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -172,6 +172,20 @@ abstract public class ConstraintSettings
         long settingsVa = va();
         setNumVelocityStepsOverride(settingsVa, setting);
     }
+
+    /**
+     * Read a settings object from the specified binary stream.
+     *
+     * @param stream where to read objects (not null)
+     * @return a new object
+     */
+    public static ConstraintResult sRestoreFromBinaryState(StreamIn stream) {
+        long streamVa = stream.va();
+        long resultVa = sRestoreFromBinaryState(streamVa);
+        ConstraintResult result = new ConstraintResult(resultVa, true);
+
+        return result;
+    }
     // *************************************************************************
     // new protected methods
 
@@ -275,6 +289,19 @@ abstract public class ConstraintSettings
 
         return result;
     }
+
+    /**
+     * Save the settings to the specified binary stream. The settings are
+     * unaffected.
+     *
+     * @param stream the stream to write to (not null)
+     */
+    @Override
+    public void saveBinaryState(StreamOut stream) {
+        long settingsVa = va();
+        long streamVa = stream.va();
+        saveBinaryState(settingsVa, streamVa);
+    }
     // *************************************************************************
     // RefTarget methods
 
@@ -333,6 +360,8 @@ abstract public class ConstraintSettings
 
     native private static int getRefCount(long settingsVa);
 
+    native private static void saveBinaryState(long settingsVa, long streamVa);
+
     native private static void setConstraintPriority(
             long settingsVa, int level);
 
@@ -353,6 +382,8 @@ abstract public class ConstraintSettings
 
     native private static void setNumVelocityStepsOverride(
             long settingsVa, int setting);
+
+    native private static long sRestoreFromBinaryState(long streamVa);
 
     native private static long toRef(long settingsVa);
 }

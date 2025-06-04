@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,15 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.enumerate.EBendType;
+import com.github.stephengold.joltjni.readonly.ConstFace;
 import com.github.stephengold.joltjni.readonly.ConstSoftBodySharedSettings;
 import com.github.stephengold.joltjni.readonly.ConstVertexAttributes;
+import com.github.stephengold.joltjni.streamutils.IdToMaterialMap;
+import com.github.stephengold.joltjni.streamutils.IdToSharedSettingsMap;
+import com.github.stephengold.joltjni.streamutils.MaterialToIdMap;
+import com.github.stephengold.joltjni.streamutils.SharedSettingsToIdMap;
 import com.github.stephengold.joltjni.template.RefTarget;
+import java.nio.IntBuffer;
 
 /**
  * Properties of a soft body that may be shared among multiple bodies.
@@ -42,7 +48,18 @@ public class SoftBodySharedSettings
      */
     public SoftBodySharedSettings() {
         long settingsVa = createDefault();
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public SoftBodySharedSettings(ConstSoftBodySharedSettings original) {
+        long originalVa = original.targetVa();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
     }
 
     /**
@@ -52,7 +69,7 @@ public class SoftBodySharedSettings
      * zero)
      */
     SoftBodySharedSettings(long settingsVa) {
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
     }
     // *************************************************************************
     // new methods exposed
@@ -73,14 +90,38 @@ public class SoftBodySharedSettings
      *
      * @param face the face to add (not null, unaffected)
      */
-    public void addFace(Face face) {
+    public void addFace(ConstFace face) {
         long settingsVa = va();
-        long faceVa = face.va();
+        long faceVa = face.targetVa();
         addFace(settingsVa, faceVa);
     }
 
     /**
-     * Add the specified vertex.
+     * Append the specified inverse-bind matrix. (native property:
+     * mInvBindMatrices)
+     *
+     * @param invBind the matrix to add (not null)
+     */
+    public void addInvBindMatrix(InvBind invBind) {
+        long settingsVa = va();
+        long invBindVa = invBind.va();
+        addInvBindMatrix(settingsVa, invBindVa);
+    }
+
+    /**
+     * Append the specified skinning constraint. (native property:
+     * mSkinnedConstraints)
+     *
+     * @param skinned the constraint to add (not null)
+     */
+    public void addSkinnedConstraint(Skinned skinned) {
+        long settingsVa = va();
+        long skinnedVa = skinned.va();
+        addSkinnedConstraint(settingsVa, skinnedVa);
+    }
+
+    /**
+     * Add the specified vertex. (native attribute: mVertices)
      *
      * @param vertex the vertex to add (not null, unaffected)
      */
@@ -107,6 +148,14 @@ public class SoftBodySharedSettings
     public void calculateEdgeLengths() {
         long settingsVa = va();
         calculateEdgeLengths(settingsVa);
+    }
+
+    /**
+     * Calculate the information needed for skinned constraint normals.
+     */
+    public void calculateSkinnedConstraintNormals() {
+        long settingsVa = va();
+        calculateSkinnedConstraintNormals(settingsVa);
     }
 
     /**
@@ -166,11 +215,90 @@ public class SoftBodySharedSettings
     }
 
     /**
+     * Enumerate all edge constraints in the settings. (native attribute:
+     * mEdgeConstraints)
+     *
+     * @return a new array of new JVM objects with the pre-existing native
+     * objects assigned
+     */
+    public Edge[] getEdgeConstraints() {
+        long settingsVa = va();
+        int numEdges = countEdgeConstraints(settingsVa);
+        Edge[] result = new Edge[numEdges];
+        for (int index = 0; index < numEdges; ++index) {
+            long edgeVa = getEdgeConstraint(settingsVa, index);
+            result[index] = new Edge(this, edgeVa);
+        }
+
+        return result;
+    }
+
+    /**
+     * Access the specified vertex.
+     *
+     * @param index the index of the vertex (&ge;0)
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    public Vertex getVertex(int index) {
+        long settingsVa = va();
+        long vertexVa = getVertex(settingsVa, index);
+        Vertex result = new Vertex(this, vertexVa);
+
+        return result;
+    }
+
+    /**
+     * Enumerate all vertices in the settings. (native attribute: mVertices)
+     *
+     * @return a new array of new JVM objects with pre-existing native objects
+     * assigned
+     */
+    public Vertex[] getVertices() {
+        long settingsVa = va();
+        int numVertices = countVertices(settingsVa);
+        Vertex[] result = new Vertex[numVertices];
+        for (int index = 0; index < numVertices; ++index) {
+            long vertexVa = getVertex(settingsVa, index);
+            result[index] = new Vertex(this, vertexVa);
+        }
+
+        return result;
+    }
+
+    /**
      * Optimize the settings without writing any results.
      */
     public void optimize() {
         long settingsVa = va();
         optimize(settingsVa);
+    }
+
+    /**
+     * Read the state of this object from the specified stream, excluding the
+     * shape and group filter.
+     *
+     * @param stream where to read objects from (not null)
+     */
+    public void restoreBinaryState(StreamIn stream) {
+        long settingsVa = va();
+        long streamVa = stream.va();
+        restoreBinaryState(settingsVa, streamVa);
+    }
+
+    /**
+     * Create a cube with edge constraints, volume constraints, and faces.
+     *
+     * @param gridSize the desired number of points on each axis (&ge;1)
+     * @param gridSpacing the distance between adjacent points
+     * @return a counted reference to new settings
+     */
+    public static SoftBodySharedSettingsRef sCreateCube(
+            int gridSize, float gridSpacing) {
+        long refVa = sCreateCubeNative(gridSize, gridSpacing);
+        SoftBodySharedSettingsRef result
+                = new SoftBodySharedSettingsRef(refVa, true);
+
+        return result;
     }
 
     /**
@@ -183,11 +311,34 @@ public class SoftBodySharedSettings
         long materialVa = (material == null) ? 0L : material.va();
         setMaterialsSingle(settingsVa, materialVa);
     }
+
+    /**
+     * Read a settings object from the specified binary stream.
+     *
+     * @param stream where to read objects (not null)
+     * @param settingsMap track multiple uses of shared settings (not
+     * {@code null})
+     * @param materialMap track multiple uses of physics materials (not
+     * {@code null})
+     * @return a new object
+     */
+    public static SettingsResult sRestoreWithMaterials(StreamIn stream,
+            IdToSharedSettingsMap settingsMap, IdToMaterialMap materialMap) {
+        long streamVa = stream.va();
+        long settingsMapVa = settingsMap.va();
+        long materialMapVa = materialMap.va();
+        long resultVa
+                = sRestoreWithMaterials(streamVa, settingsMapVa, materialMapVa);
+        SettingsResult result = new SettingsResult(resultVa, true);
+
+        return result;
+    }
     // *************************************************************************
     // ConstSoftBodySharedSettings methods
 
     /**
-     * Count the edge constraints. The settings are unaffected.
+     * Count the edge constraints. The settings are unaffected. (native
+     * attribute: mEdgeConstraints)
      *
      * @return the count (&ge;0)
      */
@@ -200,7 +351,7 @@ public class SoftBodySharedSettings
     }
 
     /**
-     * Count the faces. The settings are unaffected.
+     * Count the faces. The settings are unaffected. (native attribute: mFaces)
      *
      * @return the count (&ge;0)
      */
@@ -213,7 +364,21 @@ public class SoftBodySharedSettings
     }
 
     /**
-     * Count the vertices. The settings are unaffected.
+     * Count the pinned vertices. The settings are unaffected.
+     *
+     * @return the count (&ge;0)
+     */
+    @Override
+    public int countPinnedVertices() {
+        long settingsVa = va();
+        int result = countPinnedVertices(settingsVa);
+
+        return result;
+    }
+
+    /**
+     * Count the vertices. The settings are unaffected. (native attribute:
+     * mVertices)
      *
      * @return the count (&ge;0)
      */
@@ -226,7 +391,8 @@ public class SoftBodySharedSettings
     }
 
     /**
-     * Count the volume constraints. The settings are unaffected.
+     * Count the volume constraints. The settings are unaffected. (native
+     * attribute: mVolumeConstraints)
      *
      * @return the count (&ge;0)
      */
@@ -239,17 +405,67 @@ public class SoftBodySharedSettings
     }
 
     /**
-     * Return the radius of each particle. The settings are unaffected. (native
-     * attribute: mVertexRadius)
+     * Write the vertex indices of all edges to the specified buffer and advance
+     * the buffer's position. The settings are unaffected.
      *
-     * @return the radius (in meters)
+     * @param storeIndices the destination buffer (not null, modified)
      */
     @Override
-    public float getVertexRadius() {
+    public void putEdgeIndices(IntBuffer storeIndices) {
         long settingsVa = va();
-        float result = getVertexRadius(settingsVa);
+        int bufferPosition = storeIndices.position();
+        bufferPosition = putEdgeIndices(
+                settingsVa, bufferPosition, storeIndices);
+        storeIndices.position(bufferPosition);
+    }
 
-        return result;
+    /**
+     * Write the vertex indices of all faces to the specified buffer and advance
+     * the buffer's position. The settings are unaffected.
+     *
+     * @param storeIndices the destination buffer (not null, modified)
+     */
+    @Override
+    public void putFaceIndices(IntBuffer storeIndices) {
+        long settingsVa = va();
+        int bufferPosition = storeIndices.position();
+        bufferPosition = putFaceIndices(
+                settingsVa, bufferPosition, storeIndices);
+        storeIndices.position(bufferPosition);
+    }
+
+    /**
+     * Write the state of this object to the specified stream, excluding the
+     * materials. The settings are unaffected.
+     *
+     * @param stream where to write objects (not {@code null})
+     */
+    @Override
+    public void saveBinaryState(StreamOut stream) {
+        long settingsVa = va();
+        long streamVa = stream.va();
+        saveBinaryState(settingsVa, streamVa);
+    }
+
+    /**
+     * Write the state of this object to the specified stream. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not null)
+     * @param settingsMap track multiple uses of shared settings (not
+     * {@code null})
+     * @param materialMap track multiple uses of physics materials (not
+     * {@code null})
+     */
+    @Override
+    public void saveWithMaterials(StreamOut stream,
+            SharedSettingsToIdMap settingsMap, MaterialToIdMap materialMap) {
+        long settingsVa = va();
+        long streamVa = stream.va();
+        long settingsMapVa = settingsMap.va();
+        long materialMapVa = materialMap.va();
+        saveWithMaterials(
+                settingsVa, streamVa, settingsMapVa, materialMapVa);
     }
     // *************************************************************************
     // RefTarget methods
@@ -298,17 +514,25 @@ public class SoftBodySharedSettings
 
     native static void addFace(long settingsVa, long faceVa);
 
+    native static void addInvBindMatrix(long settingsVa, long invBindVa);
+
+    native static void addSkinnedConstraint(long settingsVa, long skinnedVa);
+
     native static void addVertex(long settingsVa, long vertexVa);
 
     native static void addVolumeConstraint(long settingsVa, long volumeVa);
 
     native static void calculateEdgeLengths(long settingsVa);
 
+    native static void calculateSkinnedConstraintNormals(long settingsVa);
+
     native static void calculateVolumeConstraintVolumes(long settingsVa);
 
     native static int countEdgeConstraints(long settingsVa);
 
     native static int countFaces(long settingsVa);
+
+    native static int countPinnedVertices(long settingsVa);
 
     native static int countVertices(long settingsVa);
 
@@ -317,17 +541,40 @@ public class SoftBodySharedSettings
     native static void createConstraints(long settingsVa,
             long[] attributeVas, int ordinal, float angleTolerance);
 
+    native private static long createCopy(long originalVa);
+
     native private static long createDefault();
+
+    native private static long getEdgeConstraint(long settingsVa, int index);
 
     native private static int getRefCount(long settingsVa);
 
-    native static float getVertexRadius(long settingsVa);
+    native private static long getVertex(long settingsVa, int index);
 
     native static void optimize(long settingsVa);
+
+    native static int putEdgeIndices(
+            long settingsVa, int bufferPosition, IntBuffer storeIndices);
+
+    native static int putFaceIndices(
+            long settingsVa, int bufferPosition, IntBuffer storeIndices);
+
+    native static void restoreBinaryState(long settingsVa, long streamVa);
+
+    native static void saveBinaryState(long settingsVa, long streamVa);
+
+    native static void saveWithMaterials(long settingsVa, long streamVa,
+            long settingsMapVa, long materialsMapVa);
+
+    native private static long sCreateCubeNative(
+            int gridSize, float gridSpacing);
 
     native private static void setEmbedded(long settingsVa);
 
     native static void setMaterialsSingle(long settingsVa, long materialVa);
 
     native private static long toRef(long settingsVa);
+
+    native private static long sRestoreWithMaterials(
+            long streamVa, long settingsMapVa, long materialMapVa);
 }

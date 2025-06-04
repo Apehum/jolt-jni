@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,7 @@ static final float cCharacterHeightStanding = 1.35f;
 static final float cCharacterRadiusStanding = 0.3f;
 static final float cJumpSpeed = 4.0f;
 CharacterVirtualRef mCharacter=new CharacterVirtualRef();
-BodyId mSpaceShip=new BodyId();
+int mSpaceShip=cInvalidBodyId;
 RMat44 mSpaceShipPrevTransform=new RMat44();
 Vec3 mSpaceShipLinearVelocity=new Vec3();
 Vec3 mSpaceShipAngularVelocity=new Vec3();
@@ -64,7 +64,7 @@ public void Initialize()
 	settings.setSupportingVolume (new Plane(Vec3.sAxisY(), -cCharacterRadiusStanding)); // Accept contacts that touch the lower sphere of the capsule
 	mCharacter = new CharacterVirtual(settings, plus(cShipInitialPosition ,new Vec3(0, cSpaceShipHeight, 0)), Quat.sIdentity(), 0, mPhysicsSystem).toRef();
 	mCharacter.getPtr().setListener(new CustomCharacterContactListener() {
-            public void onAdjustBodyVelocity(long characterVa, long body2Va, float[] velocities) {OnAdjustBodyVelocity(new CharacterVirtual(characterVa), new Body(body2Va), new Vec3(), new Vec3());}
+            public void onAdjustBodyVelocity(long characterVa, long body2Va, float[] velocities) {OnAdjustBodyVelocity(new CharacterVirtual(characterVa, mPhysicsSystem), new Body(body2Va), new Vec3(), new Vec3());}
         });
 
 	// Create the space ship

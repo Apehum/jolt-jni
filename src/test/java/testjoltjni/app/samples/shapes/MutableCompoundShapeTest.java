@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -58,7 +58,7 @@ public void Initialize()
 		compound_shape.addShape(Vec3.sZero(), star(Quat.sRotation(Vec3.sAxisX(), 0.25f * JPH_PI) , Quat.sRotation(Vec3.sAxisZ(), -0.75f * JPH_PI)), mSubCompound);
 
 		// Create a body
-		BodyId body_id = mBodyInterface.createAndAddBody(new BodyCreationSettings(compound_shape, new RVec3(0, 10.0f + 5.0f * i, 0), Quat.sIdentity(), EMotionType.Dynamic, Layers.MOVING), EActivation.Activate);
+		int body_id = mBodyInterface.createAndAddBody(new BodyCreationSettings(compound_shape, new RVec3(0, 10.0f + 5.0f * i, 0), Quat.sIdentity(), EMotionType.Dynamic, Layers.MOVING), EActivation.Activate);
 		mBodyIDs.pushBack(body_id);
 	}
 }
@@ -69,7 +69,7 @@ public void PrePhysicsUpdate(PreUpdateParams inParams)
 
 	UniformFloatDistribution roll_distribution=new UniformFloatDistribution(0, 1);
 
-	for (BodyId id : mBodyIDs.toList())
+	for (int id : mBodyIDs.toList())
 	{
 		BodyLockWrite lock=new BodyLockWrite(mPhysicsSystem.getBodyLockInterface(), id);
 		if (lock.succeeded())
@@ -105,7 +105,8 @@ public void PrePhysicsUpdate(PreUpdateParams inParams)
 			shape.modifyShapes(0, count, mPosition, mRotation, 32, 32);
 
 			// Initialize frame dependent random number generator
-			DefaultRandomEngine frame_random=new DefaultRandomEngine(mFrameNumber++);
+			// Note: Explicitly using the Mersenne Twister random generator as on some platforms you get the seed back as the first random number
+			Mt19937 frame_random=new Mt19937(mFrameNumber++);
 
 			// Roll the dice
 			float roll = roll_distribution.nextFloat(frame_random);
@@ -132,11 +133,11 @@ public void PrePhysicsUpdate(PreUpdateParams inParams)
 	}
 }
 
-public void SaveState(StateRecorder inStream)
+protected void SaveState(StateRecorder inStream)
 {
 	inStream.write(mFrameNumber);
 
-	for (BodyId id : mBodyIDs.toList())
+	for (int id : mBodyIDs.toList())
 	{
 		BodyLockRead lock=new BodyLockRead(mPhysicsSystem.getBodyLockInterface(), id);
 		if (lock.succeeded())
@@ -153,11 +154,11 @@ public void SaveState(StateRecorder inStream)
 	}
 }
 
-public void RestoreState(StateRecorder inStream)
+protected void RestoreState(StateRecorder inStream)
 {
 	mFrameNumber=inStream.readInt(mFrameNumber);
 
-	for (BodyId id : mBodyIDs.toList())
+	for (int id : mBodyIDs.toList())
 	{
 		BodyLockWrite lock=new BodyLockWrite(mPhysicsSystem.getBodyLockInterface(), id);
 		if (lock.succeeded())

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,14 @@ package com.github.stephengold.joltjni.readonly;
 import com.github.stephengold.joltjni.MassProperties;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RVec3;
+import com.github.stephengold.joltjni.StreamOut;
 import com.github.stephengold.joltjni.Vec3;
 import com.github.stephengold.joltjni.enumerate.EMotionQuality;
 import com.github.stephengold.joltjni.enumerate.EMotionType;
 import com.github.stephengold.joltjni.enumerate.EOverrideMassProperties;
+import com.github.stephengold.joltjni.streamutils.GroupFilterToIdMap;
+import com.github.stephengold.joltjni.streamutils.MaterialToIdMap;
+import com.github.stephengold.joltjni.streamutils.ShapeToIdMap;
 
 /**
  * Read-only access to a {@code BodyCreationSettings} object. (native type:
@@ -36,9 +40,6 @@ import com.github.stephengold.joltjni.enumerate.EOverrideMassProperties;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstBodyCreationSettings extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Test whether a static body can be converted to kinematic or dynamic. The
      * settings are unaffected.
@@ -72,18 +73,24 @@ public interface ConstBodyCreationSettings extends ConstJoltPhysicsObject {
     /**
      * Copy the (initial) angular velocity. The settings are unaffected.
      *
-     * @return a new velocity vector (radians per second in physics-system
-     * coordinates)
+     * @return a new velocity vector (radians per second in system coordinates)
      */
     Vec3 getAngularVelocity();
 
     /**
      * Test whether the gyroscopic force will be applied. The settings are
-     * unaffected. (native attribute: mApplyGyroscopicForce)
+     * unaffected.
      *
      * @return {@code true} if enabled, otherwise {@code false}
      */
     boolean getApplyGyroscopicForce();
+
+    /**
+     * Access the collision group.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    ConstCollisionGroup getCollisionGroup();
 
     /**
      * Test whether extra effort should be made to remove ghost contacts. The
@@ -124,15 +131,15 @@ public interface ConstBodyCreationSettings extends ConstJoltPhysicsObject {
     /**
      * Copy the (initial) linear velocity. The settings are unaffected.
      *
-     * @return a new velocity vector (meters per second in physics-system
-     * coordinates)
+     * @return a new velocity vector (meters per second in system coordinates)
      */
     Vec3 getLinearVelocity();
 
     /**
      * Calculate the mass and inertia. The settings are unaffected.
      *
-     * @return a new JVM object with a new native object assigned
+     * @return a new JVM object with a new native object assigned, or
+     * {@code null} if a shape is required but not available
      */
     MassProperties getMassProperties();
 
@@ -141,7 +148,7 @@ public interface ConstBodyCreationSettings extends ConstJoltPhysicsObject {
      *
      * @return a new JVM object with the pre-existing native object assigned
      */
-    MassProperties getMassPropertiesOverride();
+    ConstMassProperties getMassPropertiesOverride();
 
     /**
      * Return the maximum angular speed. The settings are unaffected.
@@ -187,10 +194,10 @@ public interface ConstBodyCreationSettings extends ConstJoltPhysicsObject {
     EOverrideMassProperties getOverrideMassProperties();
 
     /**
-     * Return the (initial) location. The settings are unaffected.
+     * Copy the (initial) location. The settings are unaffected.
      *
-     * @return a new location vector (in physics-system coordinates, all
-     * components finite)
+     * @return a new location vector (in system coordinates, all components
+     * finite)
      */
     RVec3 getPosition();
 
@@ -205,7 +212,7 @@ public interface ConstBodyCreationSettings extends ConstJoltPhysicsObject {
      * Copy the (initial) orientation of the body's axes. The settings are
      * unaffected.
      *
-     * @return a new rotation quaternion (relative to the physics-system axes)
+     * @return a new rotation quaternion (relative to the system axes)
      */
     Quat getRotation();
 
@@ -214,9 +221,18 @@ public interface ConstBodyCreationSettings extends ConstJoltPhysicsObject {
      * unaffected.
      *
      * @return a new JVM object with the pre-existing native object assigned, or
-     * {@code null}
+     * {@code null} if the settings aren't cooked
      */
     ConstShape getShape();
+
+    /**
+     * Acquire read-only access to the {@code ShapeSettings}. The body-creation
+     * settings are unaffected.
+     *
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null}
+     */
+    ConstShapeSettings getShapeSettings();
 
     /**
      * Test whether the body's mass properties will be calculated. The settings
@@ -225,4 +241,24 @@ public interface ConstBodyCreationSettings extends ConstJoltPhysicsObject {
      * @return {@code true} if calculated, otherwise {@code false}
      */
     boolean hasMassProperties();
+
+    /**
+     * Write the state of this object to the specified stream, excluding the
+     * shape, materials, and group filter. The settings are unaffected.
+     *
+     * @param stream where to write objects (not null)
+     */
+    void saveBinaryState(StreamOut stream);
+
+    /**
+     * Write the state of this object to the specified stream. The settings are
+     * unaffected.
+     *
+     * @param stream where to write objects (not null)
+     * @param shapeMap track multiple uses of shapes (may be null)
+     * @param materialMap track multiple uses of physics materials (may be null)
+     * @param filterMap track multiple uses of group filters (may be null)
+     */
+    void saveWithChildren(StreamOut stream, ShapeToIdMap shapeMap,
+            MaterialToIdMap materialMap, GroupFilterToIdMap filterMap);
 }

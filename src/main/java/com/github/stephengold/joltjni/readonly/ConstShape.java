@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,9 +38,6 @@ import java.nio.FloatBuffer;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstShape extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Copy the vertex coordinates of the shape's debug mesh to the specified
      * buffer. The shape is unaffected.
@@ -51,8 +48,7 @@ public interface ConstShape extends ConstJoltPhysicsObject {
     void copyDebugTriangles(FloatBuffer storeBuffer);
 
     /**
-     * Return the number of triangles in the shape's debug mesh. The shape is
-     * unaffected.
+     * Count the triangles in the shape's debug mesh. The shape is unaffected.
      *
      * @return the count (&gt;0)
      */
@@ -105,6 +101,18 @@ public interface ConstShape extends ConstJoltPhysicsObject {
     float getInnerRadius();
 
     /**
+     * Access the leaf shape for the specified sub-shape ID.
+     *
+     * @param subShapeId an ID that indicates the path to the desired leaf shape
+     * (not null, unaffected)
+     * @param storeRemainderId storage for the remainder of the ID after
+     * removing the path to the leaf shape (not null, modified)
+     * @return a new JVM object with the pre-existing native object assigned, or
+     * {@code null} if the ID is invalid
+     */
+    ConstShape getLeafShape(int subShapeId, int[] storeRemainderId);
+
+    /**
      * Return a bounding box that includes the convex radius. The shape is
      * unaffected.
      *
@@ -122,10 +130,18 @@ public interface ConstShape extends ConstJoltPhysicsObject {
     /**
      * Access the material of the specified sub-shape. The shape is unaffected.
      *
-     * @param id which sub-shape (not null, unaffected)
+     * @param subShapeId which sub-shape
      * @return a new JVM object with the pre-existing native object assigned
      */
-    ConstPhysicsMaterial getMaterial(ConstSubShapeId id);
+    ConstPhysicsMaterial getMaterial(int subShapeId);
+
+    /**
+     * Return the shape's revision count, which is automatically incremented
+     * each time the shape is altered. The shape is unaffected.
+     *
+     * @return the count
+     */
+    long getRevisionCount();
 
     /**
      * Copy the statistics. The shape is unaffected.
@@ -157,14 +173,6 @@ public interface ConstShape extends ConstJoltPhysicsObject {
     EShapeType getType();
 
     /**
-     * Return the shape's user data: can be used for anything. The shape is
-     * unaffected.
-     *
-     * @return the value
-     */
-    long getUserData();
-
-    /**
      * Return the bounding box including convex radius. The shape is unaffected.
      *
      * @param comTransform the center-of-mass transform to apply to the shape
@@ -187,6 +195,25 @@ public interface ConstShape extends ConstJoltPhysicsObject {
     AaBox getWorldSpaceBounds(RMat44Arg comTransform, Vec3Arg scale);
 
     /**
+     * Test whether the specified scale vector is valid for wrapping the current
+     * shape in a {@code ScaledShape}. The current shape is unaffected.
+     *
+     * @param scale the proposed scale vector (not null, unaffected)
+     * @return {@code true} if valid, otherwise {@code false}
+     */
+    boolean isValidScale(Vec3Arg scale);
+
+    /**
+     * Transform the specified scale vector such that it will be valid for
+     * wrapping the current shape in a {@code ScaledShape}. The current shape is
+     * unaffected.
+     *
+     * @param scale the proposed scale vector (not null, unaffected)
+     * @return a new scale vector
+     */
+    Vec3 makeScaleValid(Vec3Arg scale);
+
+    /**
      * Test whether the shape can be used in a dynamic/kinematic body. The shape
      * is unaffected.
      *
@@ -195,7 +222,7 @@ public interface ConstShape extends ConstJoltPhysicsObject {
     boolean mustBeStatic();
 
     /**
-     * Save the state of this shape in binary form. The shape is unaffected.
+     * Save the shape to the specified binary stream. The shape is unaffected.
      *
      * @param stream the stream to write to (not null)
      */

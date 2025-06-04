@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -62,10 +62,10 @@ public:
         JPH_ASSERT(!pEnv->ExceptionCheck());
     }
 
-    void OnContactAdded(const Body &inBody1, const Body &inBody2,
-            const ContactManifold &inManifold, ContactSettings &ioSettings) {
+    void OnContactAdded(const Body& inBody1, const Body& inBody2,
+            const ContactManifold& inManifold, ContactSettings& ioSettings) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong body1Va = reinterpret_cast<jlong> (&inBody1);
@@ -77,10 +77,10 @@ public:
         mpVM->DetachCurrentThread();
     }
 
-    void OnContactPersisted(const Body &inBody1, const Body &inBody2,
-            const ContactManifold &inManifold, ContactSettings &ioSettings) {
+    void OnContactPersisted(const Body& inBody1, const Body& inBody2,
+            const ContactManifold& inManifold, ContactSettings& ioSettings) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong body1Va = reinterpret_cast<jlong> (&inBody1);
@@ -93,9 +93,9 @@ public:
         mpVM->DetachCurrentThread();
     }
 
-    void OnContactRemoved(const SubShapeIDPair &pair) {
+    void OnContactRemoved(const SubShapeIDPair& pair) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong pairVa = reinterpret_cast<jlong> (&pair);
@@ -104,10 +104,10 @@ public:
         mpVM->DetachCurrentThread();
     }
 
-    ValidateResult OnContactValidate(const Body &inBody1, const Body &inBody2,
-            RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) {
+    ValidateResult OnContactValidate(const Body& inBody1, const Body& inBody2,
+            RVec3Arg inBaseOffset, const CollideShapeResult& inCollisionResult) override {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         const jlong body1Va = reinterpret_cast<jlong> (&inBody1);
@@ -116,7 +116,7 @@ public:
         const jdouble offsetY = inBaseOffset.GetY();
         const jdouble offsetZ = inBaseOffset.GetZ();
         const jlong shapeVa = reinterpret_cast<jlong> (&inCollisionResult);
-        jint jintResult = pAttachEnv->CallIntMethod(mJavaObject,
+        const jint jintResult = pAttachEnv->CallIntMethod(mJavaObject,
                 mValidateMethodId, body1Va, body2Va, offsetX, offsetY, offsetZ, shapeVa);
         JPH_ASSERT(!pAttachEnv->ExceptionCheck());
         mpVM->DetachCurrentThread();
@@ -125,7 +125,7 @@ public:
 
     ~CustomContactListener() {
         JNIEnv *pAttachEnv;
-        jint retCode = mpVM->AttachCurrentThread((void **)&pAttachEnv, NULL);
+        jint retCode = ATTACH_CURRENT_THREAD(mpVM, &pAttachEnv);
         JPH_ASSERT(retCode == JNI_OK);
 
         pAttachEnv->DeleteGlobalRef(mJavaObject);

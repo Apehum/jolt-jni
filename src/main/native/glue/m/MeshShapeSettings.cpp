@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -58,6 +58,22 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_MeshShapeSettings_add
 
 /*
  * Class:     com_github_stephengold_joltjni_MeshShapeSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MeshShapeSettings_createCopy
+  BODYOF_CREATE_COPY(MeshShapeSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_MeshShapeSettings
+ * Method:    createDefault
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MeshShapeSettings_createDefault
+  BODYOF_CREATE_DEFAULT(MeshShapeSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_MeshShapeSettings
  * Method:    createMeshShapeSettings
  * Signature: (ILjava/nio/FloatBuffer;J)J
  */
@@ -65,6 +81,10 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MeshShapeSettings_cr
   (JNIEnv *pEnv, jclass, jint numVertices, jobject buffer, jlong indicesVa) {
     const jfloat * const pFloats
             = (jfloat *) pEnv->GetDirectBufferAddress(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    JPH_ASSERT(capacityFloats >= 3*numVertices);
     VertexList vertices;
     for (jint i = 0; i < numVertices; ++i) {
         const float x = pFloats[3 * i];
@@ -90,19 +110,23 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_MeshShapeSettings_cr
   (JNIEnv *pEnv, jclass, jint numTriangles, jobject buffer, jlong materialsVa) {
     const jfloat * const pFloats
             = (jfloat *) pEnv->GetDirectBufferAddress(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(buffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    JPH_ASSERT(capacityFloats >= 9*numTriangles);
     TriangleList triangles;
     for (jint i = 0; i < numTriangles; ++i) {
-        const float v1x = pFloats[3 * i];
-        const float v1y = pFloats[3 * i + 1];
-        const float v1z = pFloats[3 * i + 2];
+        const float v1x = pFloats[9 * i];
+        const float v1y = pFloats[9 * i + 1];
+        const float v1z = pFloats[9 * i + 2];
         const Float3 v1(v1x, v1y, v1z);
-        const float v2x = pFloats[3 * i + 3];
-        const float v2y = pFloats[3 * i + 4];
-        const float v2z = pFloats[3 * i + 5];
+        const float v2x = pFloats[9 * i + 3];
+        const float v2y = pFloats[9 * i + 4];
+        const float v2z = pFloats[9 * i + 5];
         const Float3 v2(v2x, v2y, v2z);
-        const float v3x = pFloats[3 * i + 6];
-        const float v3y = pFloats[3 * i + 7];
-        const float v3z = pFloats[3 * i + 8];
+        const float v3x = pFloats[9 * i + 6];
+        const float v3y = pFloats[9 * i + 7];
+        const float v3z = pFloats[9 * i + 8];
         const Float3 v3(v3x, v3y, v3z);
         const Triangle triangle(v1, v2, v3);
         triangles.push_back(triangle);

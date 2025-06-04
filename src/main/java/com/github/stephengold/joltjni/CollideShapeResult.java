@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,7 @@ public class CollideShapeResult
      * (not zero)
      */
     public CollideShapeResult(long shapeResultVa) {
-        setVirtualAddress(shapeResultVa, null);
+        setVirtualAddress(shapeResultVa);
     }
     // *************************************************************************
     // ConstCollideShapeResult methods
@@ -64,19 +64,18 @@ public class CollideShapeResult
      * Identify the body to which shape 2 belongs. The result object is
      * unaffected. (native attribute: mBodyID2)
      *
-     * @return a new JVM object with a new native object assigned
+     * @return the BodyID value
      */
     @Override
-    public BodyId getBodyId2() {
+    public int getBodyId2() {
         long shapeResultVa = va();
-        long idVa = getBodyId2(shapeResultVa);
-        BodyId result = new BodyId(idVa, true);
+        int result = getBodyId2(shapeResultVa);
 
         return result;
     }
 
     /**
-     * Copy the contact location on the surface of shape 1. The object is
+     * Copy the contact location on the surface of shape 1. The result object is
      * unaffected. (native attribute: mContactPointOn1)
      *
      * @return a new location vector
@@ -93,7 +92,7 @@ public class CollideShapeResult
     }
 
     /**
-     * Copy the contact location on the surface of shape 2. The object is
+     * Copy the contact location on the surface of shape 2. The result object is
      * unaffected. (native attribute: mContactPointOn2)
      *
      * @return a new location vector
@@ -111,7 +110,8 @@ public class CollideShapeResult
 
     /**
      * Copy the direction to move shape 2 out of collision along the shortest
-     * path. The object is unaffected. (native attribute: mPenetrationAxis)
+     * path. The result object is unaffected. (native attribute:
+     * mPenetrationAxis)
      *
      * @return a new direction vector in system coordinates
      */
@@ -127,8 +127,8 @@ public class CollideShapeResult
     }
 
     /**
-     * Return the distance to move shape 2 to resolve the collision. The object
-     * is unaffected. (native attribute: mPenetrationDepth)
+     * Return the distance to move shape 2 to resolve the collision. The result
+     * object is unaffected. (native attribute: mPenetrationDepth)
      *
      * @return the signed distance
      */
@@ -141,38 +141,62 @@ public class CollideShapeResult
     }
 
     /**
-     * Identify the face on shape 1 where the collision occurred. The object is
-     * unaffected. (native attribute: mSubShapeID1)
+     * Access the colliding face on shape 1. (native attribute: mShape1Face)
      *
-     * @return a new ID
+     * @return a new JVM object with the pre-existing native object assigned
      */
-    @Override
-    public SubShapeId getSubShapeId1() {
+    public CsrFace getShape1Face() {
         long shapeResultVa = va();
-        long idVa = getSubShapeId1(shapeResultVa);
-        SubShapeId result = new SubShapeId(idVa, true);
+        long faceVa = getShape1Face(shapeResultVa);
+        CsrFace result = new CsrFace(this, faceVa);
 
         return result;
     }
 
     /**
-     * Identify the subshape on shape 2 where the collision occurred. The object
-     * is unaffected. (native attribute: mSubShapeID2)
+     * Access the colliding face on shape 2. (native attribute: mShape2Face)
      *
-     * @return a new JVM object with a new native object assigned
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    public CsrFace getShape2Face() {
+        long shapeResultVa = va();
+        long faceVa = getShape2Face(shapeResultVa);
+        CsrFace result = new CsrFace(this, faceVa);
+
+        return result;
+    }
+
+    /**
+     * Identify the face on shape 1 where the collision occurred. The result is
+     * unaffected. (native attribute: mSubShapeID1)
+     *
+     * @return a {@code SubShapeId} value
      */
     @Override
-    public SubShapeId getSubShapeId2() {
+    public int getSubShapeId1() {
         long shapeResultVa = va();
-        long idVa = getSubShapeId2(shapeResultVa);
-        SubShapeId result = new SubShapeId(idVa, true);
+        int result = getSubShapeId1(shapeResultVa);
+
+        return result;
+    }
+
+    /**
+     * Identify the sub-shape on shape 2 where the collision occurred. The
+     * object is unaffected. (native attribute: mSubShapeID2)
+     *
+     * @return a {@code SubShapeId} value
+     */
+    @Override
+    public int getSubShapeId2() {
+        long shapeResultVa = va();
+        int result = getSubShapeId2(shapeResultVa);
 
         return result;
     }
     // *************************************************************************
     // native private methods
 
-    native private static long getBodyId2(long shapeResultVa);
+    native private static int getBodyId2(long shapeResultVa);
 
     native private static float getContactPointOn1X(long shapeResultVa);
 
@@ -194,7 +218,11 @@ public class CollideShapeResult
 
     native private static float getPenetrationDepth(long shapeResultVa);
 
-    native private static long getSubShapeId1(long shapeResultVa);
+    native private static long getShape1Face(long shapeResultVa);
 
-    native private static long getSubShapeId2(long shapeResultVa);
+    native private static long getShape2Face(long shapeResultVa);
+
+    native private static int getSubShapeId1(long shapeResultVa);
+
+    native private static int getSubShapeId2(long shapeResultVa);
 }

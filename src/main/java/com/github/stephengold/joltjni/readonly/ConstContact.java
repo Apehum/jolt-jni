@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,7 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni.readonly;
 
-import com.github.stephengold.joltjni.BodyId;
-import com.github.stephengold.joltjni.CharacterVirtual;
 import com.github.stephengold.joltjni.RVec3;
-import com.github.stephengold.joltjni.SubShapeId;
 import com.github.stephengold.joltjni.Vec3;
 import com.github.stephengold.joltjni.enumerate.EMotionType;
 
@@ -34,15 +31,12 @@ import com.github.stephengold.joltjni.enumerate.EMotionType;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstContact extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Return the ID of the colliding body. The contact is unaffected.
      *
-     * @return a new ID, or null if no colliding body
+     * @return the {@code BodyID} value
      */
-    BodyId getBodyB();
+    int getBodyB();
 
     /**
      * Test whether the velocity of the contact point can push the character.
@@ -56,12 +50,12 @@ public interface ConstContact extends ConstJoltPhysicsObject {
      * Return the colliding character. The contact is unaffected.
      *
      * @return a new JVM object with the pre-existing native object assigned, or
-     * null if no colliding character
+     * {@code null} if no colliding character
      */
-    CharacterVirtual getCharacterB();
+    ConstCharacterVirtual getCharacterB();
 
     /**
-     * Return the contact normal. The contact is unaffected.
+     * Copy the contact normal. The contact is unaffected.
      *
      * @return a new direction vector, pointing toward the character
      */
@@ -100,7 +94,7 @@ public interface ConstContact extends ConstJoltPhysicsObject {
     boolean getIsSensorB();
 
     /**
-     * Return the velocity of the contact point. The contact is unaffected.
+     * Copy the velocity of the contact point. The contact is unaffected.
      *
      * @return a new velocity vector
      */
@@ -115,21 +109,21 @@ public interface ConstContact extends ConstJoltPhysicsObject {
     EMotionType getMotionTypeB();
 
     /**
-     * Return the location where the contact occurs. The contact is unaffected.
+     * Copy the location where the contact occurs. The contact is unaffected.
      *
      * @return a new vector (in system coordinates)
      */
     RVec3 getPosition();
 
     /**
-     * Return the subshape ID of the colliding body. The contact is unaffected.
+     * Return the sub-shape ID of the colliding body. The contact is unaffected.
      *
-     * @return a new ID, or null if no colliding body
+     * @return a {@code SubShapeID} value
      */
-    SubShapeId getSubShapeIdB();
+    int getSubShapeIdB();
 
     /**
-     * Return the surface normal of the contact. The contact is unaffected.
+     * Copy the surface normal of the contact. The contact is unaffected.
      *
      * @return a new direction vector
      */

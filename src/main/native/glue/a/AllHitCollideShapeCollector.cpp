@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -51,12 +51,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_AllHitCollideShapeCol
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AllHitCollideShapeCollector_createDefault
-  (JNIEnv *, jclass) {
-    AllHitCollisionCollector<CollideShapeCollector> * const pCollector
-            = new AllHitCollisionCollector<CollideShapeCollector>();
-    TRACE_NEW("AllHitCollisionCollector<CollideShapeCollector>", pCollector)
-    return reinterpret_cast<jlong> (pCollector);
-}
+  BODYOF_CREATE_DEFAULT(AllHitCollisionCollector<CollideShapeCollector>)
 
 /*
  * Class:     com_github_stephengold_joltjni_AllHitCollideShapeCollector
@@ -69,4 +64,16 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_AllHitCollideShapeCo
             = reinterpret_cast<AllHitCollisionCollector<CollideShapeCollector> *> (collectorVa);
     const CollideShapeResult * const pResult = &pCollector->mHits.at(index);
     return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_AllHitCollideShapeCollector
+ * Method:    sort
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_AllHitCollideShapeCollector_sort
+  (JNIEnv *, jclass, jlong collectorVa) {
+    AllHitCollisionCollector<CollideShapeCollector> * const pCollector
+            = reinterpret_cast<AllHitCollisionCollector<CollideShapeCollector> *> (collectorVa);
+    pCollector->Sort();
 }

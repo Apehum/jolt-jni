@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,18 @@ IMPLEMENT_REF(CharacterVirtual,
   Java_com_github_stephengold_joltjni_CharacterVirtualRef_copy,
   Java_com_github_stephengold_joltjni_CharacterVirtualRef_createEmpty,
   Java_com_github_stephengold_joltjni_CharacterVirtualRef_free,
-  Java_com_github_stephengold_joltjni_CharacterVirtualRef_getPtr)
+  Java_com_github_stephengold_joltjni_CharacterVirtualRef_getPtr,
+  Java_com_github_stephengold_joltjni_CharacterVirtualRef_toRefC)
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterVirtualRef
+ * Method:    freeWithSystem
+ * Signature: (JLcom/github/stephengold/joltjni/PhysicsSystem;)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_CharacterVirtualRef_freeWithSystem
+  (JNIEnv *pEnv, jclass clazz, jlong refVa, jobject) {
+    Java_com_github_stephengold_joltjni_CharacterVirtualRef_free(pEnv, clazz, refVa);
+}
 
 /*
  * Class:     com_github_stephengold_joltjni_CharacterVirtual
@@ -69,6 +80,21 @@ JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_
             = reinterpret_cast<CharacterVirtual *> (characterVa);
     const Vec3 desiredV(vx, vy, vz);
     const bool result = pCharacter->CanWalkStairs(desiredV);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterVirtual
+ * Method:    countActiveContacts
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_countActiveContacts
+  (JNIEnv *, jclass, jlong characterVa) {
+    const CharacterVirtual * const pCharacter
+            = reinterpret_cast<CharacterVirtual *> (characterVa);
+    const CharacterVirtual::ContactList& contacts
+            = pCharacter->GetActiveContacts();
+    const size_t result = contacts.size();
     return result;
 }
 
@@ -122,15 +148,18 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_exte
 
 /*
  * Class:     com_github_stephengold_joltjni_CharacterVirtual
- * Method:    getActiveContacts
- * Signature: (J)J
+ * Method:    getActiveContact
+ * Signature: (JI)J
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_getActiveContacts
-  (JNIEnv *, jclass, jlong characterVa) {
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_getActiveContact
+  (JNIEnv *, jclass, jlong characterVa, jint index) {
     const CharacterVirtual * const pCharacter
             = reinterpret_cast<CharacterVirtual *> (characterVa);
-    const CharacterVirtual::ContactList * const pResult
-            = &pCharacter->GetActiveContacts();
+    const CharacterVirtual::ContactList& contacts
+            = pCharacter->GetActiveContacts();
+    const CharacterVirtual::Contact * const pResult
+            = new CharacterVirtual::Contact(contacts[index]);
+    TRACE_NEW("CharacterVirtual::Contact", pResult);
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -203,6 +232,21 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_ge
 
 /*
  * Class:     com_github_stephengold_joltjni_CharacterVirtual
+ * Method:    getCharacterVirtualSettings
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_getCharacterVirtualSettings
+  (JNIEnv *, jclass, jlong characterVa) {
+    const CharacterVirtual * const pCharacter
+            = reinterpret_cast<CharacterVirtual *> (characterVa);
+    CharacterVirtualSettings * const pResult = new CharacterVirtualSettings();
+    TRACE_NEW("CharacterVirtualSettings", pResult)
+    *pResult = pCharacter->GetCharacterVirtualSettings();
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterVirtual
  * Method:    getEnhancedInternalEdgeRemoval
  * Signature: (J)Z
  */
@@ -229,17 +273,28 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_ge
 
 /*
  * Class:     com_github_stephengold_joltjni_CharacterVirtual
- * Method:    getInnerBodyId
- * Signature: (J)J
+ * Method:    getId
+ * Signature: (J)I
  */
-JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_getInnerBodyId
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_getId
   (JNIEnv *, jclass, jlong characterVa) {
     const CharacterVirtual * const pCharacter
             = reinterpret_cast<CharacterVirtual *> (characterVa);
-    const BodyID id = pCharacter->GetInnerBodyID();
-    BodyID * const pResult = new BodyID(id);
-    TRACE_NEW("BodyID", pResult)
-    return reinterpret_cast<jlong> (pResult);
+    const CharacterID result = pCharacter->GetID();
+    return result.GetValue();
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterVirtual
+ * Method:    getInnerBodyId
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_getInnerBodyId
+  (JNIEnv *, jclass, jlong characterVa) {
+    const CharacterVirtual * const pCharacter
+            = reinterpret_cast<CharacterVirtual *> (characterVa);
+    const BodyID result = pCharacter->GetInnerBodyID();
+    return result.GetIndexAndSequenceNumber();
 }
 
 /*
@@ -478,6 +533,21 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_ge
 
 /*
  * Class:     com_github_stephengold_joltjni_CharacterVirtual
+ * Method:    getTransformedShape
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_getTransformedShape
+  (JNIEnv *, jclass, jlong characterVa) {
+    const CharacterVirtual * const pCharacter
+            = reinterpret_cast<CharacterVirtual *> (characterVa);
+    const TransformedShape& shape = pCharacter->GetTransformedShape();
+    TransformedShape * const pResult = new TransformedShape(shape);
+    TRACE_NEW("TransformedShape", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterVirtual
  * Method:    getUserData
  * Signature: (J)J
  */
@@ -507,14 +577,14 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_get
 /*
  * Class:     com_github_stephengold_joltjni_CharacterVirtual
  * Method:    hasCollidedWithBody
- * Signature: (JJ)Z
+ * Signature: (JI)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_hasCollidedWithBody
-  (JNIEnv *, jclass, jlong characterVa, jlong idVa) {
+  (JNIEnv *, jclass, jlong characterVa, jint bodyId) {
     const CharacterVirtual * const pCharacter
             = reinterpret_cast<CharacterVirtual *> (characterVa);
-    const BodyID * const pBody = reinterpret_cast<BodyID *> (idVa);
-    const bool result = pCharacter->HasCollidedWith(*pBody);
+    const BodyID id(bodyId);
+    const bool result = pCharacter->HasCollidedWith(id);
     return result;
 }
 
@@ -749,6 +819,21 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_toR
     Ref<CharacterVirtual> * const pResult
             = new Ref<CharacterVirtual>(pCharacter);
     TRACE_NEW("Ref<CharacterVirtual>", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterVirtual
+ * Method:    toRefC
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtual_toRefC
+  (JNIEnv *, jclass, jlong characterVa) {
+    const CharacterVirtual * const pCharacter
+            = reinterpret_cast<CharacterVirtual *> (characterVa);
+    RefConst<CharacterVirtual> * const pResult
+            = new RefConst<CharacterVirtual>(pCharacter);
+    TRACE_NEW("RefConst<CharacterVirtual>", pResult)
     return reinterpret_cast<jlong> (pResult);
 }
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -56,11 +56,12 @@ class Layers
 };
 
 /// Class that determines if two object layers can collide
-static class ObjectLayerPairFilterImpl extends ObjVsObjFilter
+static class ObjectLayerPairFilterImpl extends ObjectLayerPairFilterTable
 {
 	ObjectLayerPairFilterImpl() {
 		super(Layers.NUM_LAYERS);
-		disablePair(Layers.NON_MOVING, Layers.NON_MOVING);
+		enableCollision(Layers.MOVING, Layers.MOVING);
+		enableCollision(Layers.MOVING, Layers.NON_MOVING);
 	}
 };
 
@@ -78,15 +79,15 @@ class BroadPhaseLayers
 
 // BroadPhaseLayerInterface implementation
 // This defines a mapping between object and broadphase layers.
-static class BPLayerInterfaceImpl extends MapObj2Bp
+static class BPLayerInterfaceImpl extends BroadPhaseLayerInterfaceTable
 {
 									BPLayerInterfaceImpl()
 	{
 		// Create a mapping table from object to broad phase layer
             super(Layers.NUM_LAYERS, BroadPhaseLayers.NUM_LAYERS);
-		add(Layers.NON_MOVING, BroadPhaseLayers.NON_MOVING);
-		add(Layers.MOVING, BroadPhaseLayers.MOVING);
-	}                                                                     
+		mapObjectToBroadPhaseLayer(Layers.NON_MOVING, BroadPhaseLayers.NON_MOVING);
+		mapObjectToBroadPhaseLayer(Layers.MOVING, BroadPhaseLayers.MOVING);
+	}
 
 };
 
@@ -132,12 +133,12 @@ public
 static class MyBodyActivationListener extends  CustomBodyActivationListener
 {
 public
-	 void		onBodyActivated(long idVa, long inBodyUserData)
+	 void		onBodyActivated(int bodyId, long inBodyUserData)
 	{
 		cout .print( "A body got activated" + endl);
 	}
 
-	public void		onBodyDeactivated(long idVa, long inBodyUserData)
+	public void		onBodyDeactivated(int bodyId, long inBodyUserData)
 	{
 		cout .print( "A body went to sleep" + endl);
 	}
@@ -251,7 +252,7 @@ public static void main(  String[] argv)
 	// Now create a dynamic body to bounce on the floor
 	// Note that this uses the shorthand version of creating and adding a body to the world
 	BodyCreationSettings sphere_settings=new BodyCreationSettings(new SphereShape(0.5f),new RVec3(0f, 2f, 0f), new Quat(), EMotionType.Dynamic, Layers.MOVING);
-	BodyId sphere_id = body_interface.createAndAddBody(sphere_settings, EActivation.Activate).copy();
+	int sphere_id = body_interface.createAndAddBody(sphere_settings, EActivation.Activate);
 
 	// Now you can interact with the dynamic body, in this case we're going to give it a velocity.
 	// (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)

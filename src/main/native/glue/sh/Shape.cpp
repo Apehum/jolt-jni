@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,8 @@ IMPLEMENT_REF(Shape,
   Java_com_github_stephengold_joltjni_ShapeRef_copy,
   Java_com_github_stephengold_joltjni_ShapeRef_createEmpty,
   Java_com_github_stephengold_joltjni_ShapeRef_free,
-  Java_com_github_stephengold_joltjni_ShapeRef_getPtr)
+  Java_com_github_stephengold_joltjni_ShapeRef_getPtr,
+  Java_com_github_stephengold_joltjni_ShapeRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_Shape
@@ -48,18 +49,26 @@ IMPLEMENT_REF(Shape,
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Shape_copyDebugTriangles
   (JNIEnv *pEnv, jclass, jlong shapeVa, jint numTriangles, jobject storeBuffer) {
     const Shape * const pShape = reinterpret_cast<Shape *> (shapeVa);
-    Float3 * pFloat3 = (Float3 *) pEnv->GetDirectBufferAddress(storeBuffer);
+    Float3 *pFloat3 = (Float3 *) pEnv->GetDirectBufferAddress(storeBuffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(storeBuffer);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    JPH_ASSERT(capacityFloats >= 9 * numTriangles);
+    const AABox bounds(AABox::sBiggest());
+    const Vec3 center = pShape->GetCenterOfMass();
     AllHitCollisionCollector<TransformedShapeCollector> collector;
-    pShape->CollectTransformedShapes(AABox::sBiggest(),
-            Vec3::sZero(), Quat::sIdentity(), Vec3::sReplicate(1.0f),
+    pShape->CollectTransformedShapes(
+            bounds, center, Quat::sIdentity(), Vec3::sReplicate(1.0f),
             SubShapeIDCreator(), collector, ShapeFilter());
     for (const TransformedShape& transformedShape : collector.mHits) {
         const Shape * const pSh = transformedShape.mShape;
         Shape::GetTrianglesContext context;
-        pSh->GetTrianglesStart(context, AABox::sBiggest(),
-            Vec3::sZero(), Quat::sIdentity(), Vec3::sReplicate(1.0f));
+        const Vec3 location(transformedShape.mShapePositionCOM);
+        const Vec3 scale(transformedShape.mShapeScale);
+        pSh->GetTrianglesStart(
+            context, bounds, location, transformedShape.mShapeRotation, scale);
         while (numTriangles > 0) {
-            const int maxRequest = std::max((int) numTriangles,
+            const int maxRequest = std::max((int)numTriangles,
                     Shape::cGetTrianglesMinTrianglesRequested);
             const int numTrianglesCopied
                     = pSh->GetTrianglesNext(context, maxRequest, pFloat3);
@@ -82,15 +91,19 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_Shape_countDebugTrian
   (JNIEnv *, jclass, jlong shapeVa) {
     const Shape * const pShape = reinterpret_cast<Shape *> (shapeVa);
     uint result = 0;
+    const AABox bounds(AABox::sBiggest());
+    const Vec3 center = pShape->GetCenterOfMass();
     AllHitCollisionCollector<TransformedShapeCollector> collector;
-    pShape->CollectTransformedShapes(AABox::sBiggest(),
-            Vec3::sZero(), Quat::sIdentity(), Vec3::sReplicate(1.0f),
+    pShape->CollectTransformedShapes(
+            bounds, center, Quat::sIdentity(), Vec3::sReplicate(1.0f),
             SubShapeIDCreator(), collector, ShapeFilter());
-    for (const TransformedShape &transformedShape : collector.mHits) {
+    for (const TransformedShape& transformedShape : collector.mHits) {
         const Shape * const pSh = transformedShape.mShape;
         Shape::GetTrianglesContext context;
-        pSh->GetTrianglesStart(context, AABox::sBiggest(),
-            Vec3::sZero(), Quat::sIdentity(), Vec3::sReplicate(1.0f));
+        const Vec3 location(transformedShape.mShapePositionCOM);
+        const Vec3 scale(transformedShape.mShapeScale);
+        pSh->GetTrianglesStart(
+            context, bounds, location, transformedShape.mShapeRotation, scale);
         for (;;) {
             constexpr uint cMaxTriangles = 1000;
             Float3 vertices[3 * cMaxTriangles];
@@ -199,6 +212,27 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_Shape_getInnerRadiu
 
 /*
  * Class:     com_github_stephengold_joltjni_Shape
+ * Method:    getLeafShape
+ * Signature: (JI[I)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Shape_getLeafShape
+  (JNIEnv *pEnv, jclass, jlong currentVa, jint subShapeId,
+  jintArray storeRemainderId) {
+    const Shape * const pCurrent = reinterpret_cast<Shape *> (currentVa);
+    SubShapeID id;
+    id.SetValue(subShapeId);
+    SubShapeID remainder;
+    const Shape * const pResult = pCurrent->GetLeafShape(id, remainder);
+    jboolean isCopy;
+    jint * const pStoreRemainder
+            = pEnv->GetIntArrayElements(storeRemainderId, &isCopy);
+    pStoreRemainder[0] = remainder.GetValue();
+    pEnv->ReleaseIntArrayElements(storeRemainderId, pStoreRemainder, 0);
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Shape
  * Method:    getLocalBounds
  * Signature: (J)J
  */
@@ -228,13 +262,14 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Shape_getMassPropert
 /*
  * Class:     com_github_stephengold_joltjni_Shape
  * Method:    getMaterial
- * Signature: (JJ)J
+ * Signature: (JI)J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Shape_getMaterial
-  (JNIEnv *, jclass, jlong shapeVa, jlong idVa) {
+  (JNIEnv *, jclass, jlong shapeVa, jint subShapeId) {
     const Shape * const pShape = reinterpret_cast<Shape *> (shapeVa);
-    const SubShapeID * const pId = reinterpret_cast<SubShapeID *> (idVa);
-    const PhysicsMaterial * const pResult = pShape->GetMaterial(*pId);
+    SubShapeID id;
+    id.SetValue(subShapeId);
+    const PhysicsMaterial * const pResult = pShape->GetMaterial(id);
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -346,6 +381,40 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_Shape_getWorldSpaceB
 
 /*
  * Class:     com_github_stephengold_joltjni_Shape
+ * Method:    isValidScale
+ * Signature: (JFFF)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_github_stephengold_joltjni_Shape_isValidScale
+  (JNIEnv *, jclass, jlong shapeVa, jfloat sx, jfloat sy, jfloat sz) {
+    const Shape * const pShape = reinterpret_cast<Shape *> (shapeVa);
+    const Vec3 scale(sx, sy, sz);
+    const bool result = pShape->IsValidScale(scale);
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Shape
+ * Method:    makeScaleValid
+ * Signature: (JLjava/nio/FloatBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Shape_makeScaleValid
+  (JNIEnv *pEnv, jclass, jlong shapeVa, jobject storeFloats) {
+    const Shape * const pShape = reinterpret_cast<Shape *> (shapeVa);
+    jfloat * const pFactors
+            = (jfloat *) pEnv->GetDirectBufferAddress(storeFloats);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityFloats = pEnv->GetDirectBufferCapacity(storeFloats);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    JPH_ASSERT(capacityFloats >= 3);
+    const Vec3 vec(pFactors[0], pFactors[1], pFactors[2]);
+    const Vec3 result = pShape->MakeScaleValid(vec);
+    pFactors[0] = result.GetX();
+    pFactors[1] = result.GetY();
+    pFactors[2] = result.GetZ();
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_Shape
  * Method:    mustBeStatic
  * Signature: (J)Z
  */
@@ -377,17 +446,6 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Shape_setEmbedded
   (JNIEnv *, jclass, jlong shapeVa) {
     Shape * const pShape = reinterpret_cast<Shape *> (shapeVa);
     pShape->SetEmbedded();
-}
-
-/*
- * Class:     com_github_stephengold_joltjni_Shape
- * Method:    setUserData
- * Signature: (JJ)V
- */
-JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_Shape_setUserData
-  (JNIEnv *, jclass, jlong shapeVa, jlong value) {
-    Shape * const pShape = reinterpret_cast<Shape *> (shapeVa);
-    pShape->SetUserData(value);
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -76,18 +76,75 @@ public class PhysicsMaterial extends SerializableObject
 
         return result;
     }
+
+    /**
+     * Read a material from the specified binary stream.
+     *
+     * @param stream where to read objects (not null)
+     * @return a new object
+     */
+    public static PhysicsMaterialResult sRestoreFromBinaryState(
+            StreamIn stream) {
+        long streamVa = stream.va();
+        long resultVa = sRestoreFromBinaryState(streamVa);
+        PhysicsMaterialResult result
+                = new PhysicsMaterialResult(resultVa, true);
+
+        return result;
+    }
     // *************************************************************************
     // ConstPhysicsMaterial methods
 
     /**
+     * Copy the debug color. The material is unaffected.
+     *
+     * @return a new object
+     */
+    @Override
+    public Color getDebugColor() {
+        long materialVa = va();
+        int intColor = getDebugColor(materialVa);
+        Color result = new Color(intColor);
+
+        return result;
+    }
+
+    /**
      * Return the debug name. The material is unaffected.
      *
-     * @return a string of text or null
+     * @return a string of text or {@code null}
      */
     @Override
     public String getDebugName() {
         long materialVa = va();
         String result = getDebugName(materialVa);
+
+        return result;
+    }
+
+    /**
+     * Save the material to the specified binary stream. The material is
+     * unaffected.
+     *
+     * @param stream the stream to write to (not null)
+     */
+    @Override
+    public void saveBinaryState(StreamOut stream) {
+        long materialVa = va();
+        long streamVa = stream.va();
+        saveBinaryState(materialVa, streamVa);
+    }
+
+    /**
+     * Create a counted reference to the native {@code PhysicsMaterial}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
+    @Override
+    public PhysicsMaterialRefC toRefC() {
+        long materialVa = va();
+        long refVa = toRefC(materialVa);
+        PhysicsMaterialRefC result = new PhysicsMaterialRefC(refVa, true);
 
         return result;
     }
@@ -133,13 +190,21 @@ public class PhysicsMaterial extends SerializableObject
     // *************************************************************************
     // native private methods
 
+    native private static int getDebugColor(long materialVa);
+
     native private static String getDebugName(long materialVa);
 
     native private static int getRefCount(long materialVa);
+
+    native private static void saveBinaryState(long materialVa, long streamVa);
 
     native private static long sDefault(boolean dummy);
 
     native private static void setEmbedded(long materialVa);
 
+    native private static long sRestoreFromBinaryState(long streamVa);
+
     native private static long toRef(long materialVa);
+
+    native private static long toRefC(long materialVa);
 }

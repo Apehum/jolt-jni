@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,8 @@ IMPLEMENT_REF(SoftBodySharedSettings,
   Java_com_github_stephengold_joltjni_SoftBodySharedSettingsRef_copy,
   Java_com_github_stephengold_joltjni_SoftBodySharedSettingsRef_createEmpty,
   Java_com_github_stephengold_joltjni_SoftBodySharedSettingsRef_free,
-  Java_com_github_stephengold_joltjni_SoftBodySharedSettingsRef_getPtr)
+  Java_com_github_stephengold_joltjni_SoftBodySharedSettingsRef_getPtr,
+  Java_com_github_stephengold_joltjni_SoftBodySharedSettingsRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
@@ -64,6 +65,34 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
     const SoftBodySharedSettings::Face * const pFace
             =  reinterpret_cast<SoftBodySharedSettings::Face *> (faceVa);
     pSettings->AddFace(*pFace);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    addInvBindMatrix
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_addInvBindMatrix
+  (JNIEnv *, jclass, jlong settingsVa, jlong invBindVa) {
+    SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    const SoftBodySharedSettings::InvBind * const pInvBind
+            = reinterpret_cast<SoftBodySharedSettings::InvBind *> (invBindVa);
+    pSettings->mInvBindMatrices.push_back(*pInvBind);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    addSkinnedConstraint
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_addSkinnedConstraint
+  (JNIEnv *, jclass, jlong settingsVa, jlong skinnedVa) {
+    SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    const SoftBodySharedSettings::Skinned * const pSkinned
+            = reinterpret_cast<SoftBodySharedSettings::Skinned *> (skinnedVa);
+    pSettings->mSkinnedConstraints.push_back(*pSkinned);
 }
 
 /*
@@ -108,6 +137,18 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    calculateSkinnedConstraintNormals
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_calculateSkinnedConstraintNormals
+  (JNIEnv *, jclass, jlong settingsVa) {
+    SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    pSettings->CalculateSkinnedConstraintNormals();
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
  * Method:    calculateVolumeConstraintVolumes
  * Signature: (J)V
  */
@@ -125,7 +166,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
  */
 JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_countEdgeConstraints
   (JNIEnv *, jclass, jlong settingsVa) {
-    SoftBodySharedSettings * const pSettings
+    const SoftBodySharedSettings * const pSettings
             = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
     const Array<SoftBodySharedSettings::Edge>::size_type result
             = pSettings->mEdgeConstraints.size();
@@ -139,10 +180,31 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
  */
 JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_countFaces
   (JNIEnv *, jclass, jlong settingsVa) {
-    SoftBodySharedSettings * const pSettings
+    const SoftBodySharedSettings * const pSettings
             = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
     const Array<SoftBodySharedSettings::Face>::size_type result
             = pSettings->mFaces.size();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    countPinnedVertices
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_countPinnedVertices
+  (JNIEnv *, jclass, jlong settingsVa) {
+    const SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    const size_t numVertices = pSettings->mVertices.size();
+    jint result = 0;
+    for (size_t index = 0; index < numVertices; ++index) {
+        const SoftBodySharedSettings::Vertex& vertex
+                = pSettings->mVertices.at(index);
+        if (vertex.mInvMass == 0) {
+            ++result;
+        }
+    }
     return result;
 }
 
@@ -153,7 +215,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
  */
 JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_countVertices
   (JNIEnv *, jclass, jlong settingsVa) {
-    SoftBodySharedSettings * const pSettings
+    const SoftBodySharedSettings * const pSettings
             = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
     const Array<SoftBodySharedSettings::Vertex>::size_type result
             = pSettings->mVertices.size();
@@ -167,7 +229,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
  */
 JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_countVolumeConstraints
   (JNIEnv *, jclass, jlong settingsVa) {
-    SoftBodySharedSettings * const pSettings
+    const SoftBodySharedSettings * const pSettings
             = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
     const Array<SoftBodySharedSettings::Volume>::size_type result
             = pSettings->mVolumeConstraints.size();
@@ -188,7 +250,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
     TRACE_NEW("SoftBodySharedSettings::VertexAttributes[]", pTempArray)
     jboolean isCopy;
     jlong * const pVas = pEnv->GetLongArrayElements(attributeVas, &isCopy);
-    for (int i = 0; i < numAttributes; ++i) {
+    for (jsize i = 0; i < numAttributes; ++i) {
         const jlong va = pVas[i];
         const SoftBodySharedSettings::VertexAttributes * const pAttribute
                 = reinterpret_cast<SoftBodySharedSettings::VertexAttributes *> (va);
@@ -207,13 +269,31 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_createCopy
+    BODYOF_CREATE_COPY(SoftBodySharedSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
  * Method:    createDefault
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_createDefault
-  (JNIEnv *, jclass) {
-    SoftBodySharedSettings * const pResult = new SoftBodySharedSettings();
-    TRACE_NEW("SoftBodySharedSettings", pResult)
+    BODYOF_CREATE_DEFAULT(SoftBodySharedSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    getEdgeConstraint
+ * Signature: (JI)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_getEdgeConstraint
+  (JNIEnv *, jclass, jlong settingsVa, jint index) {
+    SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    SoftBodySharedSettings::Edge * const pResult
+            = &pSettings->mEdgeConstraints[index];
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -232,15 +312,15 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
 
 /*
  * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
- * Method:    getVertexRadius
- * Signature: (J)F
+ * Method:    getVertex
+ * Signature: (JI)J
  */
-JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_getVertexRadius
-  (JNIEnv *, jclass, jlong settingsVa) {
-    const SoftBodySharedSettings * const pSettings
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_getVertex
+  (JNIEnv *, jclass, jlong settingsVa, jint index) {
+    SoftBodySharedSettings * const pSettings
             = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
-    const float result = pSettings->mVertexRadius;
-    return result;
+    SoftBodySharedSettings::Vertex& result = pSettings->mVertices.at(index);
+    return reinterpret_cast<jlong> (&result);
 }
 
 /*
@@ -253,6 +333,117 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSetting
     SoftBodySharedSettings * const pSettings
             = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
     pSettings->Optimize();
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    putEdgeIndices
+ * Signature: (JILjava/nio/IntBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_putEdgeIndices
+  (JNIEnv *pEnv, jclass, jlong settingsVa, jint bufferPosition,
+  jobject storeIndices) {
+    jint * const pStoreInts
+            = (jint *) pEnv->GetDirectBufferAddress(storeIndices);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityInts = pEnv->GetDirectBufferCapacity(storeIndices);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    const Array<SoftBodySharedSettings::Edge>& edges
+            = pSettings->mEdgeConstraints;
+    const size_t numEdges = edges.size();
+    for (size_t i = 0; i < numEdges && bufferPosition + 1 < capacityInts; ++i) {
+        const SoftBodySharedSettings::Edge& edge = edges[i];
+        pStoreInts[bufferPosition++] = edge.mVertex[0];
+        pStoreInts[bufferPosition++] = edge.mVertex[1];
+    }
+    return bufferPosition;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    putFaceIndices
+ * Signature: (JILjava/nio/IntBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_putFaceIndices
+  (JNIEnv *pEnv, jclass, jlong settingsVa, jint bufferPosition,
+  jobject storeIndices) {
+    jint * const pStoreInts
+            = (jint *) pEnv->GetDirectBufferAddress(storeIndices);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const jlong capacityInts = pEnv->GetDirectBufferCapacity(storeIndices);
+    JPH_ASSERT(!pEnv->ExceptionCheck());
+    const SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    const Array<SoftBodySharedSettings::Face>& faces = pSettings->mFaces;
+    const size_t numFaces = faces.size();
+    for (size_t i = 0; i < numFaces && bufferPosition + 2 < capacityInts; ++i) {
+        const SoftBodySharedSettings::Face& face = faces[i];
+        pStoreInts[bufferPosition++] = face.mVertex[0];
+        pStoreInts[bufferPosition++] = face.mVertex[1];
+        pStoreInts[bufferPosition++] = face.mVertex[2];
+    }
+    return bufferPosition;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    restoreBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_restoreBinaryState
+  (JNIEnv *, jclass, jlong settingsVa, jlong streamVa) {
+    SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    pSettings->RestoreBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    saveBinaryState
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_saveBinaryState
+  (JNIEnv *, jclass, jlong bodySettingsVa, jlong streamVa) {
+    const SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (bodySettingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    pSettings->SaveBinaryState(*pStream);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    saveWithMaterials
+ * Signature: (JJJJ)V
+ */
+JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_saveWithMaterials
+  (JNIEnv *, jclass, jlong settingsVa, jlong streamVa,
+            jlong settingsMapVa, jlong materialsMapVa) {
+    const SoftBodySharedSettings * const pSettings
+            = reinterpret_cast<SoftBodySharedSettings *> (settingsVa);
+    StreamOut * const pStream = reinterpret_cast<StreamOut *> (streamVa);
+    StreamUtils::ObjectToIDMap<SoftBodySharedSettings> * const pSettingsMap
+            = reinterpret_cast<StreamUtils::ObjectToIDMap<SoftBodySharedSettings> *> (settingsMapVa);
+    StreamUtils::ObjectToIDMap<PhysicsMaterial> * const pMaterialsMap
+            = reinterpret_cast<StreamUtils::ObjectToIDMap<PhysicsMaterial> *> (materialsMapVa);
+    pSettings->SaveWithMaterials(*pStream, *pSettingsMap, *pMaterialsMap);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    sCreateCubeNative
+ * Signature: (IF)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_sCreateCubeNative
+  (JNIEnv *, jclass, jint gridSize, jfloat gridSpacing) {
+    Ref<SoftBodySharedSettings> ref
+            = SoftBodySharedSettings::sCreateCube(gridSize, gridSpacing);
+    Ref<SoftBodySharedSettings> * const pResult
+            = new Ref<SoftBodySharedSettings>(ref);
+    TRACE_NEW("Ref<SoftBodySharedSettings>", pResult)
+    return reinterpret_cast<jlong> (pResult);
 }
 
 /*
@@ -295,5 +486,25 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettin
     Ref<SoftBodySharedSettings> * const pResult
             = new Ref<SoftBodySharedSettings>(pSettings);
     TRACE_NEW("Ref<SoftBodySharedSettings>", pResult)
+    return reinterpret_cast<jlong> (pResult);
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_SoftBodySharedSettings
+ * Method:    sRestoreWithMaterials
+ * Signature: (JJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SoftBodySharedSettings_sRestoreWithMaterials
+  (JNIEnv *, jclass, jlong streamVa, jlong settingsMapVa, jlong materialMapVa) {
+    StreamIn * const pStream = reinterpret_cast<StreamIn *> (streamVa);
+    SoftBodySharedSettings::IDToSharedSettingsMap * const pSettingsMap
+            = reinterpret_cast<SoftBodySharedSettings::IDToSharedSettingsMap *> (settingsMapVa);
+    SoftBodySharedSettings::IDToMaterialMap * const pMaterialMap
+            = reinterpret_cast<SoftBodySharedSettings::IDToMaterialMap *> (materialMapVa);
+    SoftBodySharedSettings::SettingsResult * const pResult
+            = new SoftBodySharedSettings::SettingsResult();
+    TRACE_NEW("SoftBodySharedSettings::SettingsResult", pResult);
+    *pResult = SoftBodySharedSettings::sRestoreWithMaterials(
+            *pStream, *pSettingsMap, *pMaterialMap);
     return reinterpret_cast<jlong> (pResult);
 }

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -70,7 +70,7 @@ abstract public class CharacterBase
     }
 
     /**
-     * Alter the maximum slope that character can walk on.
+     * Alter the maximum slope that the character can walk on.
      *
      * @param angle the desired slope angle (in radians, default=5*Pi/18)
      */
@@ -95,7 +95,7 @@ abstract public class CharacterBase
     // ConstCharacterBase methods
 
     /**
-     * Return the maximum slope the character can walk on. The character is
+     * Return the maximum slope that the character can walk on. The character is
      * unaffected.
      *
      * @return the cosine of the slope angle
@@ -110,15 +110,14 @@ abstract public class CharacterBase
 
     /**
      * Return the body ID of the supporting surface. The character is
-     * unaffected.
+     * unaffected. (native method: GetGroundBodyID)
      *
-     * @return a new ID
+     * @return the {@code BodyID} value
      */
     @Override
-    public BodyId getGroundBodyId() {
+    public int getGroundBodyId() {
         long characterVa = va();
-        long idVa = getGroundBodyId(characterVa);
-        BodyId result = new BodyId(idVa, true);
+        int result = getGroundBodyId(characterVa);
 
         return result;
     }
@@ -145,7 +144,7 @@ abstract public class CharacterBase
     }
 
     /**
-     * Return the normal direction at the point of contact with the supporting
+     * Copy the normal direction at the point of contact with the supporting
      * surface. The character is unaffected.
      *
      * @return a new direction vector (in system coordinates)
@@ -162,7 +161,7 @@ abstract public class CharacterBase
     }
 
     /**
-     * Return the location of the point of contact with the supporting surface.
+     * Copy the location of the point of contact with the supporting surface.
      * The character is unaffected.
      *
      * @return a new location vector (in system coordinates)
@@ -197,13 +196,12 @@ abstract public class CharacterBase
      * Identify the face on the supporting surface where contact is occurring.
      * The character is unaffected.
      *
-     * @return a new ID
+     * @return a {@code SubShapeId} value
      */
     @Override
-    public SubShapeId getGroundSubShapeId() {
+    public int getGroundSubShapeId() {
         long characterVa = va();
-        long idVa = getGroundSubShapeId(characterVa);
-        SubShapeId result = new SubShapeId(idVa, true);
+        int result = getGroundSubShapeId(characterVa);
 
         return result;
     }
@@ -223,8 +221,8 @@ abstract public class CharacterBase
     }
 
     /**
-     * Return the world-space velocity of the supporting surface. The character
-     * is unaffected.
+     * Copy the world-space velocity of the supporting surface. The character is
+     * unaffected.
      *
      * @return a new velocity vector (meters per second in system coordinates)
      */
@@ -255,7 +253,7 @@ abstract public class CharacterBase
     }
 
     /**
-     * Return the character's "up" direction. The character is unaffected.
+     * Copy the character's "up" direction. The character is unaffected.
      *
      * @return a new direction vector
      */
@@ -302,7 +300,8 @@ abstract public class CharacterBase
     }
 
     /**
-     * Save the character's state to the specified recorder.
+     * Save the character's state to the specified recorder. The character is
+     * unaffected.
      *
      * @param recorder the recorder to save to (not null)
      */
@@ -342,7 +341,7 @@ abstract public class CharacterBase
 
     native static float getCosMaxSlopeAngle(long characterVa);
 
-    native static long getGroundBodyId(long characterVa);
+    native static int getGroundBodyId(long characterVa);
 
     native static long getGroundMaterial(long characterVa);
 
@@ -360,7 +359,7 @@ abstract public class CharacterBase
 
     native static int getGroundState(long characterVa);
 
-    native static long getGroundSubShapeId(long characterVa);
+    native static int getGroundSubShapeId(long characterVa);
 
     native static long getGroundUserData(long characterVa);
 

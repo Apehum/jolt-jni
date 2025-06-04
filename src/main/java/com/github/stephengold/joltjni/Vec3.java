@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,12 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.operator.Op;
+import com.github.stephengold.joltjni.readonly.Mat44Arg;
+import com.github.stephengold.joltjni.readonly.QuatArg;
 import com.github.stephengold.joltjni.readonly.RVec3Arg;
 import com.github.stephengold.joltjni.readonly.UVec4Arg;
 import com.github.stephengold.joltjni.readonly.Vec3Arg;
-import com.github.stephengold.joltjni.std.DefaultRandomEngine;
-import com.github.stephengold.joltjni.std.Std;
+import com.github.stephengold.joltjni.std.RandomNumberEngine;
 import com.github.stephengold.joltjni.std.UniformFloatDistribution;
 import java.nio.FloatBuffer;
 import java.util.Objects;
@@ -71,7 +72,7 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
-     * Instantiate a vector with specified components.
+     * Instantiate a vector with the specified components.
      *
      * @param x the desired X component
      * @param y the desired Y component
@@ -84,7 +85,7 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
-     * Instantiate a vector with specified components.
+     * Instantiate a vector with the specified components.
      *
      * @param x the desired X component
      * @param y the desired Y component
@@ -97,7 +98,7 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
-     * Instantiate a vector from the specified array.
+     * Instantiate from the specified array.
      *
      * @param array the desired component values (not null, length&ge;3,
      * unaffected)
@@ -120,9 +121,21 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
+     * Instantiate from a buffer.
+     *
+     * @param buffer the desired component values (not null, unaffected,
+     * capacity&ge;3)
+     */
+    public Vec3(FloatBuffer buffer) {
+        this.x = buffer.get(0);
+        this.y = buffer.get(1);
+        this.z = buffer.get(2);
+    }
+
+    /**
      * Instantiate from a location vector.
      *
-     * @param vec the vector to copy (not null, unaffected)
+     * @param vec the vector to convert (not null, unaffected)
      */
     public Vec3(RVec3Arg vec) {
         this.x = vec.x();
@@ -142,6 +155,76 @@ final public class Vec3 implements Vec3Arg {
     }
     // *************************************************************************
     // new methods exposed
+
+    /**
+     * Add the specified offsets.
+     *
+     * @param xOffset the amount to add to the X component
+     * @param yOffset the amount to add to the Y component
+     * @param zOffset the amount to add to the Z component
+     */
+    public void addInPlace(float xOffset, float yOffset, float zOffset) {
+        this.x += xOffset;
+        this.y += yOffset;
+        this.z += zOffset;
+    }
+
+    /**
+     * Set all components to 1.
+     */
+    public void loadOne() {
+        this.x = 1f;
+        this.y = 1f;
+        this.z = 1f;
+    }
+
+    /**
+     * Set all components to 0.
+     */
+    public void loadZero() {
+        this.x = 0f;
+        this.y = 0f;
+        this.z = 0f;
+    }
+
+    /**
+     * Change the current vector to a unit vector with the same direction.
+     */
+    public void normalizeInPlace() {
+        float invLength = 1f / length();
+        this.x *= invLength;
+        this.y *= invLength;
+        this.z *= invLength;
+    }
+
+    /**
+     * Rotate the current vector by the specified quaternion.
+     *
+     * @param rotation the rotation to apply (not null, normalized, unaffected)
+     */
+    public void rotateInPlace(QuatArg rotation) {
+        assert rotation.isNormalized();
+
+        float lw = rotation.getW();
+        float lx = rotation.getX();
+        float ly = rotation.getY();
+        float lz = rotation.getZ();
+
+        float rx = x;
+        float ry = y;
+        float rz = z;
+
+        // a = lhs x pure(rhs)
+        float aw = -lx * rx - ly * ry - lz * rz;
+        float ax = lw * rx + ly * rz - lz * ry;
+        float ay = lw * ry - lx * rz + lz * rx;
+        float az = lw * rz + lx * ry - ly * rx;
+
+        // result = vec3(a x conjugate(lhs))
+        this.x = -aw * lx + ax * lw - ay * lz + az * ly;
+        this.y = -aw * ly + ax * lz + ay * lw - az * lx;
+        this.z = -aw * lz - ax * ly + ay * lx + az * lw;
+    }
 
     /**
      * Return the bitwise AND of the specified vectors.
@@ -198,6 +281,30 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
+     * Uniformly scale all 3 components.
+     *
+     * @param scale the scale factor to apply
+     */
+    public void scaleInPlace(float scale) {
+        this.x *= scale;
+        this.y *= scale;
+        this.z *= scale;
+    }
+
+    /**
+     * Separately scale each component.
+     *
+     * @param xScale the scale factor to apply to the X component
+     * @param yScale the scale factor to apply to the Y component
+     * @param zScale the scale factor to apply to the Z component
+     */
+    public void scaleInPlace(float xScale, float yScale, float zScale) {
+        this.x *= xScale;
+        this.y *= yScale;
+        this.z *= zScale;
+    }
+
+    /**
      * Set all 3 components to specified values.
      *
      * @param x the desired X component
@@ -223,30 +330,58 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
+     * Set all 3 components from the specified location vector.
+     *
+     * @param source the vector to copy (not null, unaffected)
+     */
+    public void set(RVec3Arg source) {
+        this.x = source.x();
+        this.y = source.y();
+        this.z = source.z();
+    }
+
+    /**
+     * Set all 3 components from the argument.
+     *
+     * @param source the vector to copy (not null, unaffected)
+     */
+    public void set(Vec3Arg source) {
+        this.x = source.getX();
+        this.y = source.getY();
+        this.z = source.getZ();
+    }
+
+    /**
      * Alter the first (X) component.
      *
      * @param x the desired value
+     * @return the modified vector, for chaining
      */
-    public void setX(float x) {
+    public Vec3 setX(float x) {
         this.x = x;
+        return this;
     }
 
     /**
      * Alter the 2nd (Y) component.
      *
      * @param y the desired value
+     * @return the modified vector, for chaining
      */
-    public void setY(float y) {
+    public Vec3 setY(float y) {
         this.y = y;
+        return this;
     }
 
     /**
      * Alter the 3rd (Z) component.
      *
      * @param z the desired value
+     * @return the modified vector, for chaining
      */
-    public void setZ(float z) {
+    public Vec3 setZ(float z) {
         this.z = z;
+        return this;
     }
 
     /**
@@ -314,6 +449,16 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
+     * Create a vector with all components set to one.
+     *
+     * @return a new vector
+     */
+    public static Vec3 sOne() {
+        Vec3 result = new Vec3(1, 1, 1);
+        return result;
+    }
+
+    /**
      * Copy the X component to all components.
      */
     public void splatX() {
@@ -345,7 +490,7 @@ final public class Vec3 implements Vec3Arg {
      * @param engine the generator to use (not null)
      * @return a new unit vector
      */
-    public static Vec3 sRandom(DefaultRandomEngine engine) {
+    public static Vec3 sRandom(RandomNumberEngine engine) {
         assert engine != null;
         if (distro == null) {
             distro = new UniformFloatDistribution(0f, 1f);
@@ -389,9 +534,24 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
+     * Replace any -0 elements with +0, in preparation for hashing.
+     */
+    public void standardizeInPlace() {
+        if (Float.compare(x, -0f) == 0) {
+            this.x = 0f;
+        }
+        if (Float.compare(y, -0f) == 0) {
+            this.y = 0f;
+        }
+        if (Float.compare(z, -0f) == 0) {
+            this.z = 0f;
+        }
+    }
+
+    /**
      * Return the component-wise sum of the specified vectors.
      *
-     * @param vArray an array of input vector (not null, unaffected)
+     * @param vArray an array of input vectors (not null, unaffected)
      * @return a new vector
      */
     public static Vec3 sum(Vec3Arg... vArray) {
@@ -411,10 +571,10 @@ final public class Vec3 implements Vec3Arg {
      * @return a new unit vector
      */
     public static Vec3 sUnitSpherical(float theta, float phi) {
-        float sinTheta = Std.sin(theta);
-        float vx = sinTheta * Std.cos(phi);
-        float vy = sinTheta * Std.sin(phi);
-        float vz = Std.cos(theta);
+        float sinTheta = Jolt.sin(theta);
+        float vx = sinTheta * Jolt.cos(phi);
+        float vy = sinTheta * Jolt.sin(phi);
+        float vz = Jolt.cos(theta);
         Vec3 result = new Vec3(vx, vy, vz);
 
         return result;
@@ -429,12 +589,32 @@ final public class Vec3 implements Vec3Arg {
         Vec3 result = new Vec3();
         return result;
     }
+
+    /**
+     * Transform the current vector by the specified matrix.
+     *
+     * @param matrix the transformation to apply (not null, unaffected)
+     */
+    public void transformInPlace(Mat44Arg matrix) {
+        Vec3Arg temp = matrix.multiply3x4(this); // TODO garbage
+        set(temp);
+    }
     // *************************************************************************
     // Vec3Arg methods
 
     /**
-     * Return the cross product with the specified vector. The current vector is
-     * unaffected.
+     * Return the absolute value of each component. The vector is unaffected.
+     *
+     * @return a new vector with no negative components
+     */
+    @Override
+    public Vec3 abs() {
+        Vec3 result = new Vec3(Math.abs(x), Math.abs(y), Math.abs(z));
+        return result;
+    }
+
+    /**
+     * Return the cross product with the argument. Both vectors are unaffected.
      *
      * @param rightFactor the vector to cross with the current one (not null,
      * unaffected)
@@ -455,8 +635,7 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
-     * Return the dot product with the specified vector. Both vectors are
-     * unaffected.
+     * Return the dot product with the argument. Both vectors are unaffected.
      *
      * @param factor the vector to dot with the current one (not null,
      * unaffected)
@@ -487,8 +666,7 @@ final public class Vec3 implements Vec3Arg {
             case 2:
                 return z;
             default:
-                throw new IllegalArgumentException(
-                        "index must be either 0, 1 or 2");
+                throw new IllegalArgumentException("index must be 0, 1 or 2");
         }
     }
 
@@ -501,10 +679,10 @@ final public class Vec3 implements Vec3Arg {
     @Override
     public Vec3 getNormalizedPerpendicular() {
         if (Math.abs(x) > Math.abs(y)) {
-            float len = Std.sqrt(x * x + z * z);
+            float len = (float) Math.sqrt(x * x + z * z);
             return new Vec3(z / len, 0f, -x / len);
         } else {
-            float len = Std.sqrt(y * y + z * z);
+            float len = (float) Math.sqrt(y * y + z * z);
             return new Vec3(0f, z / len, -y / len);
         }
     }
@@ -559,6 +737,20 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
+     * Test whether the vector contains infinities or NaNs. The vector is
+     * unaffected.
+     *
+     * @return {@code false} if one or more infinities or NaNs, otherwise
+     * {@code true}
+     */
+    @Override
+    public boolean isFinite() {
+        boolean result
+                = Float.isFinite(x) && Float.isFinite(y) && Float.isFinite(z);
+        return result;
+    }
+
+    /**
      * Test whether the vector contains NaNs. The vector is unaffected.
      *
      * @return {@code true} if one or more NaNs, otherwise {@code false}
@@ -570,10 +762,10 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
-     * Test whether the vector is zero to within a tolerance of 10^-12. The
-     * vector is unaffected.
+     * Test whether the squared length is within 10^-12 of zero. The vector is
+     * unaffected.
      *
-     * @return {@code true} if near zero, otherwise {@code false}
+     * @return {@code true} if nearly zero, otherwise {@code false}
      */
     @Override
     public boolean isNearZero() {
@@ -582,11 +774,11 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
-     * Test whether the vector is zero to within the specified tolerance. The
-     * vector is unaffected.
+     * Test whether the squared length is within the specified tolerance of
+     * zero. The vector is unaffected.
      *
-     * @param tolerance the desired tolerance (default=1e-12)
-     * @return {@code true} if near zero, otherwise {@code false}
+     * @param tolerance the desired tolerance (&ge;0, default=1e-12)
+     * @return {@code true} if nearly zero, otherwise {@code false}
      */
     @Override
     public boolean isNearZero(float tolerance) {
@@ -614,13 +806,35 @@ final public class Vec3 implements Vec3Arg {
      * Test whether the vector is normalized to within the specified tolerance.
      * The vector is unaffected.
      *
-     * @param tolerance the desired tolerance (default=1e-6)
+     * @param tolerance the desired tolerance (&ge;0, default=1e-6)
      * @return {@code true} if normalized, otherwise {@code false}
      */
     @Override
     public boolean isNormalized(float tolerance) {
         float lengthSq = lengthSq();
         if (Math.abs(lengthSq - 1f) <= tolerance) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Test whether the specified vector lies within the specified squared
+     * distance of this one. Both vectors are unaffected.
+     *
+     * @param v2 the vector to compare with (not null, unaffected)
+     * @param maxDistSq the maximum allowed squared distance (&ge;0)
+     * @return {@code true} if within the squared distance, otherwise
+     * {@code false}
+     */
+    @Override
+    public boolean isClose(Vec3Arg v2, float maxDistSq) {
+        double dx = v2.getX() - x;
+        double dy = v2.getY() - y;
+        double dz = v2.getX() - z;
+        double distanceSquared = dx * dx + dy * dy + dz * dz;
+        if (distanceSquared <= maxDistSq) {
             return true;
         } else {
             return false;
@@ -635,7 +849,7 @@ final public class Vec3 implements Vec3Arg {
     @Override
     public float length() {
         float lengthSq = lengthSq();
-        float result = Std.sqrt(lengthSq);
+        float result = (float) Math.sqrt(lengthSq);
 
         return result;
     }
@@ -652,8 +866,8 @@ final public class Vec3 implements Vec3Arg {
     }
 
     /**
-     * Generate a normalized vector with the same direction. The current vector
-     * is unaffected.
+     * Generate a unit vector with the same direction. The current vector is
+     * unaffected.
      *
      * @return a new vector
      */
@@ -665,8 +879,8 @@ final public class Vec3 implements Vec3Arg {
 
     /**
      * Return a copy of the argument if the length of the current vector is
-     * zero. Otherwise, generate a normalized vector with the same direction as
-     * the current vector. The current vector is unaffected.
+     * zero. Otherwise, generate a unit vector with the same direction as the
+     * current vector. The current vector is unaffected.
      *
      * @param zeroValue the value to return if the length is zero (not null,
      * unaffected)
@@ -680,7 +894,7 @@ final public class Vec3 implements Vec3Arg {
         if (lengthSq == 0f) {
             result = new Vec3(zeroValue);
         } else {
-            float length = Std.sqrt(lengthSq);
+            float length = (float) Math.sqrt(lengthSq);
             if (length == 0f) {
                 result = new Vec3(zeroValue);
             } else {
@@ -783,6 +997,33 @@ final public class Vec3 implements Vec3Arg {
         result[1] = y;
         result[2] = z;
 
+        return result;
+    }
+
+    /**
+     * Copy the components to a direct buffer. The vector is unaffected.
+     *
+     * @return a new direct buffer with capacity=3
+     */
+    @Override
+    public FloatBuffer toBuffer() {
+        FloatBuffer result = Jolt.newDirectFloatBuffer(3);
+        result.put(0, x);
+        result.put(1, y);
+        result.put(2, z);
+
+        return result;
+    }
+
+    /**
+     * Copy the components to a new location vector. The current vector is
+     * unaffected.
+     *
+     * @return a new vector
+     */
+    @Override
+    public RVec3 toRVec3() {
+        RVec3 result = new RVec3(x, y, z);
         return result;
     }
     // *************************************************************************

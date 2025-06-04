@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,15 +32,19 @@ using namespace JPH;
 
 /*
  * Class:     com_github_stephengold_joltjni_SixDofConstraintSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SixDofConstraintSettings_createCopy
+  BODYOF_CREATE_COPY(SixDOFConstraintSettings)
+
+/*
+ * Class:     com_github_stephengold_joltjni_SixDofConstraintSettings
  * Method:    createSixDofConstraintSettings
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_SixDofConstraintSettings_createSixDofConstraintSettings
-  (JNIEnv *, jclass) {
-    SixDOFConstraintSettings * const pResult = new SixDOFConstraintSettings();
-    TRACE_NEW("SixDOFConstraintSettings", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+  BODYOF_CREATE_DEFAULT(SixDOFConstraintSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_SixDofConstraintSettings

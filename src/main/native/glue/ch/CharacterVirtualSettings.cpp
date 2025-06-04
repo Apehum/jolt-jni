@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,8 @@ IMPLEMENT_REF(CharacterVirtualSettings,
   Java_com_github_stephengold_joltjni_CharacterVirtualSettingsRef_copy,
   Java_com_github_stephengold_joltjni_CharacterVirtualSettingsRef_createEmpty,
   Java_com_github_stephengold_joltjni_CharacterVirtualSettingsRef_free,
-  Java_com_github_stephengold_joltjni_CharacterVirtualSettingsRef_getPtr)
+  Java_com_github_stephengold_joltjni_CharacterVirtualSettingsRef_getPtr,
+  Java_com_github_stephengold_joltjni_CharacterVirtualSettingsRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_CharacterVirtualSettings
@@ -49,6 +50,14 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtualSett
     TRACE_NEW("CharacterVirtualSettings", pResult)
     return reinterpret_cast<jlong> (pResult);
 }
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterVirtualSettings
+ * Method:    createCopy
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_CharacterVirtualSettings_createCopy
+  BODYOF_CREATE_COPY(CharacterVirtualSettings)
 
 /*
  * Class:     com_github_stephengold_joltjni_CharacterVirtualSettings
@@ -229,6 +238,19 @@ JNIEXPORT jfloat JNICALL Java_com_github_stephengold_joltjni_CharacterVirtualSet
     const CharacterVirtualSettings * const pSettings
             = reinterpret_cast<CharacterVirtualSettings *> (settingsVa);
     const float result = pSettings->mPredictiveContactDistance;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_CharacterVirtualSettings
+ * Method:    getRefCount
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_CharacterVirtualSettings_getRefCount
+  (JNIEnv *, jclass, jlong settingsVa) {
+    const CharacterVirtualSettings * const pSettings
+            = reinterpret_cast<CharacterVirtualSettings *> (settingsVa);
+    const uint32 result = pSettings->GetRefCount();
     return result;
 }
 

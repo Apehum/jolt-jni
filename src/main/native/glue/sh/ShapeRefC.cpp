@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,11 +49,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ShapeRefC_copy
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ShapeRefC_createEmpty
-  (JNIEnv *, jclass) {
-    ShapeRefC * const pResult = new ShapeRefC();
-    TRACE_NEW("ShapeRefC", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+    BODYOF_CREATE_DEFAULT(ShapeRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_ShapeRefC
@@ -61,11 +57,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ShapeRefC_createEmpt
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ShapeRefC_free
-  (JNIEnv *, jclass, jlong refVa) {
-    ShapeRefC * const pRef = reinterpret_cast<ShapeRefC *> (refVa);
-    TRACE_DELETE("ShapeRefC", pRef)
-    delete pRef;
-}
+    BODYOF_FREE(ShapeRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_ShapeRefC

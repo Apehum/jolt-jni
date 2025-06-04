@@ -21,6 +21,8 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.readonly.ConstSkeleton;
+import com.github.stephengold.joltjni.readonly.RMat44Arg;
 import com.github.stephengold.joltjni.readonly.RVec3Arg;
 
 /**
@@ -62,6 +64,55 @@ public class SkeletonPose extends JoltPhysicsObject {
     }
 
     /**
+     * Convert the joint matrices to joint states.
+     */
+    public void calculateJointStates() {
+        long poseVa = va();
+        calculateJointStates(poseVa);
+    }
+
+    /**
+     * Calculate the joint matrices in local space.
+     *
+     * @param storeMatrices storage for the matrices (not null, modified)
+     */
+    public void calculateLocalSpaceJointMatrices(Mat44Array storeMatrices) {
+        long poseVa = va();
+        long storeMatsVa = storeMatrices.va();
+        calculateLocalSpaceJointMatrices(poseVa, storeMatsVa);
+    }
+
+    /**
+     * Draw the current pose using the specified settings and renderer. The pose
+     * is unaffected.
+     *
+     * @param settings the desired settings (not null, unaffected)
+     * @param renderer the renderer to use (not null)
+     */
+    public void draw(
+            SkeletonPoseDrawSettings settings, DebugRenderer renderer) {
+        draw(settings, renderer, RMat44.sIdentity());
+    }
+
+    /**
+     * Draw the current pose using the specified settings and renderer. The pose
+     * is unaffected.
+     *
+     * @param settings the desired settings (not null, unaffected)
+     * @param renderer the renderer to use (not null)
+     * @param transform the transform to apply (not null, unaffected,
+     * default=Identity)
+     */
+    public void draw(SkeletonPoseDrawSettings settings, DebugRenderer renderer,
+            RMat44Arg transform) {
+        long poseVa = va();
+        long settingsVa = settings.va();
+        long rendererVa = renderer.va();
+        long transformVa = transform.targetVa();
+        draw(poseVa, settingsVa, rendererVa, transformVa);
+    }
+
+    /**
      * Access the transforms of the specified joint.
      *
      * @param jointIndex the index of the joint to access
@@ -70,7 +121,73 @@ public class SkeletonPose extends JoltPhysicsObject {
     public JointState getJoint(int jointIndex) {
         long poseVa = va();
         long stateVa = getJoint(poseVa, jointIndex);
-        JointState result = new JointState(stateVa);
+        JointState result = new JointState(this, stateVa);
+
+        return result;
+    }
+
+    /**
+     * Count how many joints are in the pose.
+     *
+     * @return the count (&ge;0)
+     */
+    public int getJointCount() {
+        long poseVa = va();
+        int result = getJointCount(poseVa);
+
+        return result;
+    }
+
+    /**
+     * Access the transform matrix for the specified joint.
+     *
+     * @param jointIndex which joint (&ge;0)
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    public Mat44 getJointMatrix(int jointIndex) {
+        long poseVa = va();
+        long resultVa = getJointMatrix(poseVa, jointIndex);
+        Mat44 result = new Mat44(this, resultVa);
+
+        return result;
+    }
+
+    /**
+     * Copy the joint matrices.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    public Mat44Array getJointMatrices() {
+        long poseVa = va();
+        long resultVa = getJointMatrices(poseVa);
+        Mat44Array result = new Mat44Array(this, resultVa);
+
+        return result;
+    }
+
+    /**
+     * Copy the root offset.
+     *
+     * @return a new vector
+     */
+    public RVec3 getRootOffset() {
+        long poseVa = va();
+        double[] storeDoubles = new double[3];
+        getRootOffset(poseVa, storeDoubles);
+        RVec3 result = new RVec3(storeDoubles);
+
+        return result;
+    }
+
+    /**
+     * Access the skeleton that underlies this pose.
+     *
+     * @return a new JVM object with the pre-existing native object assigned
+     */
+    public ConstSkeleton getSkeleton() {
+        long poseVa = va();
+        long resultVa = getSkeleton(poseVa);
+        ConstSkeleton result = new Skeleton(resultVa);
 
         return result;
     }
@@ -93,9 +210,9 @@ public class SkeletonPose extends JoltPhysicsObject {
      *
      * @param skeleton the desired skeleton (not null)
      */
-    public void setSkeleton(Skeleton skeleton) {
+    public void setSkeleton(ConstSkeleton skeleton) {
         long poseVa = va();
-        long skeletonVa = skeleton.va();
+        long skeletonVa = skeleton.targetVa();
         setSkeleton(poseVa, skeletonVa);
     }
     // *************************************************************************
@@ -103,13 +220,32 @@ public class SkeletonPose extends JoltPhysicsObject {
 
     native private static void calculateJointMatrices(long poseVa);
 
+    native private static void calculateJointStates(long poseVa);
+
+    native private static void calculateLocalSpaceJointMatrices(
+            long poseVa, long storeMatsVa);
+
     native private static long createCopy(long poseVa);
 
     native private static long createSkeletonPoseDefault();
 
+    native private static void draw(
+            long poseVa, long settingsVa, long rendererVa, long transformVa);
+
     native private static void free(long poseVa);
 
     native private static long getJoint(long poseVa, int jointIndex);
+
+    native private static int getJointCount(long poseVa);
+
+    native private static long getJointMatrices(long poseVa);
+
+    native private static long getJointMatrix(long poseVa, int jointIndex);
+
+    native private static void getRootOffset(
+            long poseVa, double[] storeDoubles);
+
+    native private static long getSkeleton(long poseVa);
 
     native private static void setRootOffset(
             long poseVa, double xx, double yy, double zz);

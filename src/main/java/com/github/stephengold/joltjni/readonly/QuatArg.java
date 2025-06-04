@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,6 @@ import java.nio.FloatBuffer;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface QuatArg {
-    // *************************************************************************
-    // new methods exposed
-
     /**
      * Return the conjugate. The current object is unaffected.
      *
@@ -74,6 +71,15 @@ public interface QuatArg {
     float getZ();
 
     /**
+     * Test whether the quaternion contains infinities or NaNs. The quaternion
+     * is unaffected.
+     *
+     * @return {@code false} if one or more infinities or NaNs, otherwise
+     * {@code true}
+     */
+    boolean isFinite();
+
+    /**
      * Test whether the quaternion is normalized to within a tolerance of 10^-5.
      * The quaternion is unaffected.
      *
@@ -89,6 +95,22 @@ public interface QuatArg {
      * @return {@code true} if normalized, otherwise {@code false}
      */
     boolean isNormalized(float tolerance);
+
+    /**
+     * Test whether the quaternion represents an identity rotation. The
+     * quaternion is unaffected.
+     *
+     * @return {@code true} if the real component is a non-zero number and the
+     * imaginary components are all zero, otherwise {@code false}
+     */
+    boolean isRotationIdentity();
+
+    /**
+     * Test whether the quaternion is zero. The quaternion is unaffected.
+     *
+     * @return {@code true} if exactly zero, otherwise {@code false}
+     */
+    boolean isZero();
 
     /**
      * Return the length. The quaternion is unaffected.

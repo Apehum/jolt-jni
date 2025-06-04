@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,12 +31,20 @@ import com.github.stephengold.joltjni.template.Ref;
  */
 final public class RagdollRef extends Ref {
     // *************************************************************************
+    // fields
+
+    /**
+     * where to add the bodies and constraints (may be {@code null})
+     */
+    final private PhysicsSystem system;
+    // *************************************************************************
     // constructors
 
     /**
      * Instantiate an empty reference.
      */
     public RagdollRef() {
+        this.system = null;
         long refVa = createEmpty();
         setVirtualAddress(refVa, () -> free(refVa));
     }
@@ -46,11 +54,17 @@ final public class RagdollRef extends Ref {
      *
      * @param refVa the virtual address of the native object to assign (not
      * zero)
-     * @param owner {@code true} &rarr; make the JVM object the owner,
-     * {@code false} &rarr; it isn't the owner
+     * @param physicsSystem where to add the bodies and constraints
      */
-    RagdollRef(long refVa, boolean owner) {
-        Runnable freeingAction = owner ? () -> free(refVa) : null;
+    RagdollRef(long refVa, PhysicsSystem physicsSystem) {
+        this.system = physicsSystem;
+        Runnable freeingAction = () -> freeWithSystem(refVa, physicsSystem);
+        /*
+         * Passing physicsSystem to the Runnable ensures that the underlying
+         * system won't get cleaned before the ragdoll.
+         *
+         * See JoltPhysics issue #1428 for more information.
+         */
         setVirtualAddress(refVa, freeingAction);
     }
     // *************************************************************************
@@ -60,7 +74,7 @@ final public class RagdollRef extends Ref {
      * Add bodies and constraints to the physics system and optionally activate
      * the bodies.
      *
-     * @param activation whether to activate bodies (not null)
+     * @param activation whether to activate bodies (not {@code null})
      */
     public void addToPhysicsSystem(EActivation activation) {
         long ragdollVa = targetVa();
@@ -69,14 +83,138 @@ final public class RagdollRef extends Ref {
     }
 
     /**
+     * Drive the ragdoll to the specified pose by setting velocities.
+     *
+     * @param pose the desired pose
+     * @param time time to achieve the pose (in seconds)
+     */
+    public void driveToPoseUsingKinematics(SkeletonPose pose, float time) {
+        driveToPoseUsingKinematics(pose, time, true);
+    }
+
+    /**
+     * Drive the ragdoll to the specified pose by setting velocities.
+     *
+     * @param pose the desired pose
+     * @param time time to achieve the pose (in seconds)
+     * @param lockBodies (default=true)
+     */
+    public void driveToPoseUsingKinematics(
+            SkeletonPose pose, float time, boolean lockBodies) {
+        long ragdollVa = targetVa();
+        long poseVa = pose.va();
+        Ragdoll.driveToPoseUsingKinematics(ragdollVa, poseVa, time, lockBodies);
+    }
+
+    /**
      * Drive the ragdoll to the specified pose using motors.
      *
-     * @param pose the desired pose (not null, unaffected)
+     * @param pose the desired pose (not {@code null}, unaffected)
      */
     public void driveToPoseUsingMotors(SkeletonPose pose) {
         long ragdollVa = targetVa();
         long poseVa = pose.va();
         Ragdoll.driveToPoseUsingMotors(ragdollVa, poseVa);
+    }
+
+    /**
+     * Count how many bodies are in the ragdoll, which is unaffected
+     *
+     * @return the count (&ge;0)
+     */
+    public int getBodyCount() {
+        long ragdollVa = targetVa();
+        int result = Ragdoll.getBodyCount(ragdollVa);
+
+        return result;
+    }
+
+    /**
+     * Enumerate all bodies in the ragdoll, which is unaffected. (native method:
+     * GetBodyIDs)
+     *
+     * @return a new array of body IDs
+     */
+    public int[] getBodyIds() {
+        long ragdollVa = targetVa();
+        int numBodies = Ragdoll.getBodyCount(ragdollVa);
+        int[] storeIds = new int[numBodies];
+        Ragdoll.getBodyIds(ragdollVa, storeIds);
+
+        return storeIds;
+    }
+
+    /**
+     * Count how many constraints are in the ragdoll, which is unaffected.
+     *
+     * @return the count (&ge;0)
+     */
+    public int getConstraintCount() {
+        long ragdollVa = targetVa();
+        int result = Ragdoll.getConstraintCount(ragdollVa);
+
+        return result;
+    }
+
+    /**
+     * Copy the low-level pose using a locking body interface.
+     *
+     * @param storeRootOffset storage for the root offset (not null, modified)
+     * @param storeJointMatrices storage for the joint matrices (not null,
+     * modified)
+     */
+    public void getPose(RVec3 storeRootOffset, Mat44Array storeJointMatrices) {
+        getPose(storeRootOffset, storeJointMatrices, true);
+    }
+
+    /**
+     * Copy the low-level pose.
+     *
+     * @param storeRootOffset storage for the root offset (not null, modified)
+     * @param storeJointMatrices storage for the joint matrices (not null,
+     * modified)
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * {@code false} &rarr; use the non-locking body interface (default=true)
+     */
+    public void getPose(RVec3 storeRootOffset, Mat44Array storeJointMatrices,
+            boolean lockBodies) {
+        long ragdollVa = targetVa();
+        double[] storeDoubles = new double[3];
+        long storeMatsVa = storeJointMatrices.va();
+        Ragdoll.getPose(ragdollVa, storeDoubles, storeMatsVa, lockBodies);
+        storeRootOffset.set(storeDoubles);
+    }
+
+    /**
+     * Copy the transform of the ragdoll's root, using the locking body
+     * interface. The ragdoll is unaffected.
+     *
+     * @param storeLocation storage for the root location (not null, modified)
+     * @param storeOrientation storage for the root orientation (not null,
+     * modified)
+     */
+    public void getRootTransform(RVec3 storeLocation, Quat storeOrientation) {
+        getRootTransform(storeLocation, storeOrientation, true);
+    }
+
+    /**
+     * Copy the transform of the ragdoll's root. The ragdoll is unaffected.
+     *
+     * @param storeLocation storage for the root location (not null, modified)
+     * @param storeOrientation storage for the root orientation (not null,
+     * modified)
+     * @param lockBodies {@code true} &rarr; use the locking body interface,
+     * {@code false} &rarr; use the non-locking body interface (default=true)
+     */
+    public void getRootTransform(
+            RVec3 storeLocation, Quat storeOrientation, boolean lockBodies) {
+        long ragdollVa = targetVa();
+        double[] storeDoubles = new double[3];
+        float[] storeFloats = new float[4];
+        Ragdoll.getRootTransform(
+                ragdollVa, storeDoubles, storeFloats, lockBodies);
+        storeLocation.set(storeDoubles);
+        storeOrientation.set(storeFloats);
     }
 
     /**
@@ -119,7 +257,7 @@ final public class RagdollRef extends Ref {
     @Override
     public Ragdoll getPtr() {
         long ragdollVa = targetVa();
-        Ragdoll result = new Ragdoll(ragdollVa);
+        Ragdoll result = new Ragdoll(ragdollVa, system);
 
         return result;
     }
@@ -147,7 +285,7 @@ final public class RagdollRef extends Ref {
     public RagdollRef toRef() {
         long refVa = va();
         long copyVa = copy(refVa);
-        RagdollRef result = new RagdollRef(copyVa, true);
+        RagdollRef result = new RagdollRef(copyVa, system);
 
         return result;
     }
@@ -159,6 +297,8 @@ final public class RagdollRef extends Ref {
     native private static long createEmpty();
 
     native private static void free(long refVa);
+
+    native private static void freeWithSystem(long refVa, PhysicsSystem unused);
 
     native private static long getPtr(long refVa);
 }

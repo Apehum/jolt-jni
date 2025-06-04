@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,11 +35,7 @@ using namespace std;
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_std_StringStream_createDefault
-  (JNIEnv *, jclass) {
-    stringstream * const pResult = new stringstream();
-    TRACE_NEW("stringstream", pResult)
-    return reinterpret_cast<jlong> (pResult);
-}
+    BODYOF_CREATE_DEFAULT(stringstream)
 
 /*
  * Class:     com_github_stephengold_joltjni_std_StringStream
@@ -47,12 +43,20 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_std_StringStream_cre
  * Signature: (Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_std_StringStream_createFromString
-  (JNIEnv *pEnv, jclass, jstring string) {
+  (JNIEnv *pEnv, jclass, jstring javaString) {
     jboolean isCopy;
-    const char * const cString = pEnv->GetStringUTFChars(string, &isCopy);
-    stringstream * const pResult = new stringstream(cString);
+    // javaString may contain '\0', so don't use GetStringUTFChars() !
+    const jchar * const pTmpUcs2 = pEnv->GetStringChars(javaString, &isCopy);
+    const jsize len = pEnv->GetStringLength(javaString);
+    char * const pBuffer = new char[len];
+    for (int i = 0; i < len; ++i) {
+        pBuffer[i] = pTmpUcs2[i];
+    }
+    pEnv->ReleaseStringChars(javaString, pTmpUcs2);
+    const string cppString(pBuffer, len);
+    delete[] pBuffer;
+    stringstream * const pResult = new stringstream(cppString);
     TRACE_NEW("stringstream", pResult)
-    pEnv->ReleaseStringUTFChars(string, cString);
     return reinterpret_cast<jlong> (pResult);
 }
 
@@ -62,11 +66,7 @@ JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_std_StringStream_cre
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_std_StringStream_free
-  (JNIEnv *, jclass, jlong streamVa) {
-    stringstream * const pStream = reinterpret_cast<stringstream *> (streamVa);
-    TRACE_DELETE("stringstream", pStream)
-    delete pStream;
-}
+    BODYOF_FREE(stringstream)
 
 /*
  * Class:     com_github_stephengold_joltjni_std_StringStream
@@ -78,7 +78,37 @@ JNIEXPORT jstring JNICALL Java_com_github_stephengold_joltjni_std_StringStream_s
     const stringstream * const pStream
             = reinterpret_cast<stringstream *> (streamVa);
     const string cppString = pStream->str();
-    const char * const cString = cppString.c_str();
-    jstring result = pEnv->NewStringUTF(cString);
+    const jsize len = cppString.size();
+    // cppString may contain '\0', so don't use cppString.c_str() !
+    jchar * const pTmpUcs2 = new jchar[len];
+    for (int i = 0; i < len; ++i) {
+        pTmpUcs2[i] = cppString[i];
+    }
+    jstring result = pEnv->NewString(pTmpUcs2, len);
+    delete[] pTmpUcs2;
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_std_StringStream
+ * Method:    tellg
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_std_StringStream_tellg
+  (JNIEnv *, jclass, jlong streamVa) {
+    stringstream * const pStream = reinterpret_cast<stringstream *> (streamVa);
+    stringstream::pos_type result = pStream->tellg();
+    return result;
+}
+
+/*
+ * Class:     com_github_stephengold_joltjni_std_StringStream
+ * Method:    tellp
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_std_StringStream_tellp
+  (JNIEnv *, jclass, jlong streamVa) {
+    stringstream * const pStream = reinterpret_cast<stringstream *> (streamVa);
+    stringstream::pos_type result = pStream->tellp();
     return result;
 }

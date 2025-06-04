@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,15 @@ public class MeshShapeSettings extends ShapeSettings {
     // constructors
 
     /**
+     * Instantiate the default settings.
+     */
+    public MeshShapeSettings() {
+        long settingsVa = createDefault();
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Mesh);
+    }
+
+    /**
      * Instantiate with the specified native object assigned but not owned.
      *
      * @param settingsVa the virtual address of the native object to assign (not
@@ -61,7 +70,7 @@ public class MeshShapeSettings extends ShapeSettings {
         long indicesVa = indices.va();
         long settingsVa
                 = createMeshShapeSettings(numVertices, vBuffer, indicesVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.Mesh);
     }
 
@@ -86,7 +95,39 @@ public class MeshShapeSettings extends ShapeSettings {
         long indicesVa = itList.va();
         long settingsVa
                 = createMeshShapeSettings(numVertices, vBuffer, indicesVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Mesh);
+    }
+
+    /**
+     * Instantiate settings for the specified vertices without indices.
+     *
+     * @param positionBuffer the vertex positions (not null, capacity a multiple
+     * of 9, unaffected)
+     */
+    public MeshShapeSettings(FloatBuffer positionBuffer) {
+        int numFloats = positionBuffer.capacity();
+        assert numFloats % 9 == 0 : "numFloats = " + numFloats;
+        int numVertices = numFloats / 3;
+        int numTriangles = numVertices / 3;
+
+        PhysicsMaterialList materials = new PhysicsMaterialList();
+        long materialsVa = materials.va();
+        long settingsVa = createSettingsFromTriangles(
+                numTriangles, positionBuffer, materialsVa);
+        setVirtualAddress(settingsVa); // not owner due to ref counting
+        setSubType(EShapeSubType.Mesh);
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public MeshShapeSettings(MeshShapeSettings original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
         setSubType(EShapeSubType.Mesh);
     }
 
@@ -107,7 +148,7 @@ public class MeshShapeSettings extends ShapeSettings {
         long indicesVa = indices.va();
         long settingsVa
                 = createMeshShapeSettings(numVertices, vBuffer, indicesVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.Mesh);
     }
 
@@ -138,7 +179,7 @@ public class MeshShapeSettings extends ShapeSettings {
         long materialsVa = materials.va();
         long settingsVa = createSettingsFromTriangles(
                 numTriangles, buffer, materialsVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.Mesh);
     }
 
@@ -154,7 +195,7 @@ public class MeshShapeSettings extends ShapeSettings {
         long indicesVa = indices.va();
         long settingsVa
                 = createMeshShapeSettings(numVertices, buffer, indicesVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.Mesh);
     }
 
@@ -185,7 +226,7 @@ public class MeshShapeSettings extends ShapeSettings {
         long materialsVa = materials.va();
         long settingsVa = createSettingsFromTriangles(
                 numTriangles, buffer, materialsVa);
-        setVirtualAddress(settingsVa, null); // not owner due to ref counting
+        setVirtualAddress(settingsVa); // not owner due to ref counting
         setSubType(EShapeSubType.Mesh);
     }
     // *************************************************************************
@@ -338,6 +379,10 @@ public class MeshShapeSettings extends ShapeSettings {
 
     native private static void addTriangleVertex(
             long settingsVa, float x, float y, float z);
+
+    native private static long createCopy(long originalVa);
+
+    native private static long createDefault();
 
     native private static long createMeshShapeSettings(
             int numVertices, FloatBuffer vertices, long indicesVa);

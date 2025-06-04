@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -118,7 +118,7 @@ public class Test007 {
      * Test the {@code BoxShape} class.
      */
     private static void doBoxShape() {
-        BoxShapeSettings settings = new BoxShapeSettings(new Vec3(1f, 1f, 1f));
+        BoxShapeSettings settings = new BoxShapeSettings(1f, 1f, 1f);
         ShapeResult result = settings.create();
         Assert.assertFalse(result.hasError());
         Assert.assertTrue(result.isValid());
@@ -225,9 +225,9 @@ public class Test007 {
         TestUtils.assertEquals(0f, 0f, 0f, shape.getCenterOfMass(), 0f);
         Assert.assertEquals(0f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.Empty, shape.getSubType());
         Assert.assertEquals(EShapeType.Empty, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
 
         TestUtils.testClose(shape, ref, result, settings);
@@ -340,9 +340,9 @@ public class Test007 {
         Assert.assertEquals(Float.MAX_VALUE, shape.getInnerRadius(), 0f);
         Assert.assertEquals(0, shape.getNumSubShapes());
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.MutableCompound, shape.getSubType());
         Assert.assertEquals(EShapeType.Compound, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
 
         TestUtils.testClose(shape, ref, result, settings);
@@ -390,9 +390,9 @@ public class Test007 {
         TestUtils.assertEquals(0f, 0f, 0f, shape.getCenterOfMass(), 0f);
         Assert.assertEquals(0f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.Plane, shape.getSubType());
         Assert.assertEquals(EShapeType.Plane, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertTrue(shape.mustBeStatic());
 
         TestUtils.testClose(shape, result, settings);
@@ -416,12 +416,12 @@ public class Test007 {
         TestUtils.assertEquals(1f, 0f, 0f, shape.getCenterOfMass(), 0f);
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(
                 EShapeSubType.RotatedTranslated, shape.getSubType());
         Assert.assertEquals(EShapeType.Decorated, shape.getType());
         TestUtils.assertEquals(1f, 0f, 0f, shape.getPosition(), 0f);
         TestUtils.assertEquals(0f, 0f, 0f, 1f, shape.getRotation(), 0f);
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
 
         TestUtils.testClose(shape, ref, result, settings, baseShapeRef);
@@ -444,10 +444,10 @@ public class Test007 {
         TestUtils.assertEquals(0f, 0f, 0f, shape.getCenterOfMass(), 0f);
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         TestUtils.assertEquals(1f, 1f, 1f, shape.getScale(), 0f);
         Assert.assertEquals(EShapeSubType.Scaled, shape.getSubType());
         Assert.assertEquals(EShapeType.Decorated, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
 
         TestUtils.testClose(shape, ref, result, settings, baseShapeRef);
@@ -494,9 +494,9 @@ public class Test007 {
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(2, shape.getNumSubShapes());
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.StaticCompound, shape.getSubType());
         Assert.assertEquals(EShapeType.Compound, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
 
         TestUtils.testClose(shape, ref, result, settings1, settings);
@@ -520,10 +520,10 @@ public class Test007 {
         Assert.assertEquals(1f, shape.getHalfHeight(), 0f);
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.TaperedCapsule, shape.getSubType());
         Assert.assertEquals(2f, shape.getTopRadius(), 0f);
         Assert.assertEquals(EShapeType.Convex, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
 
         TestUtils.testClose(shape, ref, result, settings);
@@ -549,10 +549,10 @@ public class Test007 {
         Assert.assertEquals(1f, shape.getHalfHeight(), 0f);
         Assert.assertEquals(0.05f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.TaperedCylinder, shape.getSubType());
         Assert.assertEquals(0.05f, shape.getTopRadius(), 0f);
         Assert.assertEquals(EShapeType.Convex, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
 
         TestUtils.testClose(shape, ref, result, settings);
@@ -569,9 +569,9 @@ public class Test007 {
         Assert.assertEquals(0.05f, shape.getConvexRadius(), 0f);
         TestUtils.assertEquals(1f, 1f, 1f, shape.getHalfExtent(), 0f);
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.Box, shape.getSubType());
         Assert.assertEquals(EShapeType.Convex, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
     }
 
@@ -585,9 +585,9 @@ public class Test007 {
         Assert.assertEquals(1f, shape.getHalfHeightOfCylinder(), 0f);
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(1f, shape.getRadius(), 0f);
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.Capsule, shape.getSubType());
         Assert.assertEquals(EShapeType.Convex, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
     }
 
@@ -606,9 +606,9 @@ public class Test007 {
         Assert.assertEquals(3, shape.getNumVerticesInFace(3));
         TestUtils.assertEquals(-3f, 3f, -3f, shape.getPoint(1), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.ConvexHull, shape.getSubType());
         Assert.assertEquals(EShapeType.Convex, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
     }
 
@@ -623,9 +623,9 @@ public class Test007 {
         Assert.assertEquals(1f, shape.getHalfHeight(), 0f);
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(1f, shape.getRadius(), 0f);
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.Cylinder, shape.getSubType());
         Assert.assertEquals(EShapeType.Convex, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
     }
 
@@ -640,9 +640,9 @@ public class Test007 {
         Assert.assertEquals(0f, shape.getInnerRadius(), 0f);
         TestUtils.assertEquals(3f, 0f, 3f, shape.getPosition(3, 3), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.HeightField, shape.getSubType());
         Assert.assertEquals(EShapeType.HeightField, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.isNoCollision(3, 3));
         Assert.assertTrue(shape.mustBeStatic());
     }
@@ -656,9 +656,9 @@ public class Test007 {
         TestUtils.assertEquals(0f, 0f, 0f, shape.getCenterOfMass(), 0f);
         Assert.assertEquals(0f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(3, shape.getRefCount());
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.Mesh, shape.getSubType());
         Assert.assertEquals(EShapeType.Mesh, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertTrue(shape.mustBeStatic());
     }
 
@@ -674,10 +674,10 @@ public class Test007 {
         TestUtils.assertEquals(1f, 0f, 0f, shape.getCenterOfMass(), 0f);
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
         TestUtils.assertEquals(1f, 0f, 0f, shape.getOffset(), 0f);
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(
                 EShapeSubType.OffsetCenterOfMass, shape.getSubType());
         Assert.assertEquals(EShapeType.Decorated, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
     }
 
@@ -690,9 +690,9 @@ public class Test007 {
         TestUtils.assertEquals(0f, 0f, 0f, shape.getCenterOfMass(), 0f);
         Assert.assertEquals(1f, shape.getInnerRadius(), 0f);
         Assert.assertEquals(1f, shape.getRadius(), 0f);
+        Assert.assertEquals(0L, shape.getRevisionCount());
         Assert.assertEquals(EShapeSubType.Sphere, shape.getSubType());
         Assert.assertEquals(EShapeType.Convex, shape.getType());
-        Assert.assertEquals(0L, shape.getUserData());
         Assert.assertFalse(shape.mustBeStatic());
     }
 }

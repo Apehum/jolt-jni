@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,10 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni.readonly;
 
+import com.github.stephengold.joltjni.Color;
+import com.github.stephengold.joltjni.PhysicsMaterialRefC;
+import com.github.stephengold.joltjni.StreamOut;
+
 /**
  * Read-only access to a {@code PhysicsMaterial}. (native type: const
  * PhysicsMaterial)
@@ -28,13 +32,32 @@ package com.github.stephengold.joltjni.readonly;
  * @author Stephen Gold sgold@sonic.net
  */
 public interface ConstPhysicsMaterial extends ConstJoltPhysicsObject {
-    // *************************************************************************
-    // new methods exposed
+    /**
+     * Copy the debug color. The material is unaffected.
+     *
+     * @return a new object
+     */
+    Color getDebugColor();
 
     /**
      * Return the debug name. The material is unaffected.
      *
-     * @return a string of text or null
+     * @return a string of text or {@code null}
      */
     String getDebugName();
+
+    /**
+     * Save the material to the specified binary stream. The material is
+     * unaffected.
+     *
+     * @param stream the stream to write to (not null)
+     */
+    void saveBinaryState(StreamOut stream);
+
+    /**
+     * Create a counted reference to the native {@code PhysicsMaterial}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
+    PhysicsMaterialRefC toRefC();
 }

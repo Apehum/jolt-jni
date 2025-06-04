@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@ import com.github.stephengold.joltjni.BodyActivationListener;
 import com.github.stephengold.joltjni.BodyCreationSettings;
 import com.github.stephengold.joltjni.BodyInterface;
 import com.github.stephengold.joltjni.BoxShapeSettings;
+import com.github.stephengold.joltjni.BroadPhaseLayerInterface;
+import com.github.stephengold.joltjni.BroadPhaseLayerInterfaceTable;
 import com.github.stephengold.joltjni.CollideShapeResult;
 import com.github.stephengold.joltjni.ContactListener;
 import com.github.stephengold.joltjni.ContactManifold;
@@ -34,9 +36,10 @@ import com.github.stephengold.joltjni.CustomBodyActivationListener;
 import com.github.stephengold.joltjni.CustomContactListener;
 import com.github.stephengold.joltjni.JobSystem;
 import com.github.stephengold.joltjni.JobSystemThreadPool;
-import com.github.stephengold.joltjni.MapObj2Bp;
+import com.github.stephengold.joltjni.Jolt;
 import com.github.stephengold.joltjni.ObjVsBpFilter;
-import com.github.stephengold.joltjni.ObjVsObjFilter;
+import com.github.stephengold.joltjni.ObjectLayerPairFilter;
+import com.github.stephengold.joltjni.ObjectLayerPairFilterTable;
 import com.github.stephengold.joltjni.PhysicsSystem;
 import com.github.stephengold.joltjni.Quat;
 import com.github.stephengold.joltjni.RVec3;
@@ -55,7 +58,6 @@ import com.github.stephengold.joltjni.enumerate.EShapeSubType;
 import com.github.stephengold.joltjni.enumerate.EShapeType;
 import com.github.stephengold.joltjni.enumerate.ValidateResult;
 import com.github.stephengold.joltjni.readonly.ConstBody;
-import com.github.stephengold.joltjni.readonly.ConstBodyId;
 import com.github.stephengold.joltjni.readonly.ConstContactManifold;
 import com.github.stephengold.joltjni.readonly.ConstSubShapeIdPair;
 import org.junit.Assert;
@@ -63,7 +65,9 @@ import org.junit.Test;
 import testjoltjni.TestUtils;
 
 /**
- * Automated JUnit4 tests for jolt-jni.
+ * An automated JUnit4 test based on HelloWorld.
+ * <p>
+ * Derived from HelloWorld.cpp by Jorrit Rouwe.
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -76,26 +80,25 @@ public class Test001 {
      */
     final private static class TestBodyActivationListener
             extends CustomBodyActivationListener {
-
         /**
          * Callback invoked (by native code) each time a body is activated.
          *
-         * @param idVa the virtual address of the body's ID (not zero)
+         * @param bodyId the body's ID
          * @param bodyUserData the body's user data
          */
         @Override
-        public void onBodyActivated(long idVa, long bodyUserData) {
+        public void onBodyActivated(int bodyId, long bodyUserData) {
             System.out.println("A body got activated");
         }
 
         /**
          * Callback invoked (by native code) each time a body is deactivated.
          *
-         * @param idVa the virtual address of the body's ID (not zero)
+         * @param bodyId the body's ID
          * @param bodyUserData the body's user data
          */
         @Override
-        public void onBodyDeactivated(long idVa, long bodyUserData) {
+        public void onBodyDeactivated(int bodyId, long bodyUserData) {
             System.out.println("A body went to sleep");
         }
     }
@@ -105,7 +108,6 @@ public class Test001 {
      */
     final private static class TestContactListener
             extends CustomContactListener {
-
         /**
          * Callback invoked (by native code) each time a new contact point is
          * detected.
@@ -162,10 +164,10 @@ public class Test001 {
         @Override
         public void onContactRemoved(long pairVa) {
             ConstSubShapeIdPair pair = new SubShapeIdPair(pairVa);
-            ConstBodyId bodyId1 = pair.getBody1Id();
-            ConstBodyId bodyId2 = pair.getBody2Id();
+            int bodyId1 = pair.getBody1Id();
+            int bodyId2 = pair.getBody2Id();
             Assert.assertNotEquals(bodyId1, bodyId2);
-            TestUtils.testClose(pair, bodyId1, bodyId2);
+            TestUtils.testClose(pair);
 
             System.out.println("A contact was removed");
         }
@@ -205,8 +207,6 @@ public class Test001 {
 
     /**
      * Drop a dynamic spherical ball onto a static box.
-     * <p>
-     * Derived from HelloWorld.cpp by Jorrit Rouwe.
      */
     @Test
     public void test001() {
@@ -223,16 +223,21 @@ public class Test001 {
         final int bpLayerMoving = 1;
         final int numBpLayers = 2;
 
-        MapObj2Bp mapObj2Bp = new MapObj2Bp(numObjLayers, numBpLayers)
-                .add(objLayerNonMoving, bpLayerNonMoving)
-                .add(objLayerMoving, bpLayerMoving);
+        BroadPhaseLayerInterface mapObj2Bp
+                = new BroadPhaseLayerInterfaceTable(numObjLayers, numBpLayers)
+                        .mapObjectToBroadPhaseLayer(
+                                objLayerNonMoving, bpLayerNonMoving)
+                        .mapObjectToBroadPhaseLayer(
+                                objLayerMoving, bpLayerMoving);
 
         ObjVsBpFilter objVsBpFilter
                 = new ObjVsBpFilter(numObjLayers, numBpLayers)
                         .disablePair(objLayerNonMoving, bpLayerNonMoving);
 
-        ObjVsObjFilter objVsObjFilter = new ObjVsObjFilter(numObjLayers)
-                .disablePair(objLayerNonMoving, objLayerNonMoving);
+        ObjectLayerPairFilter objVsObjFilter
+                = new ObjectLayerPairFilterTable(numObjLayers)
+                        .enableCollision(objLayerMoving, objLayerMoving)
+                        .enableCollision(objLayerMoving, objLayerNonMoving);
 
         final int maxBodies = 4;
         final int numBodyMutexes = 0; // 0 means "use the default value"
@@ -252,7 +257,7 @@ public class Test001 {
         BodyInterface bodyInterface = physicsSystem.getBodyInterface();
 
         BoxShapeSettings floorShapeSettings
-                = new BoxShapeSettings(new Vec3(100f, 1f, 100f));
+                = new BoxShapeSettings(100f, 1f, 100f);
         ShapeResult floorShapeResult = floorShapeSettings.create();
         Assert.assertFalse(floorShapeResult.hasError());
         Assert.assertTrue(floorShapeResult.isValid());
@@ -265,8 +270,8 @@ public class Test001 {
                         orientation, EMotionType.Static, objLayerNonMoving);
         Body floor = bodyInterface.createBody(floorBodySettings);
         Assert.assertFalse(floor.ownsNativeObject());
-        ConstBodyId floorId = floor.getId();
-        Assert.assertFalse(floorId.isInvalid());
+        int floorId = floor.getId();
+        Assert.assertNotEquals(Jolt.cInvalidBodyId, floorId);
         bodyInterface.addBody(floorId, EActivation.DontActivate);
 
         Shape ballShape = new SphereShape(0.5f);
@@ -278,9 +283,9 @@ public class Test001 {
         BodyCreationSettings ballSettings = new BodyCreationSettings(
                 ballShape, ballLocation, orientation,
                 EMotionType.Dynamic, objLayerMoving);
-        ConstBodyId ballId = bodyInterface.createAndAddBody(
+        int ballId = bodyInterface.createAndAddBody(
                 ballSettings, EActivation.Activate);
-        Assert.assertFalse(ballId.isInvalid());
+        Assert.assertNotEquals(Jolt.cInvalidBodyId, ballId);
         Vec3 ballVelocity = new Vec3(0f, -5f, 0f);
         bodyInterface.setLinearVelocity(ballId, ballVelocity);
 
@@ -318,13 +323,11 @@ public class Test001 {
         Assert.assertEquals(2, ballShape.getRefCount());
         bodyInterface.destroyBody(ballId);
         Assert.assertEquals(1, ballShape.getRefCount());
-        TestUtils.testClose(ballId);
-        Assert.assertEquals(1, ballShape.getRefCount());
         TestUtils.testClose(ballSettings, ballShape);
 
         bodyInterface.removeBody(floorId);
         bodyInterface.destroyBody(floorId);
-        TestUtils.testClose(floorId, floor, floorBodySettings, floorShapeRef,
+        TestUtils.testClose(floor, floorBodySettings, floorShapeRef,
                 floorShapeResult, floorShapeSettings);
 
         TestUtils.testClose(bodyInterface, physicsSystem, objVsObjFilter,

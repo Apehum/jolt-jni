@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,11 +48,7 @@ JNIEXPORT jint JNICALL Java_com_github_stephengold_joltjni_ShapeList_capacity
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_github_stephengold_joltjni_ShapeList_createEmpty
-  (JNIEnv *, jclass) {
-    ShapeList * const pList = new ShapeList();
-    TRACE_NEW("ShapeList", pList)
-    return reinterpret_cast<jlong> (pList);
-}
+    BODYOF_CREATE_DEFAULT(ShapeList)
 
 /*
  * Class:     com_github_stephengold_joltjni_ShapeList
@@ -72,11 +68,7 @@ JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ShapeList_erase
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_github_stephengold_joltjni_ShapeList_free
-  (JNIEnv *, jclass, jlong listVa) {
-    ShapeList * const pList = reinterpret_cast<ShapeList *> (listVa);
-    TRACE_DELETE("ShapeList", pList)
-    delete pList;
-}
+    BODYOF_FREE(ShapeList)
 
 /*
  * Class:     com_github_stephengold_joltjni_ShapeList

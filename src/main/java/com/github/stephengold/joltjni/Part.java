@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,11 @@ SOFTWARE.
  */
 package com.github.stephengold.joltjni;
 
+import com.github.stephengold.joltjni.enumerate.EConstraintSubType;
+
 /**
  * Settings used to generate a rigid body in a {@code Ragdoll}. (native type:
- * RagdollSettings::Part)
+ * {@code RagdollSettings::Part})
  *
  * @author Stephen Gold sgold@sonic.net
  */
@@ -41,6 +43,17 @@ public class Part extends BodyCreationSettings {
     Part(JoltPhysicsObject container, long partVa) {
         super(container, partVa);
     }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public Part(Part original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa, true);
+    }
     // *************************************************************************
     // new methods exposed
 
@@ -48,11 +61,13 @@ public class Part extends BodyCreationSettings {
      * Return the settings to create the joint to the part's parent. The part is
      * unaffected. (native attribute: mToParent)
      *
-     * @return a new JVM with the pre-exising native object assigned
+     * @param subType the expected type of constraint (not null)
+     * @return a new JVM with the pre-existing native object assigned
      */
-    public ConstraintSettings getToParent() {
+    public ConstraintSettings getToParent(EConstraintSubType subType) {
         long partVa = va();
-        long settingsVa = getToParent(partVa);
+        int ordinal = subType.ordinal();
+        long settingsVa = getToParent(partVa, ordinal);
         ConstraintSettings result
                 = ConstraintSettings.newConstraintSettings(settingsVa);
 
@@ -73,7 +88,9 @@ public class Part extends BodyCreationSettings {
     // *************************************************************************
     // native private methods
 
-    native private static long getToParent(long partVa);
+    native private static long createCopy(long originalVa);
+
+    native private static long getToParent(long partVa, int ordinal);
 
     native private static void setToParent(long partVa, long settingsVa);
 }

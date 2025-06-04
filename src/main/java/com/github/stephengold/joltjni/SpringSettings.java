@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ SOFTWARE.
 package com.github.stephengold.joltjni;
 
 import com.github.stephengold.joltjni.enumerate.ESpringMode;
+import com.github.stephengold.joltjni.readonly.ConstSpringSettings;
 import com.github.stephengold.joltjni.template.Ref;
 import com.github.stephengold.joltjni.template.RefTarget;
 
@@ -30,9 +31,30 @@ import com.github.stephengold.joltjni.template.RefTarget;
  *
  * @author Stephen Gold sgold@sonic.net
  */
-final public class SpringSettings extends JoltPhysicsObject {
+final public class SpringSettings
+        extends JoltPhysicsObject
+        implements ConstSpringSettings {
     // *************************************************************************
     // constructors
+
+    /**
+     * Instantiate default settings.
+     */
+    public SpringSettings() {
+        long settingsVa = createDefault();
+        setVirtualAddress(settingsVa, () -> free(settingsVa));
+    }
+
+    /**
+     * Instantiate a copy of the specified settings.
+     *
+     * @param original the settings to copy (not {@code null}, unaffected)
+     */
+    public SpringSettings(ConstSpringSettings original) {
+        long originalVa = original.targetVa();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+    }
 
     /**
      * Instantiate settings with the specified native object assigned but not
@@ -49,10 +71,96 @@ final public class SpringSettings extends JoltPhysicsObject {
     // new methods exposed
 
     /**
+     * Load settings from the specified binary stream.
+     *
+     * @param stream the stream to read from (not null)
+     */
+    public void restoreBinaryState(StreamIn stream) {
+        long settingsVa = va();
+        long streamVa = stream.va();
+        restoreBinaryState(settingsVa, streamVa);
+    }
+
+    /**
+     * Alter the spring's damping. (native attribute: mDamping)
+     * <p>
+     * When the mode is FrequencyAndDamping, this is the damping ratio (0 = no
+     * damping, 1 = critical damping). When the mode is StiffnessAndDamping,
+     * this is the damping coefficient {@code c} in the spring equation:
+     * {@code F = -k * x - c * v} for a linear spring or
+     * {@code T = -k * theta - c * w} for an angular spring.
+     *
+     * @param damping the desired damping (default=0)
+     * @return the modified settings, for chaining
+     */
+    public SpringSettings setDamping(float damping) {
+        long settingsVa = va();
+        setDamping(settingsVa, damping);
+
+        return this;
+    }
+
+    /**
+     * Alter the spring's frequency. (native attribute: mFrequency)
+     * <p>
+     * Effective only when the mode is FrequencyAndDamping. If positive, the
+     * constraint will have soft limits, and mFrequency specifies the
+     * oscillation frequency in Hz. Otherwise, the constraint will have hard
+     * limits.
+     *
+     * @param frequency the desired frequency (default=0)
+     * @return the modified settings, for chaining
+     */
+    public SpringSettings setFrequency(float frequency) {
+        long settingsVa = va();
+        setFrequency(settingsVa, frequency);
+
+        return this;
+    }
+
+    /**
+     * Alter how the spring is specified. (native attribute: mMode)
+     *
+     * @param mode the desired mode (not null, default=FrequencyAndDamping)
+     * @return the modified settings, for chaining
+     */
+    public SpringSettings setMode(ESpringMode mode) {
+        long settingsVa = va();
+        int ordinal = mode.ordinal();
+        setMode(settingsVa, ordinal);
+
+        return this;
+    }
+
+    /**
+     * Alter the stiffness of the spring. (native attribute: mStiffness)
+     * <p>
+     * Effective only when the mode is StiffnessAndDamping. If positive, the
+     * constraint will have soft limits, and mStiffness specifies the stiffness
+     * {@code k} in the spring equation: {@code F = -k * x - c * v} for a linear
+     * spring or {@code T = -k *
+     * theta - c * w} for an angular spring.
+     * <p>
+     * If negative, the constraint will have hard limits.
+     *
+     * @param stiffness (default=0)
+     * @return the modified settings, for chaining
+     */
+    public SpringSettings setStiffness(float stiffness) {
+        long settingsVa = va();
+        setStiffness(settingsVa, stiffness);
+
+        return this;
+    }
+    // *************************************************************************
+    // ConstSpringSettings methods
+
+    /**
      * Access the underlying {@code Constraint}, if any.
      *
-     * @return the pre-existing instance, or null if none
+     * @return the pre-existing instance, or {@code null} if none
      */
+    @Override
     public Constraint getConstraint() {
         JoltPhysicsObject container = getContainingObject();
         RefTarget result;
@@ -71,8 +179,9 @@ final public class SpringSettings extends JoltPhysicsObject {
     /**
      * Access the underlying {@code ConstraintSettings}, if any.
      *
-     * @return the pre-existing instance, or null if none
+     * @return the pre-existing instance, or {@code null} if none
      */
+    @Override
     public ConstraintSettings getConstraintSettings() {
         JoltPhysicsObject container = getContainingObject();
         RefTarget result;
@@ -100,6 +209,7 @@ final public class SpringSettings extends JoltPhysicsObject {
      *
      * @return the damping value
      */
+    @Override
     public float getDamping() {
         long settingsVa = va();
         float result = getDamping(settingsVa);
@@ -118,6 +228,7 @@ final public class SpringSettings extends JoltPhysicsObject {
      *
      * @return the frequency value
      */
+    @Override
     public float getFrequency() {
         long settingsVa = va();
         float result = getFrequency(settingsVa);
@@ -131,6 +242,7 @@ final public class SpringSettings extends JoltPhysicsObject {
      *
      * @return an enum value (not null)
      */
+    @Override
     public ESpringMode getMode() {
         long settingsVa = va();
         int ordinal = getMode(settingsVa);
@@ -153,6 +265,7 @@ final public class SpringSettings extends JoltPhysicsObject {
      *
      * @return the stiffness value
      */
+    @Override
     public float getStiffness() {
         long settingsVa = va();
         float result = getStiffness(settingsVa);
@@ -166,6 +279,7 @@ final public class SpringSettings extends JoltPhysicsObject {
      * @return {@code true} if valid (the constraint will have soft limits),
      * otherwise {@code false} (hard limits)
      */
+    @Override
     public boolean hasStiffness() {
         long settingsVa = va();
         boolean result = hasStiffness(settingsVa);
@@ -174,66 +288,25 @@ final public class SpringSettings extends JoltPhysicsObject {
     }
 
     /**
-     * Alter the spring's damping. (native attribute: mDamping)
-     * <p>
-     * When the mode is FrequencyAndDamping, this is the damping ratio (0 = no
-     * damping, 1 = critical damping). When the mode is StiffnessAndDamping,
-     * this is the damping coefficient {@code c} in the spring equation:
-     * {@code F = -k * x - c * v} for a linear spring or
-     * {@code T = -k * theta - c * w} for an angular spring.
+     * Save the settings to the specified binary stream. The settings are
+     * unaffected.
      *
-     * @param damping the desired damping (default=0)
+     * @param stream the stream to write to (not null)
      */
-    public void setDamping(float damping) {
+    @Override
+    public void saveBinaryState(StreamOut stream) {
         long settingsVa = va();
-        setDamping(settingsVa, damping);
-    }
-
-    /**
-     * Alter the spring's frequency. (native attribute: mFrequency)
-     * <p>
-     * Effective only when the mode is FrequencyAndDamping. If positive, the
-     * constraint will have soft limits, and mFrequency specifies the
-     * oscillation frequency in Hz. Otherwise, the constraint will have hard
-     * limits.
-     *
-     * @param frequency the desired frequency (default=0)
-     */
-    public void setFrequency(float frequency) {
-        long settingsVa = va();
-        setFrequency(settingsVa, frequency);
-    }
-
-    /**
-     * Alter how the spring is specified. (native attribute: mMode)
-     *
-     * @param mode the desired mode (not null, default=FrequencyAndDamping)
-     */
-    public void setMode(ESpringMode mode) {
-        long settingsVa = va();
-        int ordinal = mode.ordinal();
-        setMode(settingsVa, ordinal);
-    }
-
-    /**
-     * Alter the stiffness of the spring. (native attribute: mStiffness)
-     * <p>
-     * Effective only when the mode is StiffnessAndDamping. If positive, the
-     * constraint will have soft limits, and mStiffness specifies the stiffness
-     * {@code k} in the spring equation: {@code F = -k * x - c * v} for a linear
-     * spring or {@code T = -k *
-     * theta - c * w} for an angular spring.
-     * <p>
-     * If negative, the constraint will have hard limits.
-     *
-     * @param stiffness (default=0)
-     */
-    public void setStiffness(float stiffness) {
-        long settingsVa = va();
-        setStiffness(settingsVa, stiffness);
+        long streamVa = stream.va();
+        saveBinaryState(settingsVa, streamVa);
     }
     // *************************************************************************
     // native private methods
+
+    native private static long createCopy(long originalVa);
+
+    native private static long createDefault();
+
+    native private static void free(long settingsVa);
 
     native private static float getDamping(long settingsVa);
 
@@ -244,6 +317,11 @@ final public class SpringSettings extends JoltPhysicsObject {
     native private static float getStiffness(long settingsVa);
 
     native private static boolean hasStiffness(long settingsVa);
+
+    native private static void restoreBinaryState(
+            long settingsVa, long streamVa);
+
+    native private static void saveBinaryState(long settingsVa, long streamVa);
 
     native private static void setDamping(long settingsVa, float damping);
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Stephen Gold
+Copyright (c) 2024-2025 Stephen Gold
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,11 +37,33 @@ public class PhysicsMaterialSimple extends PhysicsMaterial {
      */
     public PhysicsMaterialSimple() {
         long materialVa = createDefault();
-        setVirtualAddress(materialVa, null); // not owner due to ref counting
+        setVirtualAddress(materialVa); // not owner due to ref counting
     }
 
     /**
-     * Instantiate a material.
+     * Instantiate a material with the specified native object assigned but not
+     * owned.
+     *
+     * @param materialVa the virtual address of the native object to assign (not
+     * zero)
+     */
+    PhysicsMaterialSimple(long materialVa) {
+        super(materialVa);
+    }
+
+    /**
+     * Instantiate a copy of the specified material.
+     *
+     * @param original the material to copy (not {@code null}, unaffected)
+     */
+    public PhysicsMaterialSimple(PhysicsMaterialSimple original) {
+        long originalVa = original.va();
+        long copyVa = createCopy(originalVa);
+        setVirtualAddress(copyVa); // not owner due to ref counting
+    }
+
+    /**
+     * Instantiate a material with the specified properties.
      *
      * @param name the desired name
      * @param color the desired color (not null, unaffected)
@@ -49,12 +71,14 @@ public class PhysicsMaterialSimple extends PhysicsMaterial {
     public PhysicsMaterialSimple(String name, ConstColor color) {
         int colorInt = color.getUInt32();
         long materialVa = create(name, colorInt);
-        setVirtualAddress(materialVa, null); // not owner due to ref counting
+        setVirtualAddress(materialVa); // not owner due to ref counting
     }
     // *************************************************************************
     // native private methods
 
     native private static long create(String name, int colorInt);
+
+    native private static long createCopy(long originalVa);
 
     native private static long createDefault();
 }

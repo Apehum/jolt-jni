@@ -1,0 +1,196 @@
+// Gradle script to build/publish Jolt-JNI Android artifacts
+
+import com.github.stephengold.build.BuildSrc
+
+plugins {
+    id 'maven-publish' // to publish artifacts to Maven repositories
+    id 'signing'       // to sign artifacts for publication
+
+    alias(libs.plugins.android.library) // to build Android libraries
+    alias(libs.plugins.validate.poms) // to verify POMs provide all info required by Maven Central
+}
+
+// $artifact and $jjVersion are set in the gradle.properties file
+// or by -P options on the Gradle command line.
+
+ext {
+    baseName = "${artifact}-${jjVersion}" // for artifacts
+    groupID = 'com.github.stephengold'
+    websiteUrl = 'https://github.com/stephengold/jolt-jni'
+}
+
+android {
+    buildTypes {
+        debug {
+            externalNativeBuild {
+                ndkBuild {
+                    cppFlags '-DJOLT_JNI_VERSION_STRING=' + jjVersion
+                    cppFlags '-DJPH_DEBUG_RENDERER'
+                    cppFlags '-DJPH_ENABLE_ASSERTS'
+                    cppFlags '-DJPH_OBJECT_STREAM'
+                }
+            }
+            jniDebuggable = true
+        }
+        release {
+            externalNativeBuild {
+                ndkBuild {
+                    cppFlags '-DJOLT_JNI_VERSION_STRING=' + jjVersion
+                    cppFlags '-DJPH_NO_DEBUG'
+                    cppFlags '-DJPH_OBJECT_STREAM'
+                }
+            }
+            minifyEnabled = true
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    compileSdk = 35
+
+    defaultConfig {
+        aarMetadata {
+            minCompileSdk = 33
+        }
+        minSdk = 33
+        ndk {
+            if (!project.hasProperty('target')) {
+                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+            } else if (target == 'Android_ARM7') {
+                abiFilters 'armeabi-v7a'
+            } else if (target == 'Android_ARM8') {
+                abiFilters 'arm64-v8a'
+            } else if (target == 'Android_X86') {
+                abiFilters 'x86'
+            } else if (target == 'Android_X86_64') {
+                abiFilters 'x86_64'
+            }
+        }
+        targetSdk = 33
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path 'Android.mk'
+        }
+    }
+    flavorDimensions 'precision'
+    namespace = groupID + '.joltjni'
+    ndkVersion = '28.1.13356709' // r28b
+    productFlavors {
+        if (!project.hasProperty('flavor') || flavor == 'Dp') {
+            Dp { // flavor with double-precision locations
+                dimension 'precision'
+                externalNativeBuild {
+                    ndkBuild {
+                        cppFlags '-DJPH_DOUBLE_PRECISION'
+                    }
+                }
+            }
+        }
+        if (!project.hasProperty('flavor') || flavor == 'Sp') {
+            Sp { // flavor with single-precision locations
+                dimension 'precision'
+            }
+        }
+    }
+    publishing {
+        multipleVariants('complete') {
+            allVariants()
+            withJavadocJar()
+            withSourcesJar()
+        }
+    }
+}
+
+dependencies {
+    testImplementation(libs.jsnaploader)
+    testImplementation(libs.junit4)      // framework for automated testing
+}
+
+// Register publishing tasks:
+
+tasks.register('install') {
+    dependsOn 'publishMavenPublicationToMavenLocal'
+    description = 'Installs Maven artifacts to the local repository.'
+}
+tasks.register('release') {
+    dependsOn 'publishMavenPublicationToOSSRHRepository'
+    description = 'Stages Maven artifacts to Sonatype OSSRH.'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            afterEvaluate { from components.complete }
+            artifactId = artifact
+            groupId = groupID
+            pom {
+                description = 'a JNI interface to Jolt Physics and V-HACD'
+                developers {
+                    developer {
+                        email = 'sgold@sonic.net'
+                        id = 'stephengold'
+                        name = 'Stephen Gold'
+                    }
+                }
+                inceptionYear = '2024'
+                licenses {
+                    license {
+                        distribution = 'repo'
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+                name = groupID + ':' + artifact
+                scm {
+                    connection = 'scm:git:git://github.com/stephengold/jolt-jni.git'
+                    developerConnection = 'scm:git:ssh://github.com:stephengold/jolt-jni.git'
+                    url = websiteUrl + '/tree/master'
+                }
+                url = websiteUrl
+            }
+            version = jjVersion
+        }
+    }
+
+    repositories {
+        maven { // the staging repo of Sonatype OSSRH
+
+            // Staging to OSSRH relies on the existence of 2 properties
+            // (ossrhUsername and ossrhPassword)
+            // which should be set in the ~/.gradle/gradle.properties file
+            // or by -P options on the command line.
+
+            credentials {
+                username = project.hasProperty('ossrhUsername') ? ossrhUsername : 'Unknown user'
+                password = project.hasProperty('ossrhPassword') ? ossrhPassword : 'Unknown password'
+            }
+            name = 'OSSRH'
+            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2'
+        }
+    }
+}
+publishMavenPublicationToMavenLocal.dependsOn('assemble')
+publishMavenPublicationToMavenLocal.doLast {
+    println 'installed locally as ' + baseName
+}
+
+// Register tasks to sign artifacts for publication:
+
+//   Signing relies on the existence of 2 properties
+//   (signingKeyEncoded and signingPassword)
+//   which should be set in the ~/.gradle/gradle.properties file
+//   or by -P options on the command line.
+
+signing {
+    String signingKey = BuildSrc.decodeBase64(findProperty('signingKeyEncoded'))
+    String signingPassword = findProperty('signingPassword')
+    useInMemoryPgpKeys(signingKey, signingPassword)
+
+    sign configurations.archives
+    sign publishing.publications.maven
+}
+tasks.withType(Sign).configureEach {
+    onlyIf { project.hasProperty('signingKeyEncoded') }
+}
