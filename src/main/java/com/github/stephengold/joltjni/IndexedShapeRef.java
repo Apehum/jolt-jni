@@ -76,6 +76,11 @@ public class IndexedShapeRef extends Ref {
         return result;
     }
 
+    /**
+     * Create another counted reference to the native {@code IndexedShape}.
+     *
+     * @return a new JVM object with a new native object assigned
+     */
     public IndexedShapeRef toRefC() {
         long refVa = va();
         long copyVa = toRefC(refVa);
