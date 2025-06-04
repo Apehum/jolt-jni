@@ -75,6 +75,14 @@ public class IndexedShapeRef extends Ref {
 
         return result;
     }
+
+    public IndexedShapeRef toRefC() {
+        long refVa = va();
+        long copyVa = toRefC(refVa);
+        IndexedShapeRef result = new IndexedShapeRef(copyVa, true);
+
+        return result;
+    }
     // *************************************************************************
     // native private methods
 
@@ -83,4 +91,6 @@ public class IndexedShapeRef extends Ref {
     native private static void free(long refVa);
 
     native private static long getPtr(long refVa);
+
+    native private static long toRefC(long refVa);
 }

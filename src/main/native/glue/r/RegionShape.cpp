@@ -16,7 +16,8 @@ IMPLEMENT_REF(IndexedShape,
   Java_com_github_stephengold_joltjni_IndexedShapeRef_copy,
   Java_com_github_stephengold_joltjni_IndexedShapeRef_createEmpty,
   Java_com_github_stephengold_joltjni_IndexedShapeRef_free,
-  Java_com_github_stephengold_joltjni_IndexedShapeRef_getPtr)
+  Java_com_github_stephengold_joltjni_IndexedShapeRef_getPtr,
+  Java_com_github_stephengold_joltjni_IndexedShapeRef_toRefC)
 
 /*
  * Class:     com_github_stephengold_joltjni_IndexedShape
