@@ -35,9 +35,9 @@ jobs:
         run: |
           ./gradlew -Ptarget=Linux64 runSmokeTestAll -x checkstyleMain -x checkstyleTest build install \
             --console=plain
-      - name: gradlew -Partifact=jolt-jni-Linux64 -Ptarget=Linux64 clean release
+      - name: gradlew -Partifact=jolt-jni-Linux64 -Ptarget=Linux64 clean publishSnapshot
         run: |
-          ./gradlew -Partifact=jolt-jni-Linux64 -Ptarget=Linux64 clean release \
+          ./gradlew -Partifact=jolt-jni-Linux64 -Ptarget=Linux64 clean publishSnapshot \
             --console=plain \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
@@ -56,9 +56,9 @@ jobs:
         run: |
           ./gradlew -Ptarget=Linux64_fma runSmokeTestAll -x checkstyleMain -x checkstyleTest build install \
             --console=plain
-      - name: gradlew -Partifact=jolt-jni-Linux64_fma -Ptarget=Linux64_fma clean release
+      - name: gradlew -Partifact=jolt-jni-Linux64_fma -Ptarget=Linux64_fma clean publishSnapshot
         run: |
-          ./gradlew -Partifact=jolt-jni-Linux64_fma -Ptarget=Linux64_fma clean release \
+          ./gradlew -Partifact=jolt-jni-Linux64_fma -Ptarget=Linux64_fma clean publishSnapshot \
             --console=plain \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
@@ -77,9 +77,9 @@ jobs:
         run: |
           ./gradlew -Pbt=Debug -Pflavor=Sp -Ptarget=MacOSX64 -x checkstyleMain -x checkstyleTest run runSmokeTestAll build install \
             --console=plain
-      - name: gradlew -Partifact=jolt-jni-MacOSX64 -Ptarget=MacOSX64 clean release
+      - name: gradlew -Partifact=jolt-jni-MacOSX64 -Ptarget=MacOSX64 clean publishSnapshot
         run: |
-          ./gradlew -Partifact=jolt-jni-MacOSX64 -Ptarget=MacOSX64 clean release \
+          ./gradlew -Partifact=jolt-jni-MacOSX64 -Ptarget=MacOSX64 clean publishSnapshot \
             --console=plain \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
@@ -98,9 +98,9 @@ jobs:
         run: |
           ./gradlew -Pbt=Debug -Pflavor=Dp -Ptarget=MacOSX_ARM64 -x checkstyleMain -x checkstyleTest runSmokeTestAll build install \
             --console=plain
-      - name: gradlew -Partifact=jolt-jni-MacOSX_ARM64 -Ptarget=MacOSX_ARM64 clean release
+      - name: gradlew -Partifact=jolt-jni-MacOSX_ARM64 -Ptarget=MacOSX_ARM64 clean publishSnapshot
         run: |
-          ./gradlew -Partifact=jolt-jni-MacOSX_ARM64 -Ptarget=MacOSX_ARM64 clean release \
+          ./gradlew -Partifact=jolt-jni-MacOSX_ARM64 -Ptarget=MacOSX_ARM64 clean publishSnapshot \
             --console=plain \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
@@ -120,9 +120,9 @@ jobs:
           ./gradlew -Ptarget=Windows64 runSmokeTestAll -x checkstyleMain -x checkstyleTest build install \
             --console=plain
         shell: bash
-      - name: gradlew -Partifact=jolt-jni-Windows64 -Ptarget=Windows64 clean release
+      - name: gradlew -Partifact=jolt-jni-Windows64 -Ptarget=Windows64 clean publishSnapshot
         run: |
-          ./gradlew -Partifact=jolt-jni-Windows64 -Ptarget=Windows64 clean release \
+          ./gradlew -Partifact=jolt-jni-Windows64 -Ptarget=Windows64 clean publishSnapshot \
             --console=plain  \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
@@ -143,9 +143,9 @@ jobs:
           ./gradlew -Ptarget=Windows64_avx2 runSmokeTestAll -x checkstyleMain -x checkstyleTest build install \
             --console=plain
         shell: bash
-      - name: gradlew -Partifact=jolt-jni-Windows64_avx2 -Ptarget=Windows64_avx2 clean release
+      - name: gradlew -Partifact=jolt-jni-Windows64_avx2 -Ptarget=Windows64_avx2 clean publishSnapshot
         run: |
-          ./gradlew -Partifact=jolt-jni-Windows64_avx2 -Ptarget=Windows64_avx2 clean release \
+          ./gradlew -Partifact=jolt-jni-Windows64_avx2 -Ptarget=Windows64_avx2 clean publishSnapshot \
             --console=plain  \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
@@ -169,9 +169,9 @@ jobs:
         run: |
           ./gradlew --build-file=android.gradle -Pflavor=Sp -Ptarget=Android_ARM8 install \
             --console=plain
-      - name: gradlew --build-file=android.gradle -Partifact=jolt-jni-Android -Pflavor=Sp clean release
+      - name: gradlew --build-file=android.gradle -Partifact=jolt-jni-Android -Pflavor=Sp clean publishSnapshot
         run: |
-          ./gradlew --build-file=android.gradle -Partifact=jolt-jni-Android -Pflavor=Sp clean release \
+          ./gradlew --build-file=android.gradle -Partifact=jolt-jni-Android -Pflavor=Sp clean publishSnapshot \
             --console=plain \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
@@ -193,9 +193,9 @@ jobs:
         run: |
           ./gradlew -Ptarget=Linux_ARM32hf install \
             --console=plain
-      - name: gradlew -Partifact=jolt-jni-Linux_ARM32hf -Ptarget=Linux_ARM32hf clean release
+      - name: gradlew -Partifact=jolt-jni-Linux_ARM32hf -Ptarget=Linux_ARM32hf clean publishSnapshot
         run: |
-          ./gradlew -Partifact=jolt-jni-Linux_ARM32hf -Ptarget=Linux_ARM32hf clean release \
+          ./gradlew -Partifact=jolt-jni-Linux_ARM32hf -Ptarget=Linux_ARM32hf clean publishSnapshot \
             --console=plain  \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
@@ -217,9 +217,9 @@ jobs:
         run: |
           ./gradlew -Ptarget=Linux_ARM64 assemble \
             --console=plain
-      - name: gradlew -Partifact=jolt-jni-Linux_ARM64 -Ptarget=Linux_ARM64 clean release
+      - name: gradlew -Partifact=jolt-jni-Linux_ARM64 -Ptarget=Linux_ARM64 clean publishSnapshot
         run: |
-          ./gradlew -Partifact=jolt-jni-Linux_ARM64 -Ptarget=Linux_ARM64 clean release \
+          ./gradlew -Partifact=jolt-jni-Linux_ARM64 -Ptarget=Linux_ARM64 clean publishSnapshot \
             --console=plain  \
             -PsnapshotsPassword='${{ secrets.SNAPSHOTS_PASSWORD }}' \
             -PsnapshotsUsername='${{ secrets.SNAPSHOTS_USERNAME }}'
