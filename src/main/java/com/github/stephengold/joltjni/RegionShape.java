@@ -27,7 +27,7 @@ package com.github.stephengold.joltjni;
  *
  * @author Apehum apehum@proton.me
  */
-public final class RegionShape extends Shape {
+final public class RegionShape extends Shape {
 
     // *************************************************************************
     // constructors
@@ -50,5 +50,5 @@ public final class RegionShape extends Shape {
     // *************************************************************************
     // native private methods
 
-    static native private void registerShape();
+    native private static void registerShape();
 }

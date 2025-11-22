@@ -33,7 +33,7 @@ import com.github.stephengold.joltjni.template.RefTarget;
  *
  * @author Apehum apehum@proton.me
  */
-public final class IndexedShape extends JoltPhysicsObject
+final public class IndexedShape extends JoltPhysicsObject
         implements ConstJoltPhysicsObject, RefTarget {
     // *************************************************************************
     // constructors
