@@ -50,6 +50,15 @@ public class RayCast extends JoltPhysicsObject {
         long raycastVa = createRayCast(startX, startY, startZ, dx, dy, dz);
         setVirtualAddress(raycastVa, () -> free(raycastVa));
     }
+
+    /**
+     * Instantiate a ray cast from virtual address.
+     *
+     * @param va a virtual address of raycast
+     */
+    public RayCast(long va) {
+        setVirtualAddress(va);
+    }
     // *************************************************************************
     // new methods exposed
 
